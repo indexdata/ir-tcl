@@ -4,7 +4,11 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.61  1995-07-20 08:09:39  adam
+# Revision 1.62  1995-08-04 11:32:37  adam
+# More work on output queue. Memory related routines moved
+# to mem.c
+#
+# Revision 1.61  1995/07/20  08:09:39  adam
 # client.tcl: Targets removed from hotTargets list when targets
 #  are removed/modified.
 # ir-tcl.c: More work on triggerResourceControl.
@@ -3094,6 +3098,6 @@ pack .bot.a.status .bot.a.set .bot.a.message \
         -side left -padx 2 -pady 2
 
 ir z39
-
+z39 logLevel all
 show-logo 1
 

@@ -6,7 +6,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: queue.c,v $
- * Revision 1.2  1995-08-03 13:23:01  adam
+ * Revision 1.3  1995-08-04 11:32:40  adam
+ * More work on output queue. Memory related routines moved
+ * to mem.c
+ *
+ * Revision 1.2  1995/08/03  13:23:01  adam
  * Request queue.
  *
  * Revision 1.1  1995/07/28  10:28:39  adam
@@ -21,19 +25,8 @@
 
 #include "ir-tclp.h"
 
-void *ir_tcl_malloc (size_t size)
-{
-    void *p = malloc (size);
-    if (!p)
-    {
-        logf (LOG_FATAL, "Out of memory. %d bytes requested", size);
-        exit (1);
-    }
-    return p;
-}
-
 int ir_tcl_send_APDU (Tcl_Interp *interp, IrTcl_Obj *p, Z_APDU *apdu,
-                      const char *msg)
+                      const char *msg, const char *object_name)
 {
     IrTcl_Request **rp;
 
@@ -49,12 +42,18 @@ int ir_tcl_send_APDU (Tcl_Interp *interp, IrTcl_Obj *p, Z_APDU *apdu,
         rp = &(*rp)->next;
     *rp = ir_tcl_malloc (sizeof(**rp));
     (*rp)->next = NULL;
+    
+    if (ir_tcl_strdup (interp, &(*rp)->object_name, object_name) == TCL_ERROR)
+        return TCL_ERROR;
+    if (ir_tcl_strdup (interp, &(*rp)->callback, p->callback) == TCL_ERROR)
+        return TCL_ERROR;
+    
     (*rp)->buf_out = odr_getbuf (p->odr_out, &(*rp)->len_out, NULL);
     odr_setbuf (p->odr_out, NULL, 0, 1);
     odr_reset (p->odr_out);
     if (p->state == IR_TCL_R_Idle)
     {
-        if (ir_tcl_send_q (p, *rp, msg) == TCL_ERROR)
+        if (ir_tcl_send_q (p, p->request_queue, msg) == TCL_ERROR)
         {
             sprintf (interp->result, "cs_put failed in %s", msg);
             return TCL_ERROR;
@@ -67,6 +66,7 @@ int ir_tcl_send_q (IrTcl_Obj *p, IrTcl_Request *rp, const char *msg)
 {
     int r;
 
+    assert (rp);
     r = cs_put (p->cs_link, rp->buf_out, rp->len_out);
     if (r < 0)
         return TCL_ERROR;
@@ -85,4 +85,21 @@ int ir_tcl_send_q (IrTcl_Obj *p, IrTcl_Request *rp, const char *msg)
     }
     return TCL_OK;
 }
+
+void ir_tcl_del_q (IrTcl_Obj *p)
+{
+    IrTcl_Request *rp, *rp1;
+
+    for (rp = p->request_queue; rp; rp = rp1)
+    {
+        free (rp->object_name);
+        free (rp->callback);
+        free (rp->buf_out);
+        rp1 = rp->next;
+        free (rp);
+    }
+    p->request_queue = NULL;
+}
+
+
 

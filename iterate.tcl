@@ -1,6 +1,10 @@
-# $Id: iterate.tcl,v 1.3 1995-06-26 10:26:16 adam Exp $
+# $Id: iterate.tcl,v 1.4 1995-08-04 11:32:40 adam Exp $
 #
 # Small test script which searches for science ...
+proc fail-back {} {
+    puts "Fail"
+}
+
 proc connect-response {} {
     z callback {init-response}
     ir-set z.1 z
@@ -41,7 +45,8 @@ proc present-response {} {
 }
 
 ir z
+z failback {fail-back}
 z databaseNames dummy
 z callback {connect-response}
-z connect localhost:9999
+z connect localhost:210
 

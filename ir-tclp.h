@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.13  1995-08-03 13:23:00  adam
+ * Revision 1.14  1995-08-04 11:32:40  adam
+ * More work on output queue. Memory related routines moved
+ * to mem.c
+ *
+ * Revision 1.13  1995/08/03  13:23:00  adam
  * Request queue.
  *
  * Revision 1.12  1995/07/28  10:28:38  adam
@@ -127,10 +131,6 @@ typedef struct {
    
     char       *buf_in;
     int         len_in;
-#if 0
-    char       *sbuf;
-    int         slen;
-#endif
     ODR         odr_in;
     ODR         odr_out;
     ODR         odr_pr;
@@ -142,24 +142,20 @@ typedef struct {
 #if CCL2RPN
     CCL_bibset  bibset;
 #endif
-
-    struct IrTcl_SetObj_ *set_child;
-    struct IrTcl_ScanObj_ *scan_child;
     struct IrTcl_Request_ *request_queue;
 
     IrTcl_SetCObj   set_inher;
 } IrTcl_Obj;
 
 typedef struct IrTcl_Request_ {
-    char       *name_of_object;
     struct IrTcl_Request_ *next; 
+
+    char       *object_name;
     
     char       *buf_out;
     int         len_out;
 
     char       *callback;
-    char       *failback;
-
 } IrTcl_Request;
 
 typedef struct {
@@ -245,8 +241,12 @@ struct ir_named_entry {
 int ir_tcl_get_marc (Tcl_Interp *interp, const char *buf,
                      int argc, char **argv);
 int ir_tcl_send_APDU (Tcl_Interp *interp, IrTcl_Obj *p, Z_APDU *apdu,
-                      const char *msg);
+                      const char *msg, const char *object_name);
 int ir_tcl_send_q (IrTcl_Obj *p, IrTcl_Request *rq, const char *msg);
+void ir_tcl_del_q (IrTcl_Obj *p);
+void *ir_tcl_malloc (size_t size);
+int ir_tcl_strdup (Tcl_Interp *interp, char** p, const char *s);
+int ir_tcl_strdel (Tcl_Interp *interp, char **p);
 
 char *ir_tcl_fread_marc (FILE *inf, size_t *size);
 

@@ -2,7 +2,8 @@
 set {profile(Penn)} {{Penn State's Library} 128.118.88.200 210 {} 16384 8192 tcpip CATALOG 1 {} {} Z39 2}
 set {profile(ztest)} {{test server} localhost 9999 {} 16384 4096 tcpip dummy 1 {} 1 Z39 3}
 set {profile(madison)} {{University of Wisconsin-Madison} z3950.adp.wisc.edu 210 {} 16384 8192 tcpip madison 1 {} {} Z39 22}
-set {profile(Default)} {{} {} {210} {} 16384 8192 tcpip {} 1 {} {} {} 27}
+set {profile(bibsys)} {{BIBSYS Target (YAZ-based)} z3950.bibsys.no 2100 {} 16384 8192 tcpip BIBSYS 1 {} 1 Z39 27}
+set {profile(Default)} {{} {} {210} {} 16384 8192 tcpip {} 1 {} {} {} 28}
 set {profile(RLG)} {{Research Libraries group} rlg.stanford.edu 210 {} 4096 4096 tcpip {BKS AMC MAPS MDF REC SCO SER VIM NAF SAF AUT CATALOG ABI AVI DSA EIP FLP HAP HST NPA PAI PRA WLI} 1 {} 1 Z39 5}
 set {profile(AT&T server)} {{AT&T Z39 Server} z3950.research.att.com 210 {} 16384 16384 tcpip Default 1 {} {} Z39 21}
 set {profile(LOC)} {{Library of Congress} IBM2.LOC.gov 2210 {} 16384 16384 tcpip {BOOKS NAMES} 1 {} 0 Z39 6}
