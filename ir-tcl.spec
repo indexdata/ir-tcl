@@ -1,12 +1,12 @@
 Summary: IrTcl - Tcl extension that implements the Z39.50 protocol.
 Name: ir-tcl
-Version: 1.3
+Version: 1.4
 Release: 1
 Copyright: none
 Group: Development/Libraries
 Vendor: Index Data ApS <info@indexdata.dk>
 Url: http://www.indexdata.dk/irtcl/
-Source: ir-tcl-1.3.tar.gz
+Source: ir-tcl-1.4.tar.gz
 Requires: tcl
 BuildRoot: /var/tmp/%{name}-%{version}-root
 Packager: Adam Dickmeiss <adam@indexdata.dk>
