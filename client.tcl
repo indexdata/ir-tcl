@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.83  1995-11-28 17:26:36  adam
+# Revision 1.84  1996-01-11 13:12:10  adam
+# Bug fix.
+#
+# Revision 1.83  1995/11/28  17:26:36  adam
 # Removed Carriage return from ir-tcl.c!
 # Removed misc. debug logs.
 #
@@ -2271,7 +2274,7 @@ proc save-geometry {} {
         return
     } 
     if {$hostid != "Default"} {
-        puts $f "set hostid $hostid"
+        puts $f "set hostid \{$hostid\}"
         set b [z39 databaseNames]
         puts $f "set hostbase $b"
     }
