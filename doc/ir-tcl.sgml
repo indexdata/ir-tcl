@@ -1,14 +1,14 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.22 1996-11-14 17:11:14 adam Exp $
+  $Id: ir-tcl.sgml,v 1.23 1997-04-13 19:01:45 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference 
 <author><htmlurl url="http://www.indexdata.dk/" name="Index Data">,
 <tt><htmlurl url="mailto:info@index.ping.dk" name="info@index.ping.dk"></tt>
-<date>$Revision: 1.22 $
+<date>$Revision: 1.23 $
 <abstract>
 This document describes IrTcl -- an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
@@ -653,7 +653,7 @@ The settings that affect the search are listed below:
 <tag><tt>replaceIndicator </tt><em>boolean</em></tag>
  Replace-indicator. Default true (1).
 <tag><tt>setName </tt><em>string</em></tag>
- Name of result set.
+ Name of result set. Default name of set is <tt/default/.
 <tag><tt>queryType rpn|ccl</tt></tag>
  Query type-1 or query type-2. Default rpn (type-1).
 <tag><tt>preferredRecordSyntax </tt><em>string</em></tag>

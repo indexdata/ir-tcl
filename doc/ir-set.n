@@ -1,6 +1,6 @@
 .\" Copyright (c) 1995, 1996 Index Data
 .\" All rights reserved.
-.\" $Id: ir-set.n,v 1.3 1996-11-14 17:11:13 adam Exp $
+.\" $Id: ir-set.n,v 1.4 1997-04-13 19:01:44 adam Exp $
 .TH ir-set N  "24 June 1996" "IrTcl" "IR Set"
 .SH NAME
 ir-set \- IR  set
@@ -25,7 +25,8 @@ Operations that are used to search a target:
 Sets the database(s) to be used in the following search request(s).
 .TP
 .BI "" zs " setName [" name "]"
-Sets/gets the name of the result-set to be (re)searched.
+Sets/gets the name of the result-set to be (re)searched. default name
+of result-set is \fBdefault\fR.
 .TP
 .BI "" zs " replaceIndicator [" b "]"
 Sets/gets the replace-indicator as 0 (false) or 1 (true); default is
@@ -139,7 +140,7 @@ Two special operators are supported:
 the \fB?\fR operator matches exactly one character;
 the \fB*\fR operator matches the whole item (don't care).
 The format of the data returned is determined by the \fItype\fR argument.
-If \fItype\fR is \fBfield\fR the matcing part of the record is returned
+If \fItype\fR is \fBline\fR the matcing part of the record is returned
 as a list of MARC tag specifications. Each MARC tag specification item
 consists of three elements: tag, indicator and field-list. The field-list
 part is a list of field specifications. Each field specification is a tuple

@@ -4,7 +4,11 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.98  1996-11-14 17:11:04  adam
+# Revision 1.99  1997-04-13 19:00:37  adam
+# Added support for Tcl8.0/Tk8.0.
+# New command ir-log-init to setup yaz logging facilities.
+#
+# Revision 1.98  1996/11/14 17:11:04  adam
 # Added Explain documentaion.
 #
 # Revision 1.97  1996/09/13  10:54:22  adam
@@ -4123,7 +4127,7 @@ if {[file exists ${libdir}/setup.tcl]} {
 }
 
 # Init: Uncomment this line if you wan't to enable logging.
-#z39 logLevel all
+ir-log-init all
 
 # Init: If hostid is a valid target, a new connection will be established
 # immediately.

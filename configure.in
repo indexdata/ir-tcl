@@ -1,7 +1,7 @@
 dnl IR toolkit for tcl/tk
 dnl (c) Index Data 1996
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.19 1996-09-03 13:52:09 adam Exp $
+dnl $Id: configure.in,v 1.20 1997-04-13 19:00:42 adam Exp $
 AC_INIT(ir-tcl.h)
 CC=${CC-cc}
 dnl ------ Substitutions
@@ -94,7 +94,7 @@ else
 	AC_CHECK_FUNC(gethostbyname, , AC_CHECK_LIB(nsl, main, [LIBS="$LIBS -lnsl"]))
 	AC_MSG_CHECKING(for Tcl)
 	TCL_VERSION=nope
-	for i in "" 7.4 7.5 7.6 7.7; do
+	for i in "" 7.4 7.5 7.6 8.0; do
 		if test -r ${tryprefix}/lib/libtcl${i}.a; then
 			TCL_VERSION=$i
 		fi
@@ -126,7 +126,7 @@ if test -r ${tryprefix}/lib/tkConfig.sh; then
 else
 	AC_MSG_CHECKING(for Tk)
 	TK_VERSION=nope
-	for i in "" 4.0 4.1 4.2 4.3; do
+	for i in "" 4.0 4.1 4.2 8.0; do
 		if test -r ${tryprefix}/lib/libtk${i}.a; then
 			TK_VERSION=$i
 		fi
