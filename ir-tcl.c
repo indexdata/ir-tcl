@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.58  1995-10-16 17:00:55  adam
+ * Revision 1.59  1995-10-17 12:18:58  adam
+ * Bug fix: when target connection closed, the connection was not
+ * properly reestablished.
+ *
+ * Revision 1.58  1995/10/16  17:00:55  adam
  * New setting: elementSetNames.
  * Various client improvements. Medium presentation format looks better.
  *
@@ -903,6 +907,8 @@ static int do_connect (void *obj, Tcl_Interp *interp,
             interp->result = "already connected";
             return TCL_ERROR;
         }
+        if (ir_tcl_strdup (interp, &p->hostname, argv[2]) == TCL_ERROR)
+            return TCL_ERROR;
         if (!strcmp (p->cs_type, "tcpip"))
         {
             p->cs_link = cs_create (tcpip_type, CS_BLOCK, p->protocol_type);
@@ -936,8 +942,6 @@ static int do_connect (void *obj, Tcl_Interp *interp,
                               p->cs_type, NULL);
             return TCL_ERROR;
         }
-        if (ir_tcl_strdup (interp, &p->hostname, argv[2]) == TCL_ERROR)
-            return TCL_ERROR;
         if ((r=cs_connect (p->cs_link, addr)) < 0)
         {
             interp->result = "connect fail";
@@ -957,6 +961,8 @@ static int do_connect (void *obj, Tcl_Interp *interp,
                 IrTcl_eval (p->interp, p->callback);
         }
     }
+    else
+        Tcl_AppendResult (interp, p->hostname, NULL);
     return TCL_OK;
 }
 
@@ -981,6 +987,8 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
         p->hostname = NULL;
         ir_select_remove_write (cs_fileno (p->cs_link), p);
         ir_select_remove (cs_fileno (p->cs_link), p);
+
+        odr_reset (p->odr_in);
 
         assert (p->cs_link);
         cs_close (p->cs_link);
@@ -2997,13 +3005,12 @@ void ir_select_read (ClientData clientData)
         {
             logf (LOG_DEBUG, "cs_get failed, code %d", r);
             ir_select_remove (cs_fileno (p->cs_link), p);
+            do_disconnect (p, NULL, 2, NULL);
             if (p->failback)
             {
                 p->failInfo = IR_TCL_FAIL_READ;
                 IrTcl_eval (p->interp, p->failback);
             }
-            do_disconnect (p, NULL, 2, NULL);
-
 	    /* release ir object now if callback deleted it */
 	    ir_obj_delete (p);
             return;
@@ -3016,13 +3023,12 @@ void ir_select_read (ClientData clientData)
         if (!z_APDU (p->odr_in, &apdu, 0))
         {
             logf (LOG_DEBUG, "%s", odr_errlist [odr_geterror (p->odr_in)]);
+            do_disconnect (p, NULL, 2, NULL);
             if (p->failback)
             {
                 p->failInfo = IR_TCL_FAIL_IN_APDU;
                 IrTcl_eval (p->interp, p->failback);
             }
-            do_disconnect (p, NULL, 2, NULL);
-
 	    /* release ir object now if failback deleted it */
 	    ir_obj_delete (p);
             return;
@@ -3058,12 +3064,12 @@ void ir_select_read (ClientData clientData)
             default:
                 logf (LOG_WARN, "Received unknown APDU type (%d)",
                       apdu->which);
+                do_disconnect (p, NULL, 2, NULL);
                 if (p->failback)
                 {
                     p->failInfo = IR_TCL_FAIL_UNKNOWN_APDU;
                     IrTcl_eval (p->interp, p->failback);
                 }
-                do_disconnect (p, NULL, 2, NULL);
                 return;
             }
         }

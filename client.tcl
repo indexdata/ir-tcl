@@ -4,7 +4,11 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.73  1995-10-17 10:58:06  adam
+# Revision 1.74  1995-10-17 12:18:57  adam
+# Bug fix: when target connection closed, the connection was not
+# properly reestablished.
+#
+# Revision 1.73  1995/10/17  10:58:06  adam
 # More work on presentation formats.
 #
 # Revision 1.72  1995/10/16  17:00:52  adam
@@ -381,6 +385,7 @@ proc set-wrap {m} {
 }
 
 proc dputs {m} {
+    puts $m
 }
 
 proc set-display-format {f} {
@@ -1067,6 +1072,7 @@ proc init-response {} {
     global cancelFlag
     global scanEnable
 
+    dputs {init-reponse}
     if {$cancelFlag} {
         close-target
         return
@@ -1099,6 +1105,9 @@ proc search-request {bflag} {
 
     set target $hostid
 
+    if {[z39 connect] == ""} {
+        return
+    }
     dputs "search-request"
     show-message {}
     if {!$bflag && $busy} {
@@ -1675,15 +1684,13 @@ proc define-target-dialog {} {
     top-down-ok-cancel $w {define-target-action} 1
 }
 
-proc protocol-setup-delete {target} {
+proc protocol-setup-delete {target w} {
     global profile
     global settingsChanged
 
     set a [alert "Are you sure you want to delete the target \
 definition $target ?"]
     if {$a} {
-        set wno [lindex $profile($target) 12]
-        set w .setup-${wno}
         destroy $w
         unset profile($target)
         set settingsChanged 1
@@ -1692,7 +1699,7 @@ definition $target ?"]
     }
 }
 
-proc protocol-setup-action {target} {
+proc protocol-setup-action {target w} {
     global profile
     global csRadioType
     global protocolRadioType
@@ -1701,9 +1708,6 @@ proc protocol-setup-action {target} {
     global CCLCheck
     global ResultSetCheck
 
-    set wno [lindex $profile($target) 12]
-    set w .setup-${wno}
-    
     set b {}
     set settingsChanged 1
     set len [$w.top.databases.list size]
@@ -1741,26 +1745,22 @@ proc place-force {window parent} {
     wm geometry $window +${x}+${y}
 }
 
-proc add-database-action {target} {
+proc add-database-action {target w} {
     global profile
-
-    set wno [lindex $profile($target) 12]
-    set w .setup-${wno}
 
     $w.top.databases.list insert end \
             [.database-select.top.database.entry get]
     destroy .database-select
 }
 
-proc add-database {target} {
+proc add-database {target wp} {
     global profile
 
     set w .database-select
     toplevel $w
     set oldFocus [focus]
  
-    set wno [lindex $profile($target) 12]
-    place-force $w .setup-${wno}
+    place-force $w $wp
 
     top-down-window $w
 
@@ -1770,17 +1770,15 @@ proc add-database {target} {
     
     entry-fields $w.top {database} \
             {{Database to add:}} \
-            [list add-database-action $target] {destroy .database-select}
+            [list add-database-action $target $wp] {destroy .database-select}
 
-    top-down-ok-cancel $w [list add-database-action $target] 1
+    top-down-ok-cancel $w [list add-database-action $target $wp] 1
     focus $oldFocus
 }
 
-proc delete-database {target} {
+proc delete-database {target w} {
     global profile
 
-    set wno [lindex $profile($target) 12]
-    set w .setup-${wno}
     set l {}
     foreach i [$w.top.databases.list curselection] {
         set b [$w.top.databases.list get $i]
@@ -1803,16 +1801,11 @@ proc protocol-setup {target} {
     global CCLCheck
     global ResultSetCheck
     
-    if {1} {
-        set wno [lindex $profile($target) 12]
-        set w .setup-${wno}
-    } else {
-        set b 0
-        while {[winfo exists .setup-$b]} {
-            incr b
-        }
-        set w .setup-$b
+    set b 0
+    while {[winfo exists .setup-$b]} {
+        incr b
     }
+    set w .setup-$b
 
     toplevelG $w
 
@@ -1846,13 +1839,13 @@ proc protocol-setup {target} {
             maximumRecordSize preferredMessageSize} \
             {{Description:} {Host:} {Port:} {Id Authentication:} \
             {Maximum Record Size:} {Preferred Message Size:}} \
-            [list protocol-setup-action $target] [list destroy $w]
+            [list protocol-setup-action $target $w] [list destroy $w]
     
     foreach sub {description host port idAuthentication \
             maximumRecordSize preferredMessageSize} {
         dputs $sub
-        bind $w.top.$sub.entry <Control-a> [list add-database $target]
-        bind $w.top.$sub.entry <Control-d> [list delete-database $target]
+        bind $w.top.$sub.entry <Control-a> [list add-database $target $w]
+        bind $w.top.$sub.entry <Control-d> [list delete-database $target $w]
     }
     $w.top.description.entry insert 0 [lindex $profile($target) 0]
     $w.top.host.entry insert 0 [lindex $profile($target) 1]
@@ -1873,10 +1866,10 @@ proc protocol-setup {target} {
     pack $w.top.databases -side left -pady 2 -padx 2 -expand yes -fill both
 
     label $w.top.databases.label -text "Databases"
-    button $w.top.databases.add -text "Add" \
-            -command [list add-database $target]
-    button $w.top.databases.delete -text "Delete" \
-            -command [list delete-database $target]
+    button $w.top.databases.add -text Add \
+            -command [list add-database $target $w]
+    button $w.top.databases.delete -text Delete \
+            -command [list delete-database $target $w]
     if {! [tk4]} {
         listbox $w.top.databases.list -geometry 14x6 \
                 -yscrollcommand "$w.top.databases.scroll set"
@@ -1936,8 +1929,8 @@ proc protocol-setup {target} {
             -padx 2 -side top -fill x
 
     # Ok-cancel
-    bottom-buttons $w [list {Ok} [list protocol-setup-action $target] \
-            {Delete} [list protocol-setup-delete $target] \
+    bottom-buttons $w [list {Ok} [list protocol-setup-action $target $w] \
+            {Delete} [list protocol-setup-delete $target $w] \
             {Cancel} [list destroy $w]] 0   
 }
 
@@ -3219,6 +3212,6 @@ if {[catch {ir z39}]} {
     ir z39
     puts "ok"
 }
-#z39 logLevel all
+z39 logLevel all
 show-logo 1
 

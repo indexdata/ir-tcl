@@ -6,7 +6,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: queue.c,v $
- * Revision 1.3  1995-08-04 11:32:40  adam
+ * Revision 1.4  1995-10-17 12:18:59  adam
+ * Bug fix: when target connection closed, the connection was not
+ * properly reestablished.
+ *
+ * Revision 1.3  1995/08/04  11:32:40  adam
  * More work on output queue. Memory related routines moved
  * to mem.c
  *
@@ -53,12 +57,15 @@ int ir_tcl_send_APDU (Tcl_Interp *interp, IrTcl_Obj *p, Z_APDU *apdu,
     odr_reset (p->odr_out);
     if (p->state == IR_TCL_R_Idle)
     {
+        logf (LOG_DEBUG, "send_apdu. Sending %s", msg);
         if (ir_tcl_send_q (p, p->request_queue, msg) == TCL_ERROR)
         {
             sprintf (interp->result, "cs_put failed in %s", msg);
             return TCL_ERROR;
         } 
     }
+    else
+        logf (LOG_DEBUG, "send_apdu. Not idle (%s)", msg);
     return TCL_OK;
 }
 
