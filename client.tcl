@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.29  1995-06-05 14:11:18  adam
+# Revision 1.30  1995-06-06 11:35:41  adam
+# Work on scan. Display of old sets.
+#
+# Revision 1.29  1995/06/05  14:11:18  adam
 # Bug fix in present-more.
 #
 # Revision 1.28  1995/06/02  14:52:13  adam
@@ -457,7 +460,7 @@ proc open-target {target base} {
     z39 failback [list fail-response $target]
     z39 callback [list connect-response $target]
     z39 connect [lindex $profile($target) 1]:[lindex $profile($target) 2]
-    z39 options search present scan namedResultSets triggerResourceCtrl
+#    z39 options search present scan namedResultSets triggerResourceCtrl
     show-status {Connecting} 1 {}
     set hostid $target
     .top.target.m disable 0
@@ -497,6 +500,9 @@ proc load-set-action {} {
         set no [z39.$setNo numberOfRecordsReturned]
         add-title-lines $setNo $no 1
     }
+    set l [format "%-4d %7d" $setNo $no]
+    .top.rset.m add command -label $l \
+            -command [list add-title-lines $setNo 10000 1]
     show-status {Ready} 0 {}
 }
 
@@ -594,13 +600,14 @@ proc scan-request {attr} {
     global profile
     global hostid
     global scanView
+    global scanTerm
 
     set target $hostid
     set scanView 0
+    set scanTerm {}
 
     ir-scan z39.scan z39
 
-    z39 callback [list scan-response $attr 0 25]
     if {![winfo exists $w]} {
         toplevel $w
         
@@ -609,7 +616,10 @@ proc scan-request {attr} {
         wm minsize $w 0 0
 
         top-down-window $w
-        
+
+        entry $w.top.entry -relief sunken 
+        pack $w.top.entry -fill x -padx 4 -pady 2
+        bind $w.top.entry <KeyRelease> [list scan-term-h $attr]
         if {1} {
             listbox $w.top.list -yscrollcommand [list $w.top.scroll set] \
                     -font fixed -geometry 50x14
@@ -628,17 +638,44 @@ proc scan-request {attr} {
         bind $w.top.list <Up> [list scan-up $attr]
         bind $w.top.list <Down> [list scan-down $attr]
     }
-    focus $w.top.list
+    focus $w.top.entry
+    z39 callback [list scan-response $attr 0 25]
     z39.scan numberOfTermsRequested 5
     z39.scan preferredPositionInResponse 1
-    z39.scan scan "${attr} b"
+    z39.scan scan "${attr} 0"
     
     show-status {Scan} 1 0
 }
 
+proc scan-term-h {attr} {
+    global busy
+    global scanTerm
+
+    if {$busy} {
+        return
+    }
+    set w .scan-window
+    set nScanTerm [$w.top.entry get]
+    if {$nScanTerm == $scanTerm} {
+        return
+    }
+    set scanTerm $nScanTerm
+    z39 callback [list scan-response $attr 0 25]
+    z39.scan numberOfTermsRequested 5
+    z39.scan preferredPositionInResponse 1
+    $w.top.list delete 0 end
+    puts "${attr} \{${scanTerm}\}"
+    if {$scanTerm == ""} {
+        z39.scan scan "${attr} 0"
+    } else {
+        z39.scan scan "${attr} \{${scanTerm}\}"
+    }
+    show-status {Scan} 1 0
+}
 
 proc scan-response {attr start toget} {
     global cancelFlag
+    global scanTerm
 
     set w .scan-window
     puts "In scan-response"
@@ -652,6 +689,21 @@ proc scan-response {attr start toget} {
         show-status {Ready} 0 1
         set cancelFlag 0
         return
+    }
+    set nScanTerm [$w.top.entry get]
+    if {$nScanTerm != $scanTerm} {
+        z39 callback [list scan-response $attr 0 25]
+        z39.scan numberOfTermsRequested 5
+        z39.scan preferredPositionInResponse 1
+        set scanTerm $nScanTerm
+        $w.top.list delete 0 end
+        puts "${attr} \{${scanTerm}\}"
+        if {$scanTerm == ""} {
+            z39.scan scan "${attr} 0"
+        } else {
+            z39.scan scan "${attr} \{${scanTerm}\}"
+        }
+        show-status {Scan} 1 0
     }
     if {$toget < 0} {
         for {set i 0} {$i < $m} {incr i} {
@@ -684,6 +736,7 @@ proc scan-response {attr start toget} {
             z39.scan numberOfTermsRequested $ntoget
         }
         z39.scan preferredPositionInResponse 1
+        puts "${attr} \{$q\}"
         z39.scan scan "${attr} \{$q\}"
         return
     }
@@ -691,7 +744,7 @@ proc scan-response {attr start toget} {
         set ntoget [expr - $toget - $m]
         puts ntoget=$ntoget
         z39 callback [list scan-response $attr 0 -$ntoget]
-        set q [string range [$w.top.list get 0] 7 end]
+        set q [string range [$w.top.list get 0] 8 end]
         puts "up continue: $q"
         if {$ntoget > 10} {
             z39.scan numberOfTermsRequested 10
@@ -700,6 +753,7 @@ proc scan-response {attr start toget} {
             z39.scan numberOfTermsRequested $ntoget
             z39.scan preferredPositionInResponse [incr ntoget]
         }
+        puts "${attr} \{$q\}"
         z39.scan scan "${attr} \{$q\}"
         return
     }
@@ -714,11 +768,12 @@ proc scan-down {attr} {
     set s [$w.top.list size]
     if {$scanView > $s} {
         z39 callback [list scan-response $attr [expr $s - 1] 30]
-        set q [string range [$w.top.list get [expr $s - 1]] 7 end]
+        set q [string range [$w.top.list get [expr $s - 1]] 8 end]
         puts "down: $q"
         z39.scan numberOfTermsRequested 10
         z39.scan preferredPositionInResponse 1
         show-status {Scan} 1 0
+        puts "${attr} \{$q\}"
         z39.scan scan "${attr} \{$q\}"
         return
     }
@@ -731,7 +786,7 @@ proc scan-up {attr} {
     set w .scan-window
     if {$scanView < 5} {
         z39 callback [list scan-response $attr 0 -30]
-        set q [string range [$w.top.list get 0] 7 end]
+        set q [string range [$w.top.list get 0] 8 end]
         puts "up: $q"
         z39.scan numberOfTermsRequested 10
         z39.scan preferredPositionInResponse 11
@@ -753,9 +808,12 @@ proc search-response {} {
     puts "In search-response"
     init-title-lines
     show-status {Ready} 0 1
-    show-message "[z39.$setNo resultCount] hits"
     set setMax [z39.$setNo resultCount]
-    if {$setMax == 0} {
+    show-message "${setMax} hits"
+    set l [format "%-4d %7d" $setNo $setMax]
+    .top.rset.m add command -label $l \
+            -command [list add-title-lines $setNo 10000 1]
+    if {$setMax <= 0} {
         set status [z39.$setNo responseStatus]
         if {[lindex $status 0] == "NSD"} {
             set code [lindex $status 1]
@@ -825,6 +883,9 @@ proc title-press {y setno} {
 }
 
 proc add-title-lines {setno no offset} {
+    if {$offset == 1} {
+        .data.list delete 0 end
+    }
     bind .data.list <Double-Button-1> [list title-press %y $setno]
     for {set i 0} {$i < $no} {incr i} {
         set o [expr $i + $offset]
@@ -842,7 +903,7 @@ proc add-title-lines {setno no offset} {
             }
             .data.list insert end "Error ${err}${add}"
         } elseif {$type == ""} {
-            .data.list insert end "empty"
+            break
         }
     }
 }
@@ -1247,17 +1308,17 @@ proc cascade-query-list {} {
     global queryTypes
 
     set i 0
-    .top.query.m.slist delete 0 last
+    .top.options.m.slist delete 0 last
     foreach n $queryTypes {
-        .top.query.m.slist add command -label $n \
+        .top.options.m.slist add command -label $n \
                 -command [list query-setup $i]
         incr i
     }
 
     set i 0
-    .top.query.m.clist delete 0 last
+    .top.options.m.clist delete 0 last
     foreach n $queryTypes {
-        .top.query.m.clist add command -label $n \
+        .top.options.m.clist add command -label $n \
                 -command [list query-select $i]
         incr i
     }
@@ -1721,7 +1782,6 @@ pack .bot -fill x
 menubutton .top.file -text "File" -underline 0 -menu .top.file.m
 menu .top.file.m
 .top.file.m add command -label "Save settings" -command {save-settings}
-.top.file.m add command -label "Load Set" -command {load-set}
 .top.file.m add separator
 .top.file.m add command -label "Exit" -command {exit-action}
 .top.file.m add separator
@@ -1761,17 +1821,16 @@ menu .top.service.m.present
 
 menubutton .top.rset -text "Set" -menu .top.rset.m
 menu .top.rset.m
-.top.rset.m add cascade -label "Select" -menu .top.rset.m.list
 .top.rset.m add command -label "Load" -command {load-set}
-menu .top.rset.m.list
+.top.rset.m add separator
 
-menubutton .top.query -text "Query" -underline 0 -menu .top.query.m
-menu .top.query.m
-.top.query.m add cascade -label "Choose" -menu .top.query.m.clist
-.top.query.m add command -label "Define" -command {new-query-dialog}
-.top.query.m add cascade -label "Edit" -menu .top.query.m.slist
-menu .top.query.m.clist
-menu .top.query.m.slist
+menubutton .top.options -text "Options" -underline 0 -menu .top.options.m
+menu .top.options.m
+.top.options.m add cascade -label "Choose query" -menu .top.options.m.clist
+.top.options.m add command -label "Define query" -command {new-query-dialog}
+.top.options.m add cascade -label "Edit query" -menu .top.options.m.slist
+menu .top.options.m.clist
+menu .top.options.m.slist
 cascade-query-list
 
 menubutton .top.help -text "Help" -menu .top.help.m
@@ -1782,7 +1841,7 @@ menu .top.help.m
 .top.help.m add command -label "About" \
         -command {tkerror "About not available. Sorry"}
 
-pack .top.file .top.target .top.rset .top.query .top.service -side left
+pack .top.file .top.target .top.service .top.rset .top.options -side left
 pack .top.help -side right
 
 index-lines .lines 1 $queryButtonsFind [lindex $queryInfo 0] activate-index
