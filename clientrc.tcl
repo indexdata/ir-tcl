@@ -1,13 +1,14 @@
 # Setup file
 set {profile(Penn)} {{Penn State's Library} 128.118.88.200 210 {} 16384 8192 tcpip CATALOG 1 {} {} Z39 2}
+set {profile(DanBib, SR)} {{SR Target DANBIB} 0103/find2.denet.dk 4500 {} 8192 8192 mosi danbib 1 {} 1 SR 8 {} {} {} {}}
 set {profile(AGRICOLA)} {AGRICOLA Tikal.dev.oclc.org 210 {} 50000 30000 tcpip AGRICOLA 1 {} {} Z39 31 2 0 0 4}
 set {profile(madison)} {{University of Wisconsin-Madison} z3950.adp.wisc.edu 210 {} 16384 8192 tcpip madison 1 {} {} Z39 22}
 set {profile(bibsys)} {{BIBSYS Target (YAZ-based)} z3950.bibsys.no 2100 {} 16384 8192 tcpip BIBSYS 1 {} 1 Z39 27}
-set {profile(Default)} {{} {} {210} {} 50000 30000 tcpip {} 1 {} {} {} 32 2 0 0 4}
+set {profile(Default)} {{} {} {210} {} 50000 30000 tcpip {} 1 {} {} {} 33 2 0 0 4}
 set {profile(RLG)} {{Research Libraries group} rlg.stanford.edu 210 {} 32768 32768 tcpip {DEM} 1 {} 1 Z39 5}
-set {profile(SRDANBIB)} {{SR Target DANBIB} 0103/find2.denet.dk 4500 {} 8192 8192 mosi danbib 1 {} 1 SR 8}
 set {profile(AT&T server)} {{AT&T Z39 Server} z3950.research.att.com 210 {} 90000 90000 tcpip Default 1 {} {} Z39 21 {} {} {} {}}
 set {profile(LOC)} {{Library of Congress} IBM2.LOC.gov 2210 {} 16384 16384 tcpip {BOOKS NAMES} 1 {} 0 Z39 6 {} {} {} {}}
+set {profile(DanBib)} {{Danish Union Catalogue} ir.dbc.bib.dk 2008 {} 50000 30000 tcpip danbib 1 {} {} Z39 32 2 0 0 4}
 set {profile(CARL)} {{CARL systems} z3950.marmot.org 210 {} 32768 32768 tcpip {ADA ASP CMC CNW DUR EAG LEW MST MPL MPS MON PTH PTK SWL VAI PVS COR SUM THR GAR SMG BUD CRM DEL GUN} 1 {} {} Z39 11}
 set {profile(CLSI)} {CLSI inet-gw.clsi.us.geac.com 210 {} 16384 8192 tcpip cl_default 1 {} {} Z39 13}
 set {profile(AULS)} {{Acadia university} auls.acadiau.ca 210 {} 16384 8192 tcpip AULS 1 {} {} Z39 14}
