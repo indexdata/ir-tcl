@@ -1,15 +1,16 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.14 1996-01-10 09:18:59 adam Exp $
+  $Id: ir-tcl.sgml,v 1.15 1996-01-10 11:15:41 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference
-<author>Index Data, <tt/info@index.ping.dk/
-<date>$Revision: 1.14 $
+<author><htmlurl url="http://130.225.252.168/" name="Index Data">,
+<tt><htmlurl url="mailto:info@index.ping.dk" name="info@index.ping.dk"></tt>
+<date>$Revision: 1.15 $
 <abstract>
-This document describes IrTcl &mdash; an information retrieval toolkit for
+This document describes IrTcl -- an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
 </abstract>
 
@@ -25,7 +26,7 @@ K. Ousterhout at the University of California &lsqb;ref 1&rsqb;.
 Tcl is a simple, somewhat shell-like, interpreted language. What
 makes Tcl attractive is that it also offers a C API, which makes
 extensions to the language possible. The most important Tcl extension is
-probably Tk &mdash; A Motif look-and-feel interface to the X window
+probably Tk -- A Motif look-and-feel interface to the X window
 system.
 
 To interface the Z39.50/SR protocol <sf/IrTcl/ uses <bf/YAZ/.
@@ -38,10 +39,10 @@ See &lsqb;ref 2&rsqb; for more information about the XTI/mOSI implementation.
 <sf/IrTcl/ provides two system environments:
 
 <itemize>
-<item> A simple command line shell &mdash; useful for
+<item> A simple command line shell -- useful for
 testing purposes.
 <item> A simple command line shell which operates within the Tk
- environment &mdash; makes it very easy to implement GUI clients.
+ environment -- makes it very easy to implement GUI clients.
 </itemize>
 
 <sect>Compilation and installation
@@ -50,13 +51,16 @@ testing purposes.
 In order to compile you need:
 <itemize>
 <item> An ANSI C compiler such as GNU C.
-<item> Tcl. Version 7.3 and 7.4 has been tested.
-<item> YAZ version 1.0b3 or higher.
+<item> <htmlurl url="http://www.sunlabs.com/research/tcl/" name="Tcl">.
+ Version 7.3, 7.4 and 7.5 has been tested.
+<item> <htmlurl url="http://130.225.252.168/yaz.html" name="Yaz">
+ version 1.0 patch level 3 or higher.
 </itemize>
 
 As an option you may want:
 <itemize>
-<item> Tk. Version 3.6, 4.0 and 4.1 has been tested.
+<item> <htmlurl url="http://www.sunlabs.com/research/tcl/" name="Tk">.
+Version 3.6, 4.0 and 4.1 has been tested.
 <item> XTI/mOSI
 </itemize>
 
@@ -96,35 +100,35 @@ Summary of files installed (the names refer to the Makefile variables):
 
 <descrip>
 <tag><tt>ir-tk</tt></tag> The <sf/IrTcl/ shell for Tk.
- Installed in <tt>BINDIR</tt> &mdash; defaults to
+ Installed in <tt>BINDIR</tt> -- defaults to
  <tt>/usr/local/bin</tt>. <tt>ir-tk</tt> works like
  <tt>wish</tt> &mdash without arguments it reads commands from stdin.
  A source file may be specified by option <tt>-f</tt>. <tt>ir-tk</tt>
  accept the same set of options as <tt>wish</tt>.
 <tag><tt>ir-tcl</tt></tag> The <sf/IrTcl/ shell for Tcl. Installed in
- <tt>BINDIR</tt> &mdash; defaults to <tt>/usr/local/bin</tt>.
+ <tt>BINDIR</tt> -- defaults to <tt>/usr/local/bin</tt>.
 <tag><tt>client.tcl</tt></tag> A graphical client for <tt>ir-tk</tt>.
  The client is installed as an executable script called <tt>irclient</tt> in
  <tt>BINDIR</tt>. This client needs a number of files, bitmaps, etc.
  The client looks for the files in the current directory &mdash if
  this fails it tries to look in the directory <tt>IRTCLDIR</tt>
- &mdash; defaults to <tt>/usr/local/lib/irtcl</tt>.
+ -- defaults to <tt>/usr/local/lib/irtcl</tt>.
 <tag><tt>libirtcl.a</tt></tag> The <sf/IrTcl/ library. 
- Installed in <tt>LIBDIR</tt> &mdash; defaults to <tt>/usr/local/lib</tt>.
+ Installed in <tt>LIBDIR</tt> -- defaults to <tt>/usr/local/lib</tt>.
 <tag><tt>ir-tcl.h</tt></tag> The <sf/IrTcl/ header file.
- Installed in <tt>INCDIR</tt> &mdash; defaults to <tt>/usr/local/include</tt>.
+ Installed in <tt>INCDIR</tt> -- defaults to <tt>/usr/local/include</tt>.
 <tag><tt>clientrc.tcl</tt></tag> A setup file with definitions
  of target and queries. Read and updated by <tt>client.tcl</tt>. Installed
- in <tt>IRTCLDIR</tt> &mdash; defaults to <tt>/usr/local/lib/irtcl</tt>.
+ in <tt>IRTCLDIR</tt> -- defaults to <tt>/usr/local/lib/irtcl</tt>.
 <tag><tt>formats/*</tt></tag> Display format files written
  in Tk. Read by <tt>client.tcl</tt>. Installed 
- in <tt>IRTCLDIR</tt> &mdash; defaults to <tt>/usr/local/lib/irtcl</tt>.
+ in <tt>IRTCLDIR</tt> -- defaults to <tt>/usr/local/lib/irtcl</tt>.
 <tag><tt>bitmaps/*</tt></tag> Various bitmap files. Read by
  <tt>client.tcl</tt>. Installed 
- in <tt>IRTCLDIR</tt> &mdash; defaults to <tt>/usr/local/lib/irtcl</tt>.
+ in <tt>IRTCLDIR</tt> -- defaults to <tt>/usr/local/lib/irtcl</tt>.
 <tag><tt>LICENSE</tt></tag> LICENSE file. Read by
  <tt>client.tcl</tt>. Installed 
- in <tt>IRTCLDIR</tt> &mdash; defaults to <tt>/usr/local/lib/irtcl</tt>.
+ in <tt>IRTCLDIR</tt> -- defaults to <tt>/usr/local/lib/irtcl</tt>.
 </descrip>
 
 <sect1>ir-tcl
@@ -293,7 +297,7 @@ consists of a single word <tt/science/.
 When the <tt/search-response/ procedure is called it defines
 a variable <tt/hits/ and sets it to the value of the setting
 <tt/resultCount/. If <tt/hits/ is positive a present-request is
-sent &mdash; asking for 5 records from position 1. 
+sent -- asking for 5 records from position 1. 
 
 Finally, a present response is received and the number of records
 returned is stored in the variable <tt/ret/.
@@ -545,7 +549,7 @@ presents are handled.
 A search operation and a result set is described by the ir set object.
 The ir set object is defined by the <tt/ir-set/ command which
 has two parameters. The first is the name of the new ir set object, and
-the second, which is optional, is the name of an assocation &mdash; an ir
+the second, which is optional, is the name of an assocation -- an ir
 object. The second argument is required if the ir set object should be able
 to perform searches and presents. However, it is not required if
 only ``local'' operations is done with the ir set object.
@@ -639,7 +643,7 @@ The settings that affect the search are listed below:
 <tag><tt>queryType rpn|ccl</tt></tag>
  Query type-1 or query type-2. Default rpn (type-1).
 <tag><tt>preferredRecordSyntax </tt><em>string</em></tag>
- Preferred record syntax &mdash; UNIMARC, USMARC, etc. 
+ Preferred record syntax -- UNIMARC, USMARC, etc. 
 <tag><tt>smallSetElementSetNames </tt><em>string</em></tag>
  small-set-element-set names. If <em>string</em> is empty
  the element set is not set. Default is empty (not set).
@@ -654,7 +658,7 @@ The settings that affect the search are listed below:
  Search-response Tcl script.
 <tag><tt>callback </tt><em>list</em></tag>
  General response Tcl script. Only used if searchResponse is not specified.
- This setting is valid only for the <tt/ir/ object &mdash; not the
+ This setting is valid only for the <tt/ir/ object -- not the
  <tt/ir-set/ object.
 </descrip>
 
@@ -694,7 +698,7 @@ empty if no additional information was returned by the target.
 target has returned one or more records. Each record may be
 either a database record or a surrogate diagnostic.
 
-<tag><tt>OK</tt></tag> indicates a successful operation &mdash; no records are
+<tag><tt>OK</tt></tag> indicates a successful operation -- no records are
 returned from the target. 
 </descrip>
 
@@ -771,14 +775,14 @@ are common to both situations.
 <p>
 The <tt/present/ action sends a present request. The <tt/present/ is
 followed by two optional integers. The first integer is the 
-result-set starting position &mdash; defaults to 1. The second integer 
-is the number of records requested &mdash; defaults to 10. 
+result-set starting position -- defaults to 1. The second integer 
+is the number of records requested -- defaults to 10. 
 The settings which could be modified before a <tt/present/
 action are:
 
 <descrip>
 <tag><tt>preferredRecordSyntax </tt><em>string</em></tag>
- preferred record syntax &mdash; UNIMARC, USMARC, etc.
+ preferred record syntax -- UNIMARC, USMARC, etc.
 <tag><tt>elementSetNames </tt><em>string</em></tag>
  Element-set names. If <em>string</em> is empty
  the element set is not set. Default is empty (not set).
@@ -788,7 +792,7 @@ action are:
  Present-response Tcl script. 
 <tag><tt>callback </tt><em>list</em></tag>
  General response Tcl script. Only used if presentResponse is not specified 
- This setting is valid only for the <tt/ir/ object &mdash; not the
+ This setting is valid only for the <tt/ir/ object -- not the
  <tt/ir-set/ object.
 </descrip>
 
@@ -922,7 +926,7 @@ that matches the mask specification. Only the content of fields
 is returned.
 
 The <tt/line/ type, on the other hand, returns a Tcl list that
-completely describe the layout of the MARC record &mdash; including
+completely describe the layout of the MARC record -- including
 tags, fields, etc.
 
 The <tt/field/ type is sufficient and efficient in the case, where only a
@@ -930,7 +934,7 @@ small number of fields are extracted, and in the case where no
 further processing (in Tcl) is necessary.
 
 However, if the MARC record is to be edited or altered in any way, the
-<tt/line/ extraction is more powerful &mdash; only limited by the Tcl
+<tt/line/ extraction is more powerful -- only limited by the Tcl
 language itself.
 
 <bf/Example/
@@ -1050,7 +1054,7 @@ a SUTRS record use the <tt>getSutrs</tt> followed by an index.
 
 <p>
 To perform scan, a scan object must be created by the <tt>ir-scan</tt>
-command. This command has two arguments &mdash; name of the scan object and
+command. This command has two arguments -- name of the scan object and
 name of the ir object. Basically, the scan object, provides one <tt>scan</tt>
 action which sends a scan request to the target. The <tt>action</tt>
 is followed by a string describing starting point of the term list. The
@@ -1075,7 +1079,7 @@ The settings that affect the scan are:
 <tag><tt>callback </tt><em>list</em></tag>
  General response Tcl script. Only used if <tt>scanResponse</tt>
  is not specified.
- This setting is valid only for the <tt/ir/ object &mdash; not the
+ This setting is valid only for the <tt/ir/ object -- not the
  <tt/ir-set/ object.
 </descrip>
 
@@ -1199,9 +1203,13 @@ Email: info@index.ping.dk
 <descrip>
 <tag>1 Ousterhout, John K.:</tag>
 Tcl and the Tk Toolkit. Addison-Wesley Company Inc (ISBN
-0-201-63337-X). Source and documentation
-can be found in <tt>URL:ftp://ftp.cs.berkeley.edu/pub/tcl</tt>
-and mirrors.
+0-201-63337-X). The Tcl/Tk toolkit home page is
+<tt><htmlurl url="http://www.sunlabs.com/research/tcl/"
+ name="http://www.sunlabs.com/research/tcl"></tt>.
+The primary ftp site is <tt><htmlurl url="ftp://ftp.smli.com/pub/tcl/"
+name="ftp://ftp.smli.com/pub/tcl/"></tt>.
+A mirror site can be found at <tt><htmlurl url="ftp://ftp.aud.alcatel.com/tcl/"
+name="ftp://ftp.aud.alcatel.com/tcl/"></tt>.
 <tag>2 Furniss, Peter:</tag>
 RFC 1698: Octet Sequences for Upper-Layer OSI to Support
 Basic Communications Applications.
