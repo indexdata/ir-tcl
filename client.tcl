@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.91  1996-03-27 17:00:53  adam
+# Revision 1.92  1996-03-29 16:04:30  adam
+# Work on GRS-1 presentation.
+#
+# Revision 1.91  1996/03/27  17:00:53  adam
 # Fix: main defined when using Tk3.6; it shouldn't be.
 #
 # Revision 1.90  1996/03/20  13:54:02  adam
@@ -422,7 +425,6 @@ set setMax 0
 # Procedure tkerror {err}
 #   err   error message
 # Override the Tk error handler function.
-if {0} {
 proc tkerror err {
     set w .tkerrorw
 
@@ -442,15 +444,17 @@ proc tkerror err {
 
     bottom-buttons $w [list {Close} [list destroy $w]] 1
 }
+
+# Read tag set file (if present)
+if {[file readable "${libdir}/tagsets.tcl"]} {
+    source "${libdir}/tagsets.tcl"
 }
 
 # Read the global configuration file.
 if {[file readable "clientrc.tcl"]} {
     source "clientrc.tcl"
-} else {
-    if {[file readable "${libdir}/clientrc.tcl"]} {
-        source "${libdir}/clientrc.tcl"
-    }
+} elseif {[file readable "${libdir}/clientrc.tcl"]} {
+    source "${libdir}/clientrc.tcl"
 }
 
 # Read the user configuration file.
