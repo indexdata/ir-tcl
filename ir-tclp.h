@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.29  1996-02-26 18:38:33  adam
+ * Revision 1.30  1996-02-29 15:30:23  adam
+ * Export of IrTcl functionality to extensions.
+ *
+ * Revision 1.29  1996/02/26  18:38:33  adam
  * Work on export of set methods.
  *
  * Revision 1.28  1996/02/23  17:31:41  adam
@@ -362,7 +365,8 @@ int ir_tcl_get_grs (Tcl_Interp *interp, IrTcl_GRS_Record *grs_record,
                      int argc, char **argv);
 
 int ir_tcl_method (Tcl_Interp *interp, int argc, char **argv,
-                   IrTcl_Methods *tab);
+                   IrTcl_Methods *tab, int *ret);
+int ir_tcl_get_set_int (int *val, Tcl_Interp *interp, int argc, char **argv);
 
 typedef struct {
     const char *name;

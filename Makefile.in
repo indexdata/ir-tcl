@@ -2,7 +2,7 @@
 # (c) Index Data 1995
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.29 1996-02-26 18:38:31 adam Exp $
+# $Id: Makefile.in,v 1.30 1996-02-29 15:30:19 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -66,14 +66,16 @@ ir-tk: libirtcl.a tkinit.o
 ir-tcl: libirtcl.a tclmain.o
 	$(CC) $(CFLAGS) tclmain.o -o ir-tcl libirtcl.a $(YAZLIB) $(TCLLIB) $(LIBS)
 
+WAISDIR=../freeWAIS-sf-2.0
+
 wais-tcl: libirtcl.a wais-tcl.o waismain.o
-	$(CC) $(CFLAGS) wais-tcl.o waismain.o -o wais-tcl libirtcl.a $(YAZLIB) $(TCLLIB) /home/proj/freeWAIS-sf/freeWAIS-sf-2.0.60/ir/libwais.a $(LIBS)
+	$(CC) $(CFLAGS) wais-tcl.o waismain.o -o wais-tcl libirtcl.a $(YAZLIB) $(TCLLIB) $(WAISDIR)/ir/libwais.a $(LIBS)
 
 waismain.o: tclmain.c
 	$(CC) -c $(CFLAGS) -DUSE_WAIS=1 $(DEFS) tclmain.c -o waismain.o
 
 wais-tcl.o: wais-tcl.c
-	$(CC) -c $(CFLAGS) -I/home/proj/freeWAIS-sf/freeWAIS-sf-2.0.60/ir $(DEFS) wais-tcl.c
+	$(CC) -c $(CFLAGS) -I$(WAISDIR)/ir $(DEFS) wais-tcl.c
 
 libirtcl.a: $(O)
 	rm -f libirtcl.a
@@ -156,5 +158,5 @@ distribution:
 .c.o:
 	$(CC) -c $(CFLAGS) $(DEFS) $<
 
-$(O) tkinit.o tclmain.o: ir-tcl.h ir-tclp.h
+$(O) tkinit.o tclmain.o wais-tcl.o waismain.o: ir-tcl.h ir-tclp.h
 

@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.81  1996-02-26 18:38:32  adam
+ * Revision 1.82  1996-02-29 15:30:21  adam
+ * Export of IrTcl functionality to extensions.
+ *
+ * Revision 1.81  1996/02/26  18:38:32  adam
  * Work on export of set methods.
  *
  * Revision 1.80  1996/02/23  17:31:39  adam
@@ -445,9 +448,9 @@ static void delete_IR_records (IrTcl_SetObj *setobj)
 }
 
 /*
- * get_set_int: Set/get integer value
+ * ir_tcl_get_set_int: Set/get integer value
  */
-static int get_set_int (int *val, Tcl_Interp *interp, int argc, char **argv)
+int ir_tcl_get_set_int (int *val, Tcl_Interp *interp, int argc, char **argv)
 {
     char buf[20];
     
@@ -464,7 +467,8 @@ static int get_set_int (int *val, Tcl_Interp *interp, int argc, char **argv)
 /*
  * ir_tcl_method: Search for method in table and invoke method handler
  */
-int ir_tcl_method (Tcl_Interp *interp, int argc, char **argv, IrTcl_Methods *tab)
+int ir_tcl_method (Tcl_Interp *interp, int argc, char **argv,
+                   IrTcl_Methods *tab, int *ret)
 {
     IrTcl_Methods *tab_i = tab;
     IrTcl_Method *t;
@@ -478,7 +482,10 @@ int ir_tcl_method (Tcl_Interp *interp, int argc, char **argv, IrTcl_Methods *tab
             }
             else
                 if (!strcmp (t->name, argv[1]))
-                    return (*t->method)(tab_i->obj, interp, argc, argv);
+                {
+                    *ret = (*t->method)(tab_i->obj, interp, argc, argv);
+                    return TCL_OK;
+                }
 
     if (argc <= 0)
         return TCL_OK;
@@ -489,14 +496,15 @@ int ir_tcl_method (Tcl_Interp *interp, int argc, char **argv, IrTcl_Methods *tab
         for (t = tab_i->tab; t->name; t++)
             Tcl_AppendResult (interp, " ", t->name, NULL);
 #endif
+    *ret = TCL_ERROR;
     return TCL_ERROR;
 }
 
 /*
- *  ir_named_bits: get/set named bits
+ *  ir_tcl_named_bits: get/set named bits
  */
-int ir_named_bits (struct ir_named_entry *tab, Odr_bitmask *ob,
-                   Tcl_Interp *interp, int argc, char **argv)
+int ir_tcl_named_bits (struct ir_named_entry *tab, Odr_bitmask *ob,
+                       Tcl_Interp *interp, int argc, char **argv)
 {
     struct ir_named_entry *ti;
     if (argc > 0)
@@ -689,7 +697,7 @@ static int do_options (void *obj, Tcl_Interp *interp,
         ODR_MASK_SET (&p->options, 14);
         return TCL_OK;
     }
-    return ir_named_bits (options_tab, &p->options, interp, argc-2, argv+2);
+    return ir_tcl_named_bits (options_tab, &p->options, interp, argc-2, argv+2);
 }
 
 /*
@@ -795,7 +803,7 @@ static int do_preferredMessageSize (void *obj, Tcl_Interp *interp,
         p->preferredMessageSize = 30000;
         return TCL_OK;
     }
-    return get_set_int (&p->preferredMessageSize, interp, argc, argv);
+    return ir_tcl_get_set_int (&p->preferredMessageSize, interp, argc, argv);
 }
 
 /*
@@ -811,7 +819,7 @@ static int do_maximumRecordSize (void *obj, Tcl_Interp *interp,
         p->maximumRecordSize = 30000;
         return TCL_OK;
     }
-    return get_set_int (&p->maximumRecordSize, interp, argc, argv);
+    return ir_tcl_get_set_int (&p->maximumRecordSize, interp, argc, argv);
 }
 
 /*
@@ -824,7 +832,7 @@ static int do_initResult (void *obj, Tcl_Interp *interp,
    
     if (argc <= 0)
         return TCL_OK;
-    return get_set_int (&p->initResult, interp, argc, argv);
+    return ir_tcl_get_set_int (&p->initResult, interp, argc, argv);
 }
 
 
@@ -1423,7 +1431,7 @@ static int do_replaceIndicator (void *obj, Tcl_Interp *interp,
         p->replaceIndicator = 1;
         return TCL_OK;
     }
-    return get_set_int (&p->replaceIndicator, interp, argc, argv);
+    return ir_tcl_get_set_int (&p->replaceIndicator, interp, argc, argv);
 }
 
 /*
@@ -1480,7 +1488,7 @@ static int do_smallSetUpperBound (void *o, Tcl_Interp *interp,
         p->smallSetUpperBound = 0;
         return TCL_OK;
     }
-    return get_set_int (&p->smallSetUpperBound, interp, argc, argv);
+    return ir_tcl_get_set_int (&p->smallSetUpperBound, interp, argc, argv);
 }
 
 /*
@@ -1496,7 +1504,7 @@ static int do_largeSetLowerBound (void *o, Tcl_Interp *interp,
         p->largeSetLowerBound = 2;
         return TCL_OK;
     }
-    return get_set_int (&p->largeSetLowerBound, interp, argc, argv);
+    return ir_tcl_get_set_int (&p->largeSetLowerBound, interp, argc, argv);
 }
 
 /*
@@ -1512,7 +1520,7 @@ static int do_mediumSetPresentNumber (void *o, Tcl_Interp *interp,
         p->mediumSetPresentNumber = 0;
         return TCL_OK;
     }
-    return get_set_int (&p->mediumSetPresentNumber, interp, argc, argv);
+    return ir_tcl_get_set_int (&p->mediumSetPresentNumber, interp, argc, argv);
 }
 
 /*
@@ -1708,6 +1716,7 @@ static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
 {
     IrTcl_Methods tab[3];
     IrTcl_Obj *p = clientData;
+    int r;
 
     if (argc < 2)
         return TCL_ERROR;
@@ -1718,7 +1727,8 @@ static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
     tab[1].obj = &p->set_inher;
     tab[2].tab = NULL;
     
-    return ir_tcl_method (interp, argc, argv, tab);
+    ir_tcl_method (interp, argc, argv, tab, &r);
+    return r;
 }
 
 /* 
@@ -1741,7 +1751,7 @@ static void ir_obj_delete (ClientData clientData)
     tab[1].obj = &obj->set_inher;
     tab[2].tab = NULL;
 
-    ir_tcl_method (NULL, -1, NULL, tab);
+    ir_tcl_method (NULL, -1, NULL, tab, NULL);
 
     ir_tcl_del_q (obj);
     odr_destroy (obj->odr_in);
@@ -1796,7 +1806,7 @@ int ir_obj_init (ClientData clientData, Tcl_Interp *interp,
     tab[1].obj = &obj->set_inher;
     tab[2].tab = NULL;
 
-    if (ir_tcl_method (interp, 0, NULL, tab) == TCL_ERROR)
+    if (ir_tcl_method (interp, 0, NULL, tab, NULL) == TCL_ERROR)
     {
         Tcl_AppendResult (interp, "Failed to initialize ", argv[1], NULL);
         return TCL_ERROR;
@@ -2054,7 +2064,7 @@ static int do_resultCount (void *o, Tcl_Interp *interp,
         obj->resultCount = 0;
         return TCL_OK;
     }
-    return get_set_int (&obj->resultCount, interp, argc, argv);
+    return ir_tcl_get_set_int (&obj->resultCount, interp, argc, argv);
 }
 
 /*
@@ -2067,7 +2077,7 @@ static int do_searchStatus (void *o, Tcl_Interp *interp,
 
     if (argc <= 0)
         return TCL_OK;
-    return get_set_int (&obj->searchStatus, interp, argc, argv);
+    return ir_tcl_get_set_int (&obj->searchStatus, interp, argc, argv);
 }
 
 /*
@@ -2080,7 +2090,7 @@ static int do_presentStatus (void *o, Tcl_Interp *interp,
 
     if (argc <= 0)
         return TCL_OK;
-    return get_set_int (&obj->presentStatus, interp, argc, argv);
+    return ir_tcl_get_set_int (&obj->presentStatus, interp, argc, argv);
 }
 
 /*
@@ -2097,7 +2107,8 @@ static int do_nextResultSetPosition (void *o, Tcl_Interp *interp,
         obj->nextResultSetPosition = 0;
         return TCL_OK;
     }
-    return get_set_int (&obj->nextResultSetPosition, interp, argc, argv);
+    return ir_tcl_get_set_int (&obj->nextResultSetPosition, interp,
+                               argc, argv);
 }
 
 /*
@@ -2136,7 +2147,8 @@ static int do_numberOfRecordsReturned (void *o, Tcl_Interp *interp,
         obj->numberOfRecordsReturned = 0;
         return TCL_OK;
     }
-    return get_set_int (&obj->numberOfRecordsReturned, interp, argc, argv);
+    return ir_tcl_get_set_int (&obj->numberOfRecordsReturned, interp,
+                               argc, argv);
 }
 
 /*
@@ -2605,6 +2617,7 @@ static int ir_set_obj_method (ClientData clientData, Tcl_Interp *interp,
 {
     IrTcl_Methods tabs[3];
     IrTcl_SetObj *p = clientData;
+    int r;
 
     if (argc < 2)
     {
@@ -2617,7 +2630,8 @@ static int ir_set_obj_method (ClientData clientData, Tcl_Interp *interp,
     tabs[1].obj = &p->set_inher;
     tabs[2].tab = NULL;
 
-    return ir_tcl_method (interp, argc, argv, tabs);
+    ir_tcl_method (interp, argc, argv, tabs, &r);
+    return r;
 }
 
 /* 
@@ -2636,7 +2650,7 @@ static void ir_set_obj_delete (ClientData clientData)
     tabs[1].obj = &p->set_inher;
     tabs[2].tab = NULL;
 
-    ir_tcl_method (NULL, -1, NULL, tabs);
+    ir_tcl_method (NULL, -1, NULL, tabs, NULL);
 
     free (p);
 }
@@ -2722,7 +2736,7 @@ static int ir_set_obj_init (ClientData clientData, Tcl_Interp *interp,
     tabs[0].obj = obj;
     tabs[1].tab = NULL;
 
-    if (ir_tcl_method (interp, 0, NULL, tabs) == TCL_ERROR)
+    if (ir_tcl_method (interp, 0, NULL, tabs, NULL) == TCL_ERROR)
         return TCL_ERROR;
 
     *subData = obj;
@@ -2883,7 +2897,7 @@ static int do_stepSize (void *obj, Tcl_Interp *interp,
         p->stepSize = 0;
         return TCL_OK;
     }
-    return get_set_int (&p->stepSize, interp, argc, argv);
+    return ir_tcl_get_set_int (&p->stepSize, interp, argc, argv);
 }
 
 /*
@@ -2899,7 +2913,7 @@ static int do_numberOfTermsRequested (void *obj, Tcl_Interp *interp,
         p->numberOfTermsRequested = 20;
         return TCL_OK;
     }
-    return get_set_int (&p->numberOfTermsRequested, interp, argc, argv);
+    return ir_tcl_get_set_int (&p->numberOfTermsRequested, interp, argc, argv);
 }
 
 
@@ -2916,7 +2930,8 @@ static int do_preferredPositionInResponse (void *obj, Tcl_Interp *interp,
         p->preferredPositionInResponse = 1;
         return TCL_OK;
     }
-    return get_set_int (&p->preferredPositionInResponse, interp, argc, argv);
+    return ir_tcl_get_set_int (&p->preferredPositionInResponse, interp,
+                               argc, argv);
 }
 
 /*
@@ -2929,7 +2944,7 @@ static int do_scanStatus (void *obj, Tcl_Interp *interp,
 
     if (argc <= 0)
         return TCL_OK;
-    return get_set_int (&p->scanStatus, interp, argc, argv);
+    return ir_tcl_get_set_int (&p->scanStatus, interp, argc, argv);
 }
 
 /*
@@ -2942,7 +2957,8 @@ static int do_numberOfEntriesReturned (void *obj, Tcl_Interp *interp,
 
     if (argc <= 0)
         return TCL_OK;
-    return get_set_int (&p->numberOfEntriesReturned, interp, argc, argv);
+    return ir_tcl_get_set_int (&p->numberOfEntriesReturned, interp,
+                               argc, argv);
 }
 
 /*
@@ -2955,7 +2971,7 @@ static int do_positionOfTerm (void *obj, Tcl_Interp *interp,
 
     if (argc <= 0)
         return TCL_OK;
-    return get_set_int (&p->positionOfTerm, interp, argc, argv);
+    return ir_tcl_get_set_int (&p->positionOfTerm, interp, argc, argv);
 }
 
 /*
@@ -3035,6 +3051,7 @@ static int ir_scan_obj_method (ClientData clientData, Tcl_Interp *interp,
                                int argc, char **argv)
 {
     IrTcl_Methods tabs[2];
+    int r;
 
     if (argc < 2)
     {
@@ -3045,7 +3062,8 @@ static int ir_scan_obj_method (ClientData clientData, Tcl_Interp *interp,
     tabs[0].obj = clientData;
     tabs[1].tab = NULL;
 
-    return ir_tcl_method (interp, argc, argv, tabs);
+    ir_tcl_method (interp, argc, argv, tabs, &r);
+    return r;
 }
 
 /* 
@@ -3060,7 +3078,7 @@ static void ir_scan_obj_delete (ClientData clientData)
     tabs[0].obj = obj;
     tabs[1].tab = NULL;
 
-    ir_tcl_method (NULL, -1, NULL, tabs);
+    ir_tcl_method (NULL, -1, NULL, tabs, NULL);
     free (obj);
 }
 
@@ -3091,7 +3109,7 @@ static int ir_scan_obj_mk (ClientData clientData, Tcl_Interp *interp,
     tabs[0].obj = obj;
     tabs[1].tab = NULL;
 
-    if (ir_tcl_method (interp, 0, NULL, tabs) == TCL_ERROR)
+    if (ir_tcl_method (interp, 0, NULL, tabs, NULL) == TCL_ERROR)
         return TCL_ERROR;
     Tcl_CreateCommand (interp, argv[1], ir_scan_obj_method,
                        (ClientData) obj, ir_scan_obj_delete);
