@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: tclmain.c,v $
- * Revision 1.7  1995-06-21 11:04:54  adam
+ * Revision 1.8  1995-06-21 15:16:44  adam
+ * More work on configuration.
+ *
+ * Revision 1.7  1995/06/21  11:04:54  adam
  * Uses GNU autoconf 2.3.
  * Install procedure implemented.
  * boook bitmaps moved to sub directory bitmaps.
@@ -24,7 +27,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#if HAVE_SYS_SELECT_H
+#ifdef _AIX
 #include <sys/select.h>
 #endif
 #include <assert.h>
