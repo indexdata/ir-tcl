@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.27 1996-08-21 13:32:49 adam Exp $
+$Id: CHANGELOG,v 1.28 1996-09-03 13:52:09 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -98,7 +98,7 @@ $Id: CHANGELOG,v 1.27 1996-08-21 13:32:49 adam Exp $
 07/26/96 Release of ir-tcl-1.2pl1
 ------------------------------------------------------
 
-08/09/96 Updated IrTcl to work with Tcl7.5/tk4.1 patch level 1. The
+08/09/96 Updated IrTcl to work with tcl7.5/tk4.1 patch level 1. The
          asynchronous I/O works much better on Windows now.
 
 08/09/96 Borland C 5 makefile supplied with IrTcl.
@@ -107,4 +107,8 @@ $Id: CHANGELOG,v 1.27 1996-08-21 13:32:49 adam Exp $
 
 08/21/96 loadFile method changed to use load records previously saved
          with saveFile.
+
+09/02/96 Updated IrTcl to work with tcl7.6b1/tk4.2b1.
+
+09/03/96 Bug fix: configure script could fail if yaz couldn't be located.
 
