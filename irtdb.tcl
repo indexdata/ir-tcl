@@ -192,7 +192,7 @@ set profile(LOC,targetMaxResultSize) {}
 set profile(LOC,targetMaxTerms) {}
 set profile(LOC,timeDefine) 878567355
 set profile(LOC,timeLastExplain) {}
-set profile(LOC,timeLastInit) 891519824
+set profile(LOC,timeLastInit) 897485131
 set profile(LOC,welcomeMessage) {}
 set profile(LOC,windowNumber) 12
 set {profile(OCLC FirstSearch,authentication)} {}
@@ -511,7 +511,7 @@ set profile(pica,smallSetUpperBound) 0
 set profile(pica,targetInfoName) Tolk2
 set profile(pica,timeDefine) {}
 set profile(pica,timeLastExplain) 893841938
-set profile(pica,timeLastInit) {}
+set profile(pica,timeLastInit) 897485351
 set profile(pica,welcomeMessage) {Welkom bij Pica!}
 set profile(pica,windowNumber) 1
 set profile(zno,authentication) {}
