@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.46  1995-06-19 13:06:06  adam
+# Revision 1.47  1995-06-19 14:05:29  adam
+# Bug fix: asked for SUTRS.
+#
+# Revision 1.46  1995/06/19  13:06:06  adam
 # New define: IR_TCL_VERSION.
 #
 # Revision 1.45  1995/06/19  08:08:44  adam
@@ -881,7 +884,6 @@ proc search-request {} {
     }
     incr setNo
     ir-set z39.$setNo z39
-    z39.$setNo preferredRecordSyntax SUTRS
 
     if {[lindex $profile($target) 10] == 1} {
         z39.$setNo setName $setNo
