@@ -4,7 +4,10 @@
  * See the file LICENSE for details.
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.125  2003-04-29 10:51:23  adam
+ * Revision 1.126  2003-11-29 17:24:09  adam
+ * Added getXml method (Franck Falcoz)
+ *
+ * Revision 1.125  2003/04/29 10:51:23  adam
  * Null terminate octet aligned records
  *
  * Revision 1.124  2003/03/05 22:02:47  adam
@@ -2756,6 +2759,41 @@ static int do_getSutrs (void *o, Tcl_Interp *interp, int argc, char **argv)
     return TCL_OK;
 }
 
+/*
+ * do_getXml: Get XML Record
+ */
+static int do_getXml (void *o, Tcl_Interp *interp, int argc, char **argv)
+{
+    IrTcl_SetObj *obj = o;
+    int offset;
+    IrTcl_RecordList *rl;
+
+    if (argc <= 0)
+        return TCL_OK;
+    if (argc != 3)
+    {
+        Tcl_AppendResult (interp, wrongArgs, *argv, " ", argv[1],
+                          " position\"", NULL);
+        return TCL_ERROR;
+    }
+    if (Tcl_GetInt (interp, argv[2], &offset)==TCL_ERROR)
+        return TCL_ERROR;
+    rl = find_IR_record (obj, offset);
+    if (!rl)
+    {
+        Tcl_AppendResult (interp, "No record at #", argv[2], NULL);
+        return TCL_ERROR;
+    }
+    if (rl->which != Z_NamePlusRecord_databaseRecord)
+    {
+        Tcl_AppendResult (interp, "No DB record at #", argv[2], NULL);
+        return TCL_ERROR;
+    }
+    if (!rl->u.dbrec.buf || rl->u.dbrec.type != VAL_TEXT_XML)
+        return TCL_OK;
+    Tcl_AppendElement (interp, rl->u.dbrec.buf);
+    return TCL_OK;
+}
 
 /*
  * do_getGrs: Get a GRS-1 Record
@@ -3303,6 +3341,7 @@ static IrTcl_Method ir_set_method_tab[] = {
     { "type",                    do_type, NULL},
     { "getMarc",                 do_getMarc, NULL},
     { "getSutrs",                do_getSutrs, NULL},
+    { "getXml",                  do_getXml, NULL},
     { "getGrs",                  do_getGrs, NULL},
     { "getExplain",              do_getExplain, NULL},
     { "recordType",              do_recordType, NULL},
