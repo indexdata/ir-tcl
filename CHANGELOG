@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.9 1996-01-04 16:12:09 adam Exp $
+$Id: CHANGELOG,v 1.10 1996-01-10 15:37:21 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -53,8 +53,14 @@ $Id: CHANGELOG,v 1.9 1996-01-04 16:12:09 adam Exp $
 ------------------------------------------------------
 10/16/95 New setting: ElementSetNames
 
-11/12/95:New setting: recordElements. This is used to get a record at
+11/12/95 New setting: recordElements. This is used to get a record at
          a position with a given element specification.
 
-04/01/96:New setting: eventType. Returns type of last event: connect, init,
+11/28/95 Release of ir-tcl-1.0
+------------------------------------------------------
+
+04/01/96 New setting: eventType. Returns type of last event: connect, init,
          search, present or scan.
+
+10/01/96 Implemented APDU specific callback handlers: initResponse,
+         searchResponse, presentResponse and scanResponse.
