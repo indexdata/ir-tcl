@@ -4,7 +4,11 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: medium.tcl,v $
-# Revision 1.12  1996-03-29 16:05:36  adam
+# Revision 1.13  1996-04-12 12:25:27  adam
+# Modified display of GRS-1 records to include headings for standard
+# tag sets.
+#
+# Revision 1.12  1996/03/29  16:05:36  adam
 # Bug fix: GRS records wasn't recognized.
 #
 # Revision 1.11  1996/01/23  15:24:23  adam
@@ -43,20 +47,25 @@
 #
 proc display-grs-medium {w r i} {
     global tagSet
-
+    
+    if {[tk4]} {
+        set start [$w index insert]
+    }
     foreach e $r {
-        for {set j 0} {$j < $i} {incr j} {
-            insertWithTags $w "  " marc-tag
+        if {![tk4]} {
+            for {set j 0} {$j < $i} {incr j} {
+                insertWithTags $w "  " marc-tag
+            }
         }
         set ttype [lindex $e 0]
         set tval [lindex $e 2]
         if {[info exists tagSet($ttype,$tval)]} {
-            insertWithTags $w "$tagSet($ttype,$tval) " marc-tag
+            insertWithTags $w "$tagSet($ttype,$tval) " marc-pref
         } else {
-            insertWithTags $w "$tval " marc-tag
+            insertWithTags $w "$tval " marc-pref
         }
         if {[lindex $e 3] == "string"} {
-            insertWithTags $w [lindex $e 4] {}
+            insertWithTags $w [lindex $e 4] marc-text
             insertWithTags $w "\n"
         } elseif {[lindex $e 3] == "subtree"} {
             insertWithTags $w "\n"
@@ -65,6 +74,12 @@ proc display-grs-medium {w r i} {
             insertWithTags $w [lindex $e 4] {}
             insertWithTags $w " ?\n" {}
         }
+    }
+    if {[tk4]} {
+        $w tag configure indent$i \
+                -lmargin1 [expr $i * 10] \
+                -lmargin2 [expr $i * 10 + 5]
+        $w tag add indent$i $start insert
     }
 }
 
