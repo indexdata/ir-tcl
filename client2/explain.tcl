@@ -1,21 +1,6 @@
-proc debug-window {} {
-	set w .debug-window
-    toplevel $w
-
-    wm title $w "Debug Window" 
-    
-    top-down-window $w
-	scrollbar $w.top.s -command [list $w.top.t yview]
-    text $w.top.t -width 60 -height 10 -wrap word -relief flat -borderwidth 0 \
-        -font fixed -yscroll [list $w.top.s set]
-    pack $w.top.s -side right -fill y
-    pack $w.top.t -expand yes -fill both -expand y
-}
-debug-window
-
 #Procedure get-attributeDetails
 #If the target supports explain the Attribute Details are extracted here.
-#The number 1.2.840.10003.3.1 is Bib1 and 1.2.840.10003.3.2 is Gils.
+#The number 1.2.840.10003.3.1 is Bib1, 1.2.840.10003.3.2 is Explain and 1.2.840.10003.3.5 is Gils.
 proc get-attributeDetails {target base} {
 	global profile
 	set index 1
@@ -34,6 +19,17 @@ proc get-attributeDetails {target base} {
 						if {[lindex [lindex $attributeType 0] 1] == 1} {
 							foreach attributeValues [lrange [lindex $attributeType 2] 1 end] {
 								lappend profile($target,AttributeDetails,$db,Bib1Use) [lindex [lindex [lindex $attributeValues 0] 1] 1]
+							}
+						}						
+					}
+				} elseif {[lindex [lindex $tagset 0] 1] == "1.2.840.10003.3.5"} {
+#					.debug-window.top.t insert end Gils\n
+					foreach attributeType [lindex $tagset 1] {
+#					.debug-window.top.t insert end [lindex $tagset 1]
+						if {[lindex [lindex $attributeType 0] 1] == 1} {
+							foreach attributeValues [lrange [lindex $attributeType 2] 1 end] {
+								lappend profile($target,AttributeDetails,$db,Gils) [lindex [lindex [lindex $attributeValues 0] 1] 1]
+#								.debug-window.top.t insert end [lindex [lindex [lindex $attributeValues 0] 1] 1]\n
 							}
 						}						
 					}

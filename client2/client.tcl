@@ -1,11 +1,29 @@
 wm title . "IrTcl Client"
-wm iconname . "IrTcl Client"
+#wm iconname . "IrTcl Client"
 
 
 # Procedure irmenu
 proc irmenu {w} {
 	menu $w -tearoff off
 }
+
+proc debug-window {} {
+	set w .debug-window
+    toplevel $w
+
+    wm title $w "Debug Window" 
+    
+    frame $w.top -relief raised -border 1
+    frame $w.bot -relief raised -border 1
+    pack  $w.top -side top -fill both -expand yes
+    pack  $w.bot -fill both
+	scrollbar $w.top.s -command [list $w.top.t yview]
+    text $w.top.t -width 60 -height 10 -wrap word -relief flat -borderwidth 0 \
+        -font fixed -yscroll [list $w.top.s set]
+    pack $w.top.s -side right -fill y
+    pack $w.top.t -expand yes -fill both -expand y
+}
+debug-window
 
     
 # Procedure configure-enable-e {w n}
@@ -40,12 +58,12 @@ set libdir LIBDIR
 # If the bitmaps sub directory is present with a bitmap we assume 
 # the client is run from the source directory in which case we
 # set libdir the current directory.
-if {[file readable bitmaps/book2]} {
+if {[file readable [file join bitmaps book2]]} {
     set libdir .
 }
 
 # Make a final check to see if libdir was set ok.
-if {! [file readable ${libdir}/bitmaps/book2]} {
+if {! [file readable [file join $libdir bitmaps book2]]} {
     puts "Cannot locate system files in ${libdir}. You must either run this"
     puts "program from the source directory root of ir-tcl or you must assure"
     puts "that it is installed - normally in /usr/local/lib/irtcl"
@@ -148,13 +166,14 @@ if {1} {
 }
 
 # Read tag set file (if present)
-if {[file readable "${libdir}/tagsets.tcl"]} {
-    source "${libdir}/tagsets.tcl"
+if {[file readable [file join $libdir tagsets.tcl]]} {
+	source [file join $libdir tagsets.tcl]
 }
 
 # Read the global target configuration file.
-if {[file readable "${libdir}/irtdb.tcl"]} {
-    source "${libdir}/irtdb.tcl"
+if {[file readable [file join $libdir irtdb.tcl]]} {
+#    source "${libdir}/irtdb.tcl"
+    source [file join $libdir irtdb.tcl]
 }
 # Read the local target configuration file.
 if {[file readable "irtdb.tcl"]} {
@@ -162,8 +181,9 @@ if {[file readable "irtdb.tcl"]} {
 }
 
 # Read the user configuration file.
-if {[file readable "${libdir}/.clientrc.tcl"]} {
-    source "${libdir}/.clientrc.tcl"
+if {[file readable [file join $libdir .clientrc.tcl]]} {
+#    source "${libdir}/.clientrc.tcl"
+    source [file join $libdir .clientrc.tcl]
 }
 
 source "bib-1.tcl"
@@ -216,7 +236,7 @@ proc read-formats {} {
     global libdir
 
     set oldDir [pwd]
-    cd ${libdir}/formats
+    cd [file join $libdir formats]
     set formats [glob {*.[tT][cC][lL]}]
     foreach f $formats {
 	if {[file readable $f]} {
@@ -332,18 +352,6 @@ proc TextEditable {w} {
     }
 }
 
-# Procedure post-menu {wbutton wmenu}
-#   wbutton    button widget
-#   wmenu      menu widget
-# Post menu near button. Note: not used.
-proc post-menu {wbutton wmenu} {
-    $wmenu activate none
-    focus $wmenu
-    $wmenu post [winfo rootx $wbutton] \
-            [expr [winfo rooty $wbutton]+[winfo height $wbutton]]
-
-}
-
 # Procedure destroyGW {w}
 #   w     top level widget
 # Saves geometry of widget w in windowGeometry array. This
@@ -421,13 +429,13 @@ proc bottom-buttons {w buttonList g} {
     frame $w.bot.$i -relief sunken -border 1
     pack $w.bot.$i -side left -expand yes -padx 2 -pady 2
     button $w.bot.$i.ok -text [lindex $buttonList $i] \
-		-command [lindex $buttonList [expr $i+1]]
+		-command [lindex $buttonList [expr $i + 1]]
     pack $w.bot.$i.ok -expand yes -padx 2 -pady 2 -side left
 
     incr i 2
     while {$i < $l} {
         button $w.bot.$i -text [lindex $buttonList $i] \
-                -command [lindex $buttonList [expr $i+1]]
+                -command [lindex $buttonList [expr $i + 1]]
         pack $w.bot.$i -expand yes -padx 2 -pady 2 -side left
         incr i 2
     }
@@ -484,12 +492,12 @@ proc show-logo {v1} {
         if {$v1==10} {
             set v1 1
         }
-        .bot.logo configure -bitmap @${libdir}/bitmaps/book${v1}
+        .bot.logo configure -bitmap @[file join $libdir bitmaps book${v1}] 
         after 140 [list show-logo $v1]
         return
     }
     while {1} {
-        .bot.logo configure -bitmap @${libdir}/bitmaps/book1
+        .bot.logo configure -bitmap @[file join $libdir bitmaps book1]
         tkwait variable busy
         if {$busy} {
             show-logo 1
@@ -593,8 +601,8 @@ proc popup-license {} {
     pack $w.top.s -side right -fill y
     pack $w.top.t -expand yes -fill both
 
-    if {[file readable "${libdir}/LICENSE"]} {
-        set f [open "${libdir}/LICENSE" r]
+    if {[file readable [file join $libdir LICENSE]]} {
+        set f [open [file join $libdir LICENSE] r]
         while {[gets $f buf] != -1} {
             $w.top.t insert end $buf
             $w.top.t insert end "\n"
@@ -651,7 +659,7 @@ proc about-origin-logo {n} {
     if {$n==10} {
         set n 1
     }
-    $w.top.a.logo configure -bitmap @${libdir}/bitmaps/book$n
+    $w.top.a.logo configure -bitmap @[file join $libdir bitmaps book$n]
     after 140 [list about-origin-logo $n]
 }
 
@@ -675,7 +683,7 @@ proc about-origin {} {
     pack $w.top.a $w.top.p -side top -fill x
     
     label $w.top.a.irtcl -text "IrTcl" -font $font(bb,bold)
-    label $w.top.a.logo -bitmap @${libdir}/bitmaps/book1 
+    label $w.top.a.logo -bitmap @[file join $libdir bitmaps book1] 
     pack $w.top.a.irtcl $w.top.a.logo -side left -expand yes
 
     set i unknown
@@ -903,7 +911,8 @@ proc fail-response {target} {
         apduDump
     }
     close-target
-    tkerror "$m ($c)"
+#    tkerror "$m ($c)"
+	bgerror "$m ($c)"
 }
 
 # Procedure connect-response {target base}
@@ -963,7 +972,8 @@ proc open-target {target base} {
     } errorMessage]
     if {$err} {
         set hostid Default
-        tkerror $errorMessage
+#        tkerror $errorMessage
+        bgerror $errorMessage
         show-status "Not connected" 0 {}
         show-target {} {}
         return
@@ -1059,7 +1069,8 @@ proc init-request {target base} {
     show-status Initializing 1 {}
     set err [catch {z39 init} errorMessage]
     if {$err} {
-        tkerror $errorMessage
+#        tkerror $errorMessage
+        bgerror $errorMessage
         show-status Ready 0 {}
     }
 }
@@ -1080,7 +1091,8 @@ proc init-response {target base} {
     if {![z39 initResult]} {
         set u [z39 userInformationField]
         close-target
-        tkerror "Connection rejected by target: $u"
+#        tkerror "Connection rejected by target: $u"
+        bgerror "Connection rejected by target: $u"
     } else {
 		z39 failback [list explain-crash $target $base]
         explain-check $target [list ready-response $base] $base
@@ -1148,14 +1160,14 @@ proc ready-response {base target} {
 #This procedure take care of all the actions that should start if connect is succesfull.
 proc ready-response-actions {target base} {
 	global profile queryAuto
-#	get-attributeDetails $target $base
-	changeQueryButtons $target $base 
+#	changeQueryButtons $target $base 
 	configureOptionsSyntax $target $base
 	if {[info exists profile($target,AttributeDetails,$base,Bib1Use)] && $queryAuto == 1} {
 		changeQueryButtons $target $base 
 		change-queryInfo $target $base
 		query-select 2
 		.top.options.m.query.slist entryconfigure 2 -state normal
+#		listbuttonx
 	} else {
 		query-select 0
 		.top.options.m.query.slist entryconfigure 2 -state disabled
@@ -1386,7 +1398,8 @@ proc scan-response {attr start toget} {
     }
     set status [z39.scan scanStatus]
     if {$status == 6} {
-        tkerror "Scan fail"
+#        tkerror "Scan fail"
+        bgerror "Scan fail"
         show-status Ready 0 1
         set cancelFlag 0
         return
@@ -1549,7 +1562,8 @@ proc search-response {} {
         set code [lindex $status 1]
         set msg [lindex $status 2]
         set addinfo [lindex $status 3]
-        tkerror "NSD$code: $msg: $addinfo"
+#        tkerror "NSD$code: $msg: $addinfo"
+        bgerror "NSD$code: $msg: $addinfo"
         return
     }
     show-message "${setMax} hits"
@@ -1716,7 +1730,8 @@ proc present-response {} {
         set code [lindex $status 1]
         set msg [lindex $status 2]
         set addinfo [lindex $status 3]
-        tkerror "NSD$code: $msg: $addinfo"
+#        tkerror "NSD$code: $msg: $addinfo"
+        bgerror "NSD$code: $msg: $addinfo"
         return
     }
     if {$no > 0 && $setOffset <= $setMax} {
@@ -1821,8 +1836,8 @@ proc place-force {window parent} {
     set g [wm geometry $parent]
     set p1 [string first + $g]
     set p2 [string last + $g]
-    set x [expr 40+[string range $g [expr $p1 +1] [expr $p2 -1]]]
-    set y [expr 60+[string range $g [expr $p2 +1] end]]
+    set x [expr 40+[string range $g [expr {$p1 + 1}] [expr {$p2 -1}]]]
+    set y [expr 60+[string range $g [expr {$p2 + 1}] end]]
     wm geometry $window +${x}+${y}
 }
 
@@ -2036,7 +2051,7 @@ proc cascade-target-list {} {
     .top.target.m.clist delete 0 last
     foreach nn [lsort [array names profile *,host]] {
 		if {[string length $profile($nn)]} {
-		    set ll [expr [string length $nn] - 6]
+		    set ll [expr {[string length $nn] - 6}]
 		    set n [string range $nn 0 $ll]
 		    
 		    set nl $profile($n,windowNumber)
@@ -2064,7 +2079,7 @@ proc cascade-target-list {} {
     }
     .top.target.m.slist delete 0 last
     foreach nn [lsort [array names profile *,host]] {
-		set ll [expr [string length $nn] - 6]
+		set ll [expr {[string length $nn] - 6}]
 		set n [string range $nn 0 $ll]
 	    .top.target.m.slist add command -label $n -command [list protocol-setup $n]
     }
@@ -2237,8 +2252,8 @@ proc save-geometry {} {
 proc save-settings {} {
     global profile libdir settingsChanged queryTypes queryButtons queryInfo queryAuto
 
-    if {[file writable "${libdir}/irtdb.tcl"]} {
-        set f [open "${libdir}/irtdb.tcl" w]
+    if {[file writable [file join $libdir irtdb.tcl]]} {
+        set f [open [file join $libdir irtdb.tcl] w]
     } else {
         set f [open "irtdb.tcl" w]
     }
@@ -2322,12 +2337,19 @@ proc listbuttonaction {w name h user i} {
 #  user    user argument to the $handle function
 # Makes an extended listbutton.
 proc listbuttonx {button no names handle user} {
+	set width 10
+	foreach name $names {
+		set buttonName [lindex $name 0]
+		if {[string length $buttonName] > $width} {
+			set width [string length $buttonName]
+		}
+	} 
     if {[winfo exists $button]} {
-        $button configure -text [lindex [lindex $names $no] 0]
+        $button configure -width $width -text [lindex [lindex $names $no] 0]
         ${button}.m delete 0 last
     } else {
         menubutton $button -text [lindex [lindex $names $no] 0] \
-			-width 15 -menu ${button}.m -relief raised -border 1
+			-width $width -menu ${button}.m -relief raised -border 1
         irmenu ${button}.m
         ${button}.m configure -tearoff off
     }
@@ -2365,7 +2387,7 @@ proc listbutton {button no names} {
 proc listbuttonv-action {button var names i} {
     global $var
 
-    set $var [lindex $names [expr $i+1]]
+    set $var [lindex $names [expr {$i+1}]]
     $button configure -text [lindex $names $i]
 }
 
@@ -2380,7 +2402,7 @@ proc listbuttonv {button var names} {
     global $var
 
     set n "-"
-    eval "set val $$var"
+    set val [set $var]
     set l [llength $names]
     for {set i 1} {$i < $l} {incr i 2} {
         if {$val == [lindex $names $i]} {
@@ -2689,7 +2711,7 @@ proc use-attr {init} {
         $w.top.use.list yview $s
     } else {
         set lno [lindex [$w.top.use.list curselection] 0]
-        set i [expr $lno+$lno+1]
+        set i [expr {$lno+$lno+1}]
         set useTmpValue [lindex $attr $i]
         dputs "useTmpValue=$useTmpValue"
     }
@@ -2766,8 +2788,8 @@ proc index-setup {attr queryNo indexNo} {
         set q [lindex $attr $i]
         set l [string first = $q]
         if {$l > 0} {
-            set t [string range $q 0 [expr $l - 1]]
-            set v [string range $q [expr $l + 1] end]
+            set t [string range $q 0 [expr {$l - 1}]]
+            set v [string range $q [expr {$l + 1}] end]
             switch $t {
                 1
                 { set useTmpValue $v }
@@ -3010,7 +3032,7 @@ proc index-query {} {
             set right 0
             if {[string index $term $len] == "?"} {
                 set right 1
-                set term [string range $term 0 [expr $len - 1]]
+                set term [string range $term 0 [expr {$len - 1}]]
             }
             if {[string index $term 0] == "?"} {
                 set left 1
@@ -3046,8 +3068,7 @@ proc index-query {} {
 #  w    index frame
 #  i    index number
 # This procedure handles <FocusIn> events. A red border is drawed
-# around the active search entry field when tk3.6 is used (tk4.X
-# makes a black focus border itself).
+# around the active search entry field.
 proc index-focus-in {w i} {
     global curIndexEntry
     $w.$i configure -background red
@@ -3099,7 +3120,7 @@ proc index-lines {w realOp buttonInfo queryInfo handle} {
     set j 0
     incr i -1
     while {$j < $i} {
-        set k [expr $j+1]
+        set k [expr {$j + 1}]
         bind $w.$j.e <Tab> "focus $w.$k.e"
         set j $k
     }
@@ -3127,8 +3148,6 @@ proc configureOptionsSyntax {target base} {
 				if {$activate == 0} {
 					$w invoke $i
 					set recordSyntax $syntax
-#					.debug-window.top.t insert end $recordSyntax\n
-#					.debug-window.top.t insert end $syntax
 					set activate 1
 				}
 			} else {
@@ -3281,8 +3300,8 @@ irmenu .top.options.m.elements
 menubutton .top.help -text "Help" -menu .top.help.m
 irmenu .top.help.m
 
-.top.help.m add command -label "Help on help" \
-        -command {tkerror "Help on help not available. Sorry"}
+#.top.help.m add command -label "Help on help" -command {tkerror "Help on help not available. Sorry"}
+.top.help.m add command -label "Help on help" -command {bgerror "Help on help not available. Sorry"}
 .top.help.m add command -label "About" -command {about-origin}
 
 # Init: Pack menu bar items.
@@ -3291,10 +3310,10 @@ pack .top.help -side right
 
 # Init: Define query area.
 index-lines .lines 1 $queryButtonsFind [lindex $queryInfo 0] activate-index
-image create photo scan -file ${libdir}/bitmaps/a-z.gif
-image create photo clear -file ${libdir}/bitmaps/trash.gif
-image create photo present -file ${libdir}/bitmaps/page.gif
-image create photo search -file ${libdir}/bitmaps/search.gif
+image create photo scan -file [file join $libdir bitmaps a-z.gif]
+image create photo clear -file [file join $libdir bitmaps trash.gif]
+image create photo present -file [file join $libdir bitmaps page.gif]
+image create photo search -file [file join $libdir bitmaps search.gif]
 button .mid.search -image search -command {search-request 0} -state disabled -relief flat
 button .mid.scan -image scan -command scan-request -state disabled -relief flat
 button .mid.present -image present -command [list present-more 10] -state disabled -relief flat
@@ -3326,7 +3345,7 @@ initBindings
 .data.record tag configure marc-it -font $font(n,normal) -foreground black
 
 # Init: Define logo.
-button .bot.logo -bitmap @${libdir}/bitmaps/book1 -command cancel-operation
+button .bot.logo -bitmap @[file join $libdir bitmaps book1] -command cancel-operation
 .bot.logo configure -takefocus 0
 
 # Init: Define status information fields at the bottom.
@@ -3348,17 +3367,17 @@ pack .bot.a.status .bot.a.set .bot.a.message -side left -padx 2 -pady 2 -ipadx 1
 if {[catch {ir z39}]} {
     set e [info sharedlibextension]
     puts -nonewline "Loading irtcl$e ..."
-    load ${libdir}/irtcl$e irtcl
+    load [file join $libdir irtcl$e] irtcl
     ir z39
     puts "ok"
 }
 
-if {[file exists ${libdir}/explain.tcl]} {
-    source ${libdir}/explain.tcl
+if {[file exists [file join $libdir explain.tcl]]} {
+    source [file join $libdir explain.tcl]
 }
 
 #if {[file exists ${libdir}/setup.tcl]} 
-    source ${libdir}/setup.tcl
+    source [file join $libdir setup.tcl]
 
 
 # Init: Uncomment this line if you wan't to enable logging.
