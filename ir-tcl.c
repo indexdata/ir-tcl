@@ -4,7 +4,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.17  1995-03-21 13:41:03  adam
+ * Revision 1.18  1995-03-21 15:50:12  adam
+ * Minor changes.
+ *
+ * Revision 1.17  1995/03/21  13:41:03  adam
  * Comstack cs_create not used too often. Non-blocking connect.
  *
  * Revision 1.16  1995/03/21  08:26:06  adam
@@ -1491,13 +1494,12 @@ void ir_select_read (ClientData clientData)
         if (r == 1)
             return;
         p->connectFlag = 0;
+        ir_select_remove_write (cs_fileno (p->cs_link), p);
         if (r < 0)
         {
             printf ("cs_rcvconnect error\n");
-            ir_select_remove_write (cs_fileno (p->cs_link), p);
             return;
         }
-        ir_select_remove_write (cs_fileno (p->cs_link), p);
         if (p->callback)
 	    Tcl_Eval (p->interp, p->callback);
         return;
