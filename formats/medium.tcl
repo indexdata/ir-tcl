@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: medium.tcl,v $
-# Revision 1.3  1995-06-13 14:39:06  adam
+# Revision 1.4  1995-06-14 12:16:42  adam
+# Minor presentation format changes.
+#
+# Revision 1.3  1995/06/13  14:39:06  adam
 # Fix: if {$var != ""} doesn't work if var is a large numerical!
 # Highlight when line format is used.
 #
@@ -22,12 +25,11 @@ proc display-medium {sno no w hflag} {
     }
     set i [z39.$sno getMarc $no field 245 * a]
     if {"x$i" != "x"} {
-        set i [lindex $i 0]
         insertWithTags $w "Title:      " marc-tag
-        insertWithTags $w $i marc-data
+        insertWithTags $w [string trimright [lindex $i 0] /] marc-data
         set i [z39.$sno getMarc $no field 245 * b]
         if {"x$i" != "x"} {
-            insertWithTags $w [lindex $i 0] marc-data
+            insertWithTags $w [string trimright [lindex $i 0] /] marc-data
         }
         $w insert end "\n"
     }

@@ -4,12 +4,14 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: raw.tcl,v $
-# Revision 1.2  1995-06-12 15:18:10  adam
+# Revision 1.3  1995-06-14 12:16:42  adam
+# Minor presentation format changes.
+#
+# Revision 1.2  1995/06/12  15:18:10  adam
 # Work on presentation formats. These are used in the main window as well
 # as popup windows.
 #
 #
-
 proc display-raw {sno no w hflag} {
     if {$hflag} {
         insertWithTags $w "\n$no\n" {}
