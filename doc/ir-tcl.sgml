@@ -1,14 +1,14 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.23 1997-04-13 19:01:45 adam Exp $
+  $Id: ir-tcl.sgml,v 1.24 1998-01-16 09:24:18 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference 
 <author><htmlurl url="http://www.indexdata.dk/" name="Index Data">,
-<tt><htmlurl url="mailto:info@index.ping.dk" name="info@index.ping.dk"></tt>
-<date>$Revision: 1.23 $
+<tt><htmlurl url="mailto:info@indexdata.dk" name="info@indexdata.dk"></tt>
+<date>$Revision: 1.24 $
 <abstract>
 This document describes IrTcl -- an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
@@ -36,14 +36,9 @@ However, the mOSI transport is only an option, and hence it is not
 needed unless you wish to communicate within an OSI environment.
 See &lsqb;ref 2&rsqb; for more information about the XTI/mOSI implementation.
 
-<sf/IrTcl/ provides two system environments:
-
-<itemize>
-<item> A simple command line shell -- useful for
-testing purposes.
-<item> A simple command line shell which operates within the Tk
- environment -- makes it very easy to implement GUI clients.
-</itemize>
+<sf/IrTcl/ is implemented as a <it/dynamic/ library (DLL) which is 
+dynamically loaded by using the <tt/load/ command. However, <sf/IrTcl/
+may also be compiled as a traditional <it/static/ library as well.
 
 <sect>Compilation and installation
 
@@ -51,16 +46,16 @@ testing purposes.
 In order to compile you need:
 <itemize>
 <item> An ANSI C compiler such as GNU C.
-<item> <htmlurl url="http://www.sunlabs.com/research/tcl/" name="Tcl">.
- Version 7.3, 7.4 and 7.5 has been tested.
+<item> <htmlurl url="http://sunscript.sun.com/TclTkCore/" name="Tcl">.
+ Version 7.X and 8.0 has been tested.
 <item> <htmlurl url="http://www.indexdata.dk/yaz.html" name="YAZ">
- version 1.2 or higher.
+ version 1.4 or higher.
 </itemize>
 
 As an option you may want:
 <itemize>
-<item> <htmlurl url="http://www.sunlabs.com/research/tcl/" name="Tk">.
-Version 3.6, 4.0 and 4.1 has been tested.
+<item> <htmlurl url="http://sunscript.sun.com/TclTkCore/" name="Tk">.
+Version 3.6, 4.X and 8.0 has been tested.
 <item> XTI/mOSI
 </itemize>
 
@@ -85,11 +80,14 @@ Compile <sf/IrTcl/ by typing:
 $ make
 </verb></tscreen>
 
-If you don't have Tk you will only be able to create the <tt>ir-tcl</tt>
-program and you must type <tt>make ir-tcl</tt> instead.
+For Tcl versions that support dynamic libraries the command above
+will create the shared library, <tt/irtcl.so/, as well as the
+normal static library, <tt/libirtcl.a/.
 
-If successful, this will make <tt>ir-tcl</tt>, <tt>ir-tk</tt> (if
-Tk is present) and a library called <tt>libirtcl.a</tt>.
+For Tcl versions that doesn't support dynamic libraries the
+command will create two shells will build-in <sf/IrTcl/ support --
+a Tcl shell called <tt/ir-tcl/ and a Tcl/Tk shell called <tt/ir-tk/.
+The traditional static library, <tt/libirtcl.a/, is build as well.
 
 To install the programs and support files type:
 <tscreen><verb>
@@ -104,71 +102,97 @@ $ make install.man
 Summary of files installed (the names refer to the Makefile variables):
 
 <descrip>
-<tag><tt>ir-tk</tt></tag> The <sf/IrTcl/ shell for Tk.
+<tag><tt>irtcl.so</tt></tag> The <sf/IrTcl/ shared dynamic library. 
+The actual name of this library vary. Installed in <tt>IRTCLDIR</tt>.
+This file is only generated when using newer versions of Tcl.
+
+<tag><tt>ir-tk</tt></tag> The <sf/IrTcl/ shell for Tk. This shell
+ is not needed when using a Tk that support for shared libraries is present.
  Installed in <tt>BINDIR</tt> -- defaults to
  <tt>/usr/local/bin</tt>. <tt>ir-tk</tt> works like
  <tt>wish</tt> &mdash without arguments it reads commands from stdin.
  A source file may be specified by option <tt>-f</tt>. <tt>ir-tk</tt>
  accept the same set of options as <tt>wish</tt>.
-<tag><tt>ir-tcl</tt></tag> The <sf/IrTcl/ shell for Tcl. Installed in
- <tt>BINDIR</tt> -- defaults to <tt>/usr/local/bin</tt>.
+
+<tag><tt>ir-tcl</tt></tag> The <sf/IrTcl/ shell for Tcl. This program
+ is not needed when using a Tcl that supports shared libraries. Installed
+ in <tt>BINDIR</tt> -- defaults to <tt>/usr/local/bin</tt>.
+
 <tag><tt>client.tcl</tt></tag> A graphical client for <tt>ir-tk</tt>.
  The client is installed as an executable script called <tt>irclient</tt> in
  <tt>BINDIR</tt>. This client needs a number of files, bitmaps, etc.
  The client looks for the files in the current directory &mdash if
  this fails it tries to look in the directory <tt>IRTCLDIR</tt>
  -- defaults to <tt>/usr/local/lib/irtcl</tt>.
+
 <tag><tt>libirtcl.a</tt></tag> The <sf/IrTcl/ library. 
  Installed in <tt>LIBDIR</tt> -- defaults to <tt>/usr/local/lib</tt>.
+
 <tag><tt>ir-tcl.h</tt></tag> The <sf/IrTcl/ header file.
  Installed in <tt>INCDIR</tt> -- defaults to <tt>/usr/local/include</tt>.
+
 <tag><tt>clientrc.tcl</tt></tag> A setup file with definitions
  of target and queries. Read and updated by <tt>client.tcl</tt>. Installed
  in <tt>IRTCLDIR</tt> -- defaults to <tt>/usr/local/lib/irtcl</tt>.
+
 <tag><tt>formats/*</tt></tag> Display format files written
  in Tk. Read by <tt>client.tcl</tt>. Installed 
  in <tt>IRTCLDIR</tt> -- defaults to <tt>/usr/local/lib/irtcl</tt>.
+
 <tag><tt>bitmaps/*</tt></tag> Various bitmap files. Read by
  <tt>client.tcl</tt>. Installed 
  in <tt>IRTCLDIR</tt> -- defaults to <tt>/usr/local/lib/irtcl</tt>.
+
 <tag><tt>LICENSE</tt></tag> LICENSE file. Read by
  <tt>client.tcl</tt>. Installed 
  in <tt>IRTCLDIR</tt> -- defaults to <tt>/usr/local/lib/irtcl</tt>.
 </descrip>
 
-<sect1>ir-tcl
+<sect1>Using Tcl
 
 <p>
-The <tt>ir-tcl</tt> program is a shell like <tt>tclsh</tt> except that
-<tt>ir-tcl</tt> features the new set of information retrieval commands. 
-Normally <tt>ir-tcl</tt> waits on <tt/stdin/ (for you to type commands) and
-on sockets events (connected to Z39.50/SR targets).
-You simply type the Tcl commands line by line. A filename may be specified as 
-argument to <tt>ir-tcl</tt> in which case the file specified is evaluated 
-as a script.
+Basic Tcl is handled by the program <tt/tclsh/. The script
+must use the <tt/load/ command to load the <sf/IrTcl/ dynamic
+library. If dynamic libraries are unsupported the <tt/ir-tcl/ program
+should be used instead, since that program is statically linked
+with the <sf/IrTcl/ library.
 
-<sect1>ir-tk
+So the static, non-dynamic, version goes like this:
+<tscreen><verb>
+   $ ir-tcl
+   % 
+</verb></tscreen>
+and the dynamic version goes like:
+<tscreen><verb>
+   $ tclsh
+   % load ./irtcl.tcl
+   %
+</verb></tscreen>
+  
+<sect1>Using Tk
 
 <p>
-<tt>ir-tk</tt> is a program that works like <tt>wish</tt> except that
-<tt>ir-tk</tt> include the new set of commands. All options accepted
-by <tt>wish</tt> are also accepted by <tt>ir-tk</tt>. 
+If your Tcl/Tk supports dynamic libraries you can use the
+<tt/load/ command as described in the previous section. If not,
+you must use the <tt>ir-tk</tt> shell that acts as <tt>wish</tt>
+except that it includes the <sf/IrTcl/ commands.
 
-The enclosed script <tt>client.tcl</tt> for <tt>ir-tk</tt> is a graphical 
-client which demonstates an example of a user interface for the Z39.50/SR 
-protocols. 
+The enclosed script <tt>client.tcl</tt> is a graphical client
+which demonstates an example of a user interface for the Z39.50/SR protocols. 
 At first the script was relatively small but it has grown since the 
 beginning. At present it is about 3000 lines. 
 
-The client can be started directly from the top level directory 
-of <sf/IrTcl/ by typing:
+To start the client using a dynamic library use:
 <tscreen><verb>
-$ ir-tk -f client.tcl
+$ wish -f client.tcl
 </verb></tscreen>
 
-Or, if you have installed <sf/IrTcl/ you may also type:
+Note: some installations a slightly different name for wish, eg.
+<tt/wish8.0/.
+
+To start the client without dynamic library support use:
 <tscreen><verb>
-$ irclient
+$ ir-tk -f client.tcl
 </verb></tscreen>
 
 The client lets up define targets and query types within the interface.
@@ -1066,12 +1090,131 @@ a SUTRS record use the <tt>getSutrs</tt> followed by an index.
 
 <sect1>GRS-1
 <p>
-To be written.
+A GRS-1 record in <sf/IrTcl/ is represented as a list of elements. 
+Each element specifies a tag as well as data. The data may
+be a subtree, which is represented as a list, and so on.
+
+The method <tt/getGrs/ is followed by a record index and
+optional specifiers that selects a specific sub-tree. Each element
+consists of 5 elements:
+
+<descrip>
+<tag>tag-set</tag> Tag set number.
+
+<tag>value-type</tag> Type of tag value. May be either
+<tt/numeric/ of <tt/string/.
+
+<tag>value</tag> The value it self.
+
+<tag>data-type</tag> May be either <tt/octets/, <tt/numeric/,
+<tt/ext/, <tt/string/, <tt/bool/, <tt/intUnit/, <tt/empty/,
+<tt/notRequested/, <tt/diagnostic/ or <tt/subtree/.
+
+<tag>data</tag>The data associated with element of given type as
+ indicated before. If data-type is <tt/numeric/ or <tt/string/
+ then data is encoded as a single Tcl token. The data-type <tt/bool/
+ is encoded as 0 or 1 for false and  true respectively. If the
+ data-type is <tt/subtree/ the data is a sub-list.
+ In all other cases, the data is the empty string.
+</descrip>
+
+<bf/Example/
+
+Consider the GRS-1 record below as shown by the Yaz client program:
+
+<tscreen><verb>
+(1,1) OID: GILS-schema
+(1,14) 2
+(2,1)  UTAH EARTHQUAKE EPICENTERS
+    class=4,type=1,value=us
+(4,52) UTAH GEOLOGICAL AND MINERAL SURVEY
+(3,Local-Subject-Index) APPALACHIAN VALLEY; EARTHQUAKE; EPICENTER
+(2,6)
+    (1,19) Five files of epicenter data arranged by ...
+    (3,Format) DIGITAL DATA SETS
+    (3,Data-Category) TERRESTRIAL
+    (3,Comments) Data are supplied by the University of Utah ...
+(4,70)
+    (4,90)
+        (2,10) UTAH GEOLOGICAL AND MINERAL SURVEY
+        (4,2) 606 BLACK HAWK WAY
+        (4,3) SALT LAKE CITY
+        (3,State) UT
+        (3,Zip-Code) 84108
+        (2,16) USA
+        (2,14) (801) 581-6831
+    (4,7) UTAH EARTHQUAKE EPICENTERS
+(4,1) ESDD0006
+(1,16) 198903
+</verb></tscreen>
+
+The record may be fetched from the result set, <tt/z.1/, at position 1
+by using:
+<tscreen><verb>
+z.1 getGrs 1 
+</verb></tscreen>
+which will return:
+<tscreen><verb>
+{ 1 numeric 1 oid 1.2.840.10003.13.2 }
+{ 1 numeric 14 string 2 }
+{ 2 numeric 1 string
+   { UTAH EARTHQUAKE EPICENTERS} }
+{ 4 numeric 52 string {UTAH GEOLOGICAL AND MINERAL SURVEY} }
+{ 3 string Local-Subject-Index string
+   {APPALACHIAN VALLEY; EARTHQUAKE; EPICENTER} }
+{ 2 numeric 6 subtree
+   { { 1 numeric 19 string
+      {Five files of epicenter data arranged by ...} }
+   { 3 string Format string {DIGITAL DATA SETS} }
+   { 3 string Data-Category string TERRESTRIAL }
+   { 3 string Comments string	
+      {Data are supplied by the University of Utah ...} } } }
+{ 4 numeric 70 subtree
+   { { 4 numeric 90 subtree
+      { { 2 numeric 10 string
+         {UTAH GEOLOGICAL AND MINERAL SURVEY} }
+      { 4 numeric 2 string {606 BLACK HAWK WAY} }
+      { 4 numeric 3 string {SALT LAKE CITY} }
+      { 3 string State string UT }
+      { 3 string Zip-Code string 84108 }
+      { 2 numeric 16 string USA }
+      { 2 numeric 14 string {(801) 581-6831} } } }
+      { 4 numeric 7 string {UTAH EARTHQUAKE EPICENTERS} } } }
+{ 4 numeric 1 string ESDD0006 }
+{ 1 numeric 16 string 198903 } 
+</verb></tscreen>
+
+We can choose only to get the path (2,6) by using:
+
+<tscreen><verb>
+z.1 getGrs 1 (2,6)
+</verb></tscreen>
+and we'll get:
+<tscreen><verb>
+{ 2 numeric 6 subtree { { 1 numeric 19 string
+   {Five files of epicenter data arranged by ...} }
+   { 3 string Format string {DIGITAL DATA SETS} }
+   { 3 string Data-Category string TERRESTRIAL }
+   { 3 string Comments
+      string {Data are supplied by the University of Utah ...} } } }
+</verb></tscreen>
+
+To get the well known (1,19) within the subject (2,6) we use
+<tscreen><verb>
+z.1 getGrs 1 (2,6) (1,19)
+</verb></tscreen>
+and get:
+<tscreen><verb>
+{ 2 numeric 6 subtree
+   { { 1 numeric 19 string
+      {Five files of epicenter data arranged by ...} } } }
+</verb></tscreen>
+<bf/End of example/
 
 <sect1>Explain
 <p>
 Explain records are retrieved like other records. The method,
-<tt>getExplain</tt> is followed by an index and, and an optional
+<tt>getExplain</tt> is followed by an index and and an optional
 Explain record pattern.
 
 The returned record is a canonical representation of the Explain record.
@@ -1248,7 +1391,7 @@ been created.
 <sect>License
 
 <p>
-Copyright &copy; 1995-1996, Index Data.
+Copyright &copy; 1995-1998, Index Data.
 
 Permission to use, copy, modify, distribute, and sell this software and
 its documentation, in whole or in part, for any purpose, is hereby granted,
@@ -1289,18 +1432,17 @@ development of quality software for open network communication.
 We'll be happy to answer questions about the software, and about ourselves
 in general.
 
-<tscreen>
-Index Data&nl
-Ryesgade 3&nl
-2200 K&oslash;benhavn N&nl
-DENMARK
-</tscreen>
-
+<tscreen><verb>
+Index Data
+Ryesgade 3
+2200 Copenhagen N
+Denmark
+</verb></tscreen>
 <p>
 <tscreen><verb>
 Phone: +45 3536 3672
 Fax  : +45 3536 0449
-Email: info@index.ping.dk
+Email: info@indexdata.dk
 </verb></tscreen>
 
 <sect>References
@@ -1311,16 +1453,14 @@ Email: info@index.ping.dk
 <tag>1 Ousterhout, John K.:</tag>
 Tcl and the Tk Toolkit. Addison-Wesley Company Inc (ISBN
 0-201-63337-X). The Tcl/Tk toolkit home page is
-<tt><htmlurl url="http://www.sunlabs.com/research/tcl/"
- name="http://www.sunlabs.com/research/tcl"></tt>.
+<tt><htmlurl url="http://www.sunscript.com"
+ name="http://www.sunscript.com"></tt>.
 The primary ftp site is <tt><htmlurl url="ftp://ftp.smli.com/pub/tcl/"
 name="ftp://ftp.smli.com/pub/tcl/"></tt>.
-A mirror site can be found at <tt>
-<htmlurl url="ftp://ftp.neosoft.com/pub/tcl/mirror/ftp.smli.com"
-name="ftp://ftp.neosoft.com/pub/tcl/mirror/ftp.smli.com"></tt>.
-<tag>2 Furniss, Peter:</tag>
-RFC 1698: Octet Sequences for Upper-Layer OSI to Support
-Basic Communications Applications.
+<tag>2 Welch, Brent B.:</tag>
+Practical Programming in Tcl and Tk. Prentice Hall
+(ISBN 0-13-616830-2).
+
 </descrip>
 
 </article>

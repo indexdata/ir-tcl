@@ -1,7 +1,7 @@
 dnl IR toolkit for tcl/tk
-dnl (c) Index Data 1996-1997
+dnl (c) Index Data 1996-1998
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.21 1997-04-30 07:26:07 adam Exp $
+dnl $Id: configure.in,v 1.22 1998-01-16 09:24:17 adam Exp $
 AC_INIT(ir-tcl.h)
 CC=${CC-cc}
 dnl ------ Substitutions
@@ -20,10 +20,18 @@ AC_SUBST(SHLIB_LD)
 AC_SUBST(SHLIB_SUFFIX)
 AC_SUBST(SHLIB_VERSION)
 AC_SUBST(SHLIB_IRTCL)
+AC_SUBST(ALL_SPEC)
+AC_SUBST(IRCLIENT_SHELL)
 dnl
 dnl ------ Preliminary settings
 AC_PROG_INSTALL
 AC_PREFIX_PROGRAM(tclsh)
+if test "x$prefix" = xNONE; then
+	AC_PREFIX_PROGRAM(tclsh8.0)
+fi
+if test "x$prefix" = xNONE; then
+	AC_PREFIX_PROGRAM(tclsh7.6)
+fi
 AC_STDC_HEADERS
 if test "$ac_cv_header_stdc" = no; then
 	AC_MSG_WARN(Your system doesn't seem to support ANSI C)
@@ -88,6 +96,7 @@ if test -r ${tryprefix}/lib/tclConfig.sh; then
 	SHLIB_SUFFIX=$TCL_SHLIB_SUFFIX
 	SHLIB_VERSION=$TCL_SHLIB_VERSION
 	SHLIB_IRTCL=irtcl${TCL_SHLIB_SUFFIX}
+	ALL_SPEC="irtcl${TCL_SHLIB_SUFFIX} libirtcl.a"
 	AC_MSG_RESULT($TCL_VERSION)
 else
         SHLIB_CFLAGS=""
@@ -128,6 +137,7 @@ else
 		TCLINC=-I${tryprefix}/include
 	fi
 	TCLLIB="${TCL_LIB_SPEC} ${LIBS} -lm"
+	ALL_SPEC="ir-tcl ir-tk"
 fi
 dnl 
 dnl ------ look for Tk
@@ -138,6 +148,7 @@ if test -r ${tryprefix}/lib/tkConfig.sh; then
 	AC_MSG_RESULT($TK_VERSION)
 	TKINC=${TK_XINCLUDES}
 	TKLIB="${TK_LIB_SPEC} ${TCL_LIB_SPEC} ${TK_LIBS}"
+	IRCLIENT_SHELL=wish${TK_VERSION}
 else
 	AC_MSG_CHECKING(for Tk)
 	TK_VERSION=nope
@@ -216,5 +227,6 @@ else
 	fi
 	TKINC=$XINCLUDES
 	TKLIB="${TKLIB} ${XLIBSW} ${TCLLIB}"
+	IRCLIENT_SHELL=ir-tk
 fi
 AC_OUTPUT(Makefile)

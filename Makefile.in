@@ -2,7 +2,7 @@
 # (c) Index Data 1995-1996
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.44 1997-11-24 11:36:33 adam Exp $
+# $Id: Makefile.in,v 1.45 1998-01-16 09:24:17 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -62,7 +62,7 @@ RANLIB = @RANLIB@
 
 O=ir-tcl.o marc.o queue.o mem.o grs.o explain.o select.o
 
-all: ir-tcl ir-tk
+all: @ALL_SPEC@
 
 ir-tk: libirtcl.a tkmain.o
 	$(CC) $(CFLAGS) tkmain.o -o ir-tk libirtcl.a $(YAZLIB) $(TKLIB) 
@@ -108,7 +108,7 @@ install.man:
 		done; \
 	fi
 
-install: ir-tcl
+install: @ALL_SPEC@
 	@for d in $(IRTCLDIR) $(IRTCLDIR)/formats $(IRTCLDIR)/bitmaps; do \
 		if [ ! -d $$d ]; then \
 			echo Making $$d; \
@@ -116,8 +116,14 @@ install: ir-tcl
 			chmod 755 $$d; \
 		fi; \
 	done;
-	@echo "Installing ir-tcl"
-	@$(INSTALL_PROGRAM) ir-tcl $(BINDIR)
+	@if [ -f ir-tcl ]; then \
+		echo "Installing ir-tcl"; \
+		$(INSTALL_PROGRAM) ir-tcl $(BINDIR); \
+	fi
+	@if [ -f @SHLIB_IRTCL@ ]; then \
+		echo "Installing @SHLIB_IRTCL@"; \
+		$(INSTALL_PROGRAM) @SHLIB_IRTCL@ $(IRTCLDIR); \
+	fi
 	@echo "Installing libirtcl.a"
 	@$(INSTALL_DATA) libirtcl.a $(LIBDIR)
 	@echo "Installing ir-tcl.h"
@@ -125,43 +131,43 @@ install: ir-tcl
 	@if [ -f ir-tk ]; then \
 		echo "Installing ir-tk"; \
 		$(INSTALL_PROGRAM) ir-tk $(BINDIR); \
-		echo "Installing irclient"; \
-		echo "#! $(BINDIR)/ir-tk -f" >head.bak; \
-		cat head.bak client.tcl| sed "s,^set libdir LIBDIR,set libdir $(IRTCLDIR)," >client.bak; \
-		$(INSTALL_PROGRAM) client.bak $(BINDIR)/irclient; \
-		if [ -f $(IRTCLDIR)/clientrc.tcl ]; then \
-			echo "clientrc.tcl already exists"; \
-			echo "Installing clientrc.tcl.n"; \
-			cp clientrc.tcl clientrc.tcl.n; \
-			$(INSTALL_DATA) clientrc.tcl.n $(IRTCLDIR); \
-			rm clientrc.tcl.n; \
-		else \
-			echo "Installing clientrc.tcl"; \
-			$(INSTALL_DATA) clientrc.tcl $(IRTCLDIR); \
+	fi; \
+	echo "Installing irclient"; \
+	echo "#! $(BINDIR)/@IRCLIENT_SHELL@ -f" >head.bak; \
+	cat head.bak client.tcl| sed "s,^set libdir LIBDIR,set libdir $(IRTCLDIR)," >client.bak; \
+	$(INSTALL_PROGRAM) client.bak $(BINDIR)/irclient; \
+	if [ -f $(IRTCLDIR)/clientrc.tcl ]; then \
+		echo "clientrc.tcl already exists"; \
+		echo "Installing clientrc.tcl.n"; \
+		cp clientrc.tcl clientrc.tcl.n; \
+		$(INSTALL_DATA) clientrc.tcl.n $(IRTCLDIR); \
+		rm clientrc.tcl.n; \
+	else \
+		echo "Installing clientrc.tcl"; \
+		$(INSTALL_DATA) clientrc.tcl $(IRTCLDIR); \
+	fi; \
+	for f in *.tcl; do \
+		echo "Installing $$f"; \
+		$(INSTALL_DATA) $$f $(IRTCLDIR); \
+	done; \
+	echo "Installing LICENSE" ; \
+	$(INSTALL_DATA) LICENSE $(IRTCLDIR); \
+	echo "Installing display format scripts"; \
+	for b in formats/*.tcl; do \
+		if [ -f $$b ]; then \
+			$(INSTALL_DATA) $$b $(IRTCLDIR)/formats; \
 		fi; \
-		for f in *.tcl; do \
-			echo "Installing $$f"; \
-			$(INSTALL_DATA) $$f $(IRTCLDIR); \
-		done; \
-		echo "Installing LICENSE" ; \
-		$(INSTALL_DATA) LICENSE $(IRTCLDIR); \
-		echo "Installing display format scripts"; \
-		for b in formats/*.tcl; do \
-			if [ -f $$b ]; then \
-				$(INSTALL_DATA) $$b $(IRTCLDIR)/formats; \
-			fi; \
-		done; \
-		echo "Installing bitmaps"; \
-		for b in bitmaps/*; do \
-			if [ -f $$b ]; then \
-				$(INSTALL_DATA) $$b $(IRTCLDIR)/bitmaps; \
-			fi; \
-		done; \
-	fi; 
+	done; \
+	echo "Installing bitmaps"; \
+	for b in bitmaps/*; do \
+		if [ -f $$b ]; then \
+			$(INSTALL_DATA) $$b $(IRTCLDIR)/bitmaps; \
+		fi; \
+	done
 
 clean:
 	rm -f *.[oa] ir-tk ir-tcl wais-tcl core 
-	rm -f gmon.out mon.out *.bak config.cache @SHLIB_IRTCL@
+	rm -f *mon.out *.bak config.cache @SHLIB_IRTCL@
 
 autoconf:
 	-rm config.cache
