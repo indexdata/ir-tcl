@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.76  1995-10-18 15:15:20  adam
+# Revision 1.77  1995-10-18 15:37:46  adam
+# Piggy-back present.
+#
+# Revision 1.76  1995/10/18  15:15:20  adam
 # Fixed bug.
 #
 # Revision 1.75  1995/10/17  14:18:05  adam
@@ -1480,6 +1483,10 @@ proc search-response {} {
     if {$setMax > 20} {
         set setMax 20
     }
+    set no [z39.$setNo numberOfRecordsReturned]
+    dputs "Returned $no records, setOffset $setOffset"
+    add-title-lines $setNo $no $setOffset
+    set setOffset [expr $setOffset + $no]
     z39 callback {present-response}
     z39.$setNo present $setOffset 1
     show-status Retrieving 1 0
@@ -3220,6 +3227,9 @@ if {[catch {ir z39}]} {
     ir z39
     puts "ok"
 }
+z39 largeSetLowerBound 20
+z39 smallSetUpperBound 2
+z39 mediumSetPresentNumber 2
 z39 logLevel all
 show-logo 1
 
