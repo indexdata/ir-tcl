@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.95  1996-09-13 10:51:49  adam
+ * Revision 1.96  1996-10-08 13:02:50  adam
+ * When dealing with records, odr_choice_enable_bias function is used to
+ * prevent decoding of externals.
+ *
+ * Revision 1.95  1996/09/13  10:51:49  adam
  * Bug fix: ir_tcl_select_set called Tcl_GetFile at disconnect.
  *
  * Revision 1.94  1996/08/21  13:32:53  adam
@@ -1835,6 +1839,7 @@ int ir_obj_init (ClientData clientData, Tcl_Interp *interp,
 
     logf (LOG_DEBUG, "ir object create %s", argv[1]);
     obj->odr_in = odr_createmem (ODR_DECODE);
+    odr_choice_enable_bias (obj->odr_in, 0);
     obj->odr_out = odr_createmem (ODR_ENCODE);
     obj->odr_pr = odr_createmem (ODR_PRINT);
     obj->state = IR_TCL_R_Idle;
