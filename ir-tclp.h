@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.11  1995-06-20 08:07:35  adam
+ * Revision 1.12  1995-07-28 10:28:38  adam
+ * First work on request queue.
+ *
+ * Revision 1.11  1995/06/20  08:07:35  adam
  * New setting: failInfo.
  * Working on better cancel mechanism.
  *
@@ -138,9 +141,25 @@ typedef struct {
 
     struct IrTcl_SetObj_ *set_child;
     struct IrTcl_ScanObj_ *scan_child;
+    struct IrTcl_Request_ *request_queue;
 
     IrTcl_SetCObj   set_inher;
 } IrTcl_Obj;
+
+typedef struct IrTcl_Request_ {
+    char       *name_of_object;
+    struct IrTcl_Request_ *next; 
+    
+    char       *buf_out;
+    int         len_out;
+    char       *buf_in;
+    int         len_in;
+
+    char       *callback;
+    char       *failback;
+
+    int         state;
+} IrTcl_Request;
 
 typedef struct {
     int condition;
@@ -224,6 +243,8 @@ struct ir_named_entry {
 
 int ir_tcl_get_marc (Tcl_Interp *interp, const char *buf,
                      int argc, char **argv);
+int ir_tcl_send (Tcl_Interp *interp, IrTcl_Obj *p, Z_APDU *apdu,
+                 const char *msg);
 char *ir_tcl_fread_marc (FILE *inf, size_t *size);
 
 #define IR_TCL_FAIL_CONNECT      1
@@ -231,4 +252,8 @@ char *ir_tcl_fread_marc (FILE *inf, size_t *size);
 #define IR_TCL_FAIL_WRITE        3
 #define IR_TCL_FAIL_IN_APDU      4
 #define IR_TCL_FAIL_UNKNOWN_APDU 5
+
+#define IR_TCL_R_Queue           0
+#define IR_TCL_R_Writing         1
+#define IR_TCL_R_Waiting         2
 #endif
