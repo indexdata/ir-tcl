@@ -88,7 +88,7 @@ binary-arch: build install
 	dh_testroot
 	dh_movefiles -p ir-tcl usr/lib/irtcl usr/bin
 
-	cp CHANGELOG changelog
+	cp NEWS changelog
 	cp LICENSE debian/copyright
 	dh_installdocs --all README changelog debian/copyright
 

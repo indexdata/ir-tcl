@@ -32,7 +32,7 @@ make install
 
 %files
 %defattr(-,root,root)
-%doc README LICENSE CHANGELOG
+%doc README LICENSE NEWS
 /usr/bin/irclient
 /usr/lib/irtcl
 /usr/lib/libirtcl.a
