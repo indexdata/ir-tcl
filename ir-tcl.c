@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.54  1995-08-24 12:25:16  adam
+ * Revision 1.55  1995-08-28 09:43:25  adam
+ * Minor changes. configure only searches for yaz beta 3 and versions after
+ * that.
+ *
+ * Revision 1.54  1995/08/24  12:25:16  adam
  * Modified to work with yaz 1.0b3.
  *
  * Revision 1.53  1995/08/04  12:49:26  adam
@@ -209,8 +213,6 @@ typedef struct {
     void *obj;
     IrTcl_Method *tab;
 } IrTcl_Methods;
-
-static Tcl_Interp *irTcl_interp;
 
 static void ir_deleteDiags (IrTcl_Diagnostic **dst_list, int *dst_num);
 static int do_disconnect (void *obj, Tcl_Interp *interp, 
@@ -1053,7 +1055,6 @@ static int do_callback (void *obj, Tcl_Interp *interp,
 	}
 	else
 	    p->callback = NULL;
-        p->interp = interp;
     }
     return TCL_OK;
 }
@@ -1083,7 +1084,6 @@ static int do_failback (void *obj, Tcl_Interp *interp,
 	}
 	else
 	    p->failback = NULL;
-        p->interp = interp;
     }
     return TCL_OK;
 }
@@ -1481,6 +1481,7 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     obj->odr_out = odr_createmem (ODR_ENCODE);
     obj->odr_pr = odr_createmem (ODR_PRINT);
     obj->state = IR_TCL_R_Idle;
+    obj->interp = interp;
 
     obj->len_in = 0;
     obj->buf_in = NULL;
@@ -2169,16 +2170,16 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
         dst = &obj->set_inher;
         src = &obj->parent->set_inher;
 
-        dst->num_databaseNames = src->num_databaseNames;
-        dst->databaseNames =
-              ir_tcl_malloc (sizeof (*dst->databaseNames)
-                         * dst->num_databaseNames);
+        if ((dst->num_databaseNames = src->num_databaseNames))
+            dst->databaseNames =
+                ir_tcl_malloc (sizeof (*dst->databaseNames)
+                               * dst->num_databaseNames);
+        else
+            dst->databaseNames = NULL;
         for (i = 0; i < dst->num_databaseNames; i++)
-        {
             if (ir_tcl_strdup (interp, &dst->databaseNames[i],
                            src->databaseNames[i]) == TCL_ERROR)
                 return TCL_ERROR;
-        }
         if (ir_tcl_strdup (interp, &dst->queryType, src->queryType)
             == TCL_ERROR)
             return TCL_ERROR;
@@ -2922,6 +2923,7 @@ void ir_select_read (ClientData clientData)
             exit (1);
         }
         object_name = rq->object_name;
+        logf (LOG_DEBUG, "getCommandInfo (%s)", object_name);
         if (Tcl_GetCommandInfo (p->interp, object_name, &cmd_info))
         {
             switch(apdu->which)
@@ -3043,8 +3045,5 @@ int ir_tcl_init (Tcl_Interp *interp)
     		       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
     Tcl_CreateCommand (interp, "ir-scan", ir_scan_obj_mk,
     		       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
-    irTcl_interp = interp;
     return TCL_OK;
 }
-
-
