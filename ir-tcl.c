@@ -5,7 +5,12 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.49  1995-06-30 12:39:21  adam
+ * Revision 1.50  1995-07-20 08:09:49  adam
+ * client.tcl: Targets removed from hotTargets list when targets
+ *  are removed/modified.
+ * ir-tcl.c: More work on triggerResourceControl.
+ *
+ * Revision 1.49  1995/06/30  12:39:21  adam
  * Bug fix: loadFile didn't set record type.
  * The MARC routines are a little less strict in the interpretation.
  * Script display.tcl replaces the old marc.tcl.
@@ -512,6 +517,39 @@ static void get_referenceId (char **dst, Z_ReferenceId *src)
 /* ------------------------------------------------------- */
 
 /*
+ * ir-tcl_send_APDU: send APDU
+ */
+static int ir_tcl_send_APDU (Tcl_Interp *interp, IrTcl_Obj *p, Z_APDU *apdu, 
+                             const char *msg)
+{
+    int r;
+
+    if (!z_APDU (p->odr_out, &apdu, 0))
+    {
+        Tcl_AppendResult (interp, odr_errlist [odr_geterror (p->odr_out)],
+                          NULL);
+        odr_reset (p->odr_out);
+        return TCL_ERROR;
+    }
+    p->sbuf = odr_getbuf (p->odr_out, &p->slen, NULL);
+    odr_reset (p->odr_out);
+    if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
+    {     
+        sprintf (interp->result, "cs_put failed in %s", msg);
+        do_disconnect (p, NULL, 2, NULL);
+        return TCL_ERROR;
+    }
+    else if (r == 1)
+    {
+        ir_select_add_write (cs_fileno(p->cs_link), p);
+        logf (LOG_DEBUG, "Sent part of %s (%d bytes)", msg, p->slen);
+    }
+    else
+        logf (LOG_DEBUG, "Sent whole %s (%d bytes)", msg, p->slen);
+    return TCL_OK;
+}
+
+/*
  * do_init_request: init method on IR object
  */
 static int do_init_request (void *obj, Tcl_Interp *interp,
@@ -520,7 +558,6 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
     Z_APDU *apdu;
     IrTcl_Obj *p = obj;
     Z_InitRequest *req;
-    int r;
 
     if (argc <= 0)
         return TCL_OK;
@@ -529,7 +566,6 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
         interp->result = "not connected";
         return TCL_ERROR;
     }
-    odr_reset (p->odr_out);
     apdu = zget_APDU (p->odr_out, Z_APDU_initRequest);
     req = apdu->u.initRequest;
 
@@ -575,28 +611,7 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
     req->implementationVersion = p->implementationVersion;
     req->userInformationField = 0;
 
-    if (!z_APDU (p->odr_out, &apdu, 0))
-    {
-        Tcl_AppendResult (interp, odr_errlist [odr_geterror (p->odr_out)],
-                          NULL);
-        odr_reset (p->odr_out);
-        return TCL_ERROR;
-    }
-    p->sbuf = odr_getbuf (p->odr_out, &p->slen, NULL);
-    if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
-    {     
-        interp->result = "cs_put failed in init";
-        do_disconnect (p, NULL, 2, NULL);
-        return TCL_ERROR;
-    }
-    else if (r == 1)
-    {
-        ir_select_add_write (cs_fileno(p->cs_link), p);
-        logf (LOG_DEBUG, "Sent part of initializeRequest (%d bytes)", p->slen);
-    }
-    else
-        logf (LOG_DEBUG, "Sent whole initializeRequest (%d bytes)", p->slen);
-    return TCL_OK;
+    return ir_tcl_send_APDU (interp, p, apdu, "init");
 }
 
 /*
@@ -662,6 +677,7 @@ static int do_options (void *obj, Tcl_Interp *interp,
         ODR_MASK_ZERO (&p->options);
 	ODR_MASK_SET (&p->options, 0);
 	ODR_MASK_SET (&p->options, 1);
+        ODR_MASK_SET (&p->options, 4);
 	ODR_MASK_SET (&p->options, 7);
 	ODR_MASK_SET (&p->options, 14);
 	return TCL_OK;
@@ -1032,6 +1048,7 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
         ODR_MASK_ZERO (&p->options);
 	ODR_MASK_SET (&p->options, 0);
 	ODR_MASK_SET (&p->options, 1);
+	ODR_MASK_SET (&p->options, 4);
 	ODR_MASK_SET (&p->options, 7);
 	ODR_MASK_SET (&p->options, 14);
 
@@ -1172,7 +1189,7 @@ static int do_triggerResourceControl (void *obj, Tcl_Interp *interp,
     IrTcl_Obj *p = obj;
     Z_APDU *apdu;
     Z_TriggerResourceControlRequest *req;
-    int r;
+    bool_t is_false = 0;
 
     if (argc <= 0)
         return TCL_OK;
@@ -1183,31 +1200,10 @@ static int do_triggerResourceControl (void *obj, Tcl_Interp *interp,
     }
     apdu = zget_APDU (p->odr_out, Z_APDU_triggerResourceControlRequest);
     req = apdu->u.triggerResourceControlRequest;
+    *req->requestedAction = Z_TriggerResourceCtrl_cancel;
+    req->resultSetWanted = &is_false; 
     
-    if (!z_APDU (p->odr_out, &apdu, 0))
-    {
-        Tcl_AppendResult (interp, odr_errlist [odr_geterror (p->odr_out)],
-                          NULL);
-        odr_reset (p->odr_out);
-        return TCL_ERROR;
-    }
-    p->sbuf = odr_getbuf (p->odr_out, &p->slen, NULL);
-    if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
-    {     
-        interp->result = "cs_put failed in triggerResourceControl";
-        do_disconnect (p, NULL, 2, NULL);
-        return TCL_ERROR;
-    }
-    else if (r == 1)
-    {
-        ir_select_add_write (cs_fileno(p->cs_link), p);
-        logf (LOG_DEBUG, "Sent part of triggerResourceControl (%d bytes)", 
-            p->slen);
-    }
-    else
-        logf (LOG_DEBUG, "Sent whole of triggerResourceControl (%d bytes)", 
-            p->slen);
-    return TCL_OK;
+    return ir_tcl_send_APDU (interp, p, apdu, "triggerResourceControl");
 }
 
 /*
@@ -1594,7 +1590,6 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
         interp->result = "not connected";
         return TCL_ERROR;
     }
-    odr_reset (p->odr_out);
     apdu = zget_APDU (p->odr_out, Z_APDU_searchRequest);
     req = apdu->u.searchRequest;
 
@@ -1684,28 +1679,7 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
         interp->result = "unknown query method";
         return TCL_ERROR;
     }
-    if (!z_APDU (p->odr_out, &apdu, 0))
-    {
-        interp->result = odr_errlist [odr_geterror (p->odr_out)];
-        odr_reset (p->odr_out);
-        return TCL_ERROR;
-    } 
-    p->sbuf = odr_getbuf (p->odr_out, &p->slen, NULL);
-    if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
-    {
-        interp->result = "cs_put failed in search";
-        return TCL_ERROR;
-    }
-    else if (r == 1)
-    {
-        ir_select_add_write (cs_fileno(p->cs_link), p);
-        logf (LOG_DEBUG, "Sent part of searchRequest (%d bytes)", p->slen);
-    }
-    else
-    {
-        logf (LOG_DEBUG, "Whole search request (%d bytes)", p->slen);
-    }
-    return TCL_OK;
+    return ir_tcl_send_APDU (interp, p, apdu, "search");
 }
 
 /*
@@ -2062,7 +2036,6 @@ static int do_present (void *o, Tcl_Interp *interp,
     Z_PresentRequest *req;
     int start;
     int number;
-    int r;
 
     if (argc <= 0)
         return TCL_OK;
@@ -2088,7 +2061,6 @@ static int do_present (void *o, Tcl_Interp *interp,
     p = obj->parent;
     p->set_child = obj;
 
-    odr_reset (p->odr_out);
     obj->start = start;
     obj->number = number;
 
@@ -2115,31 +2087,8 @@ static int do_present (void *o, Tcl_Interp *interp,
     }
     else
         req->preferredRecordSyntax = 0;
-
-    if (!z_APDU (p->odr_out, &apdu, 0))
-    {
-        interp->result = odr_errlist [odr_geterror (p->odr_out)];
-        odr_reset (p->odr_out);
-        return TCL_ERROR;
-    } 
-    p->sbuf = odr_getbuf (p->odr_out, &p->slen, NULL);
-    if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
-    {
-        interp->result = "cs_put failed in present";
-        return TCL_ERROR;
-    }
-    else if (r == 1)
-    {
-        ir_select_add_write (cs_fileno(p->cs_link), p);
-        logf (LOG_DEBUG, "Part of present request, start=%d, num=%d" 
-              " (%d bytes)", start, number, p->slen);
-    }
-    else
-    {
-        logf (LOG_DEBUG, "Whole present request, start=%d, num=%d"
-              " (%d bytes)", start, number, p->slen);
-    }
-    return TCL_OK;
+     
+    return ir_tcl_send_APDU (interp, p, apdu, "present");
 }
 
 /*
@@ -2333,7 +2282,6 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     Z_APDU *apdu;
     IrTcl_ScanObj *obj = o;
     IrTcl_Obj *p = obj->parent;
-    int r;
     oident bib1;
 #if CCL2RPN
     struct ccl_rpn_node *rpn;
@@ -2358,7 +2306,6 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
         interp->result = "not connected";
 	return TCL_ERROR;
     }
-    odr_reset (p->odr_out);
 
     bib1.proto = p->protocol_type;
     bib1.class = CLASS_ATTSET;
@@ -2398,29 +2345,8 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
           *req->numberOfTermsRequested);
     logf (LOG_DEBUG, "preferredPositionInResponse=%d",
           *req->preferredPositionInResponse);
-
-    if (!z_APDU (p->odr_out, &apdu, 0))
-    {
-        interp->result = odr_errlist [odr_geterror (p->odr_out)];
-        odr_reset (p->odr_out);
-        return TCL_ERROR;
-    } 
-    p->sbuf = odr_getbuf (p->odr_out, &p->slen, NULL);
-    if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
-    {
-        interp->result = "cs_put failed in scan";
-        return TCL_ERROR;
-    }
-    else if (r == 1)
-    {
-        ir_select_add_write (cs_fileno(p->cs_link), p);
-        logf (LOG_DEBUG, "Sent part of scanRequest (%d bytes)", p->slen);
-    }
-    else
-    {
-        logf (LOG_DEBUG, "Whole scan request (%d bytes)", p->slen);
-    }
-    return TCL_OK;
+    
+    return ir_tcl_send_APDU (interp, p, apdu, "scan");
 }
 
 /*

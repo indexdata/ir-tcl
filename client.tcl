@@ -4,7 +4,12 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.60  1995-06-30 16:30:19  adam
+# Revision 1.61  1995-07-20 08:09:39  adam
+# client.tcl: Targets removed from hotTargets list when targets
+#  are removed/modified.
+# ir-tcl.c: More work on triggerResourceControl.
+#
+# Revision 1.60  1995/06/30  16:30:19  adam
 # Minor changes.
 #
 # Revision 1.59  1995/06/29  14:06:25  adam
@@ -329,7 +334,7 @@ proc set-wrap {m} {
 }
 
 proc dputs {m} {
-#   puts $m
+   puts $m
 }
 
 proc set-display-format {f} {
@@ -780,16 +785,8 @@ proc popup-marc {sno no b df} {
 
 proc update-target-hotlist {target base} {
     global hotTargets
-    global tk4
 
-    set len [llength $hotTargets]
-    if {$len > 0} {
-        if {$tk4} {
-            .top.target.m delete 7 [expr 7+[llength $hotTargets]]
-        } else {
-            .top.target.m delete 6 [expr 6+[llength $hotTargets]]
-        }
-    }
+    set olen [llength $hotTargets]
     set i 0
     foreach e $hotTargets {
         if {$target == [lindex $e 0] && $base == [lindex $e 1]} {
@@ -799,12 +796,34 @@ proc update-target-hotlist {target base} {
         incr i    
     }
     set hotTargets [linsert $hotTargets 0 [list $target $base]]
-    set-target-hotlist    
+    set-target-hotlist $olen
 } 
 
-proc set-target-hotlist {} {
+proc delete-target-hotlist {target} {
     global hotTargets
-    
+
+    set olen [llength $hotTargets]
+    set i 0
+    foreach e $hotTargets {
+        if {$target == [lindex $e 0]} {
+	    set hotTargets [lreplace $hotTargets $i $i]
+        }
+        incr i
+    }
+    set-target-hotlist $olen
+}
+
+proc set-target-hotlist {olen} {
+    global hotTargets
+    global tk4
+   
+    if {$olen > 0} {
+        if {$tk4} {
+            .top.target.m delete 7 [expr 7+$olen]
+        } else {
+            .top.target.m delete 6 [expr 6+$olen]
+        }
+    }
     set i 1
     foreach e $hotTargets {
         set target [lindex $e 0]
@@ -953,10 +972,8 @@ proc load-set-action {} {
 
 proc load-set {} {
     set w .load-set
-
-    set oldFocus [focus]
     toplevel $w
-
+    set oldFocus [focus]
     place-force $w .
     top-down-window $w
 
@@ -1611,6 +1628,7 @@ definition $target ?"]
         unset profile($target)
         set settingsChanged 1
         cascade-target-list
+        delete-target-hotlist $target
     }
 }
 
@@ -1647,6 +1665,7 @@ proc protocol-setup-action {target} {
             $wno]
 
     cascade-target-list
+    delete-target-hotlist $target
     dputs $profile($target)
     destroy $w
 }
@@ -1677,9 +1696,8 @@ proc add-database {target} {
     global profile
 
     set w .database-select
-
-    set oldFocus [focus]
     toplevel $w
+    set oldFocus [focus]
  
     set wno [lindex $profile($target) 12]
     place-force $w .setup-${wno}
@@ -1874,7 +1892,7 @@ proc database-select {} {
     global hostid
 
     toplevel $w
-
+    set oldFocus [focus]
     place-force $w .
 
     top-down-window $w
@@ -1899,6 +1917,7 @@ proc database-select {} {
         $w.top.databases.list insert end $b
     }
     top-down-ok-cancel $w {database-select-action} 1
+    focus $oldFocus
 }
 
 proc cascade-target-list {} {
@@ -1965,6 +1984,7 @@ proc query-new {} {
     set w .query-new
 
     toplevel $w
+    set oldFocus [focus]
     place-force $w .
     top-down-window $w
     frame $w.top.index
@@ -1974,6 +1994,7 @@ proc query-new {} {
             {{Query Name:}} \
             query-new-action {destroy .query-new}
     top-down-ok-cancel $w query-new-action 1
+    focus $oldFocus
 }
 
 proc query-delete-action {queryNo} {
@@ -2105,6 +2126,7 @@ proc alert {ask} {
     global alertAnswer
 
     toplevel $w
+    set oldFocus [focus]
     place-force $w .
     top-down-window $w
 
@@ -2116,6 +2138,7 @@ proc alert {ask} {
   
     set alertAnswer 0
     top-down-ok-cancel $w {alert-action} 1
+    focus $oldFocus
     return $alertAnswer
 }
 
@@ -2253,6 +2276,7 @@ proc query-add-index {queryNo} {
     set w .query-add-index
 
     toplevel $w
+    set oldFocus [focus]
     place-force $w .query-setup
     top-down-window $w
     frame $w.top.index
@@ -2262,6 +2286,7 @@ proc query-add-index {queryNo} {
             {{Index Name:}} \
             [list query-add-index-action $queryNo] [list destroy $w]
     top-down-ok-cancel $w [list query-add-index-action $queryNo] 1
+    focus $oldFocus
 }
 
 proc query-setup-action {queryNo} {
@@ -2916,7 +2941,7 @@ menu .top.target.m
 .top.target.m add cascade -label "Setup" -menu .top.target.m.slist
 .top.target.m add command -label "Setup new" -command {define-target-dialog}
 .top.target.m add separator
-set-target-hotlist
+set-target-hotlist 0
 
 configure-disable-e .top.target.m 1
 configure-disable-e .top.target.m 2
