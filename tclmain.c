@@ -2,7 +2,7 @@
  * IR toolkit for tcl/tk
  * (c) Index Data 1995
  *
- * $Id: tclmain.c,v 1.2 1995-03-08 07:28:37 adam Exp $
+ * $Id: tclmain.c,v 1.3 1995-03-09 08:35:58 adam Exp $
  */
 
 #include <sys/time.h>
@@ -35,26 +35,22 @@ int main (int argc, char **argv)
     int code;
 
     interp = Tcl_CreateInterp();
+    Tcl_SetVar (interp, "tcl_interactive", "0", TCL_GLOBAL_ONLY);
+    if (argc == 2)
+        fileName = argv[1];
 
-    if (argc != 2)
-    {
-        fprintf (stderr, "Script file expected\n");
-        exit (1);
-    }
-    fileName = argv[1];
-    if (fileName == NULL)
-    {
-        fprintf (stderr, "No filename specified\n");
-        exit (1);
-    }
     if (Tcl_AppInit(interp) != TCL_OK) {
         fprintf(stderr, "Tcl_AppInit failed: %s\n", interp->result);
     }
-    code = Tcl_EvalFile (interp, fileName);
-    if (*interp->result != 0)
-        printf ("%s\n", interp->result);
-    if (code != TCL_OK)
-        exit (1);
+    if (fileName)
+    {
+        code = Tcl_EvalFile (interp, fileName);
+        if (*interp->result != 0)
+            printf ("%s\n", interp->result);
+        if (code != TCL_OK)
+            exit (1);
+    }
+    Tcl_SetVar (interp, "tcl_interactive", "1", TCL_GLOBAL_ONLY);
     tcl_mainloop (interp);
     exit (0);
 }
@@ -110,7 +106,10 @@ void tcl_mainloop (Tcl_Interp *interp)
             {
                 int code = Tcl_Eval (interp, Tcl_DStringValue (&command));
                 Tcl_DStringFree (&command);
-                printf ("[RES:%s]\n", interp->result);
+                if (code)
+                    printf ("[ERR:%s]\n", interp->result);
+                else
+                    printf ("[RES:%s]\n", interp->result);
                 printf ("[TCL]"); fflush (stdout);
             }
         }

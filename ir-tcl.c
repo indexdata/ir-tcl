@@ -2,7 +2,7 @@
  * IR toolkit for tcl/tk
  * (c) Index Data 1995
  *
- * $Id: ir-tcl.c,v 1.2 1995-03-08 07:28:29 adam Exp $
+ * $Id: ir-tcl.c,v 1.3 1995-03-09 08:35:53 adam Exp $
  */
 
 #include <stdlib.h>
@@ -44,6 +44,13 @@ typedef struct {
 
     Tcl_Interp *interp;
     char *callback;
+
+    int smallSetUpperBound;
+    int largeSetLowerBound;
+    int mediumSetPresentNumber;
+    int replaceIndicator;
+    char **databaseNames;
+    int num_databaseNames;
 } IRObj;
 
 typedef struct {
@@ -400,6 +407,42 @@ static int do_callback (void *obj, Tcl_Interp *interp,
     return TCL_OK;
 }
 
+/*
+ * do_databaseNames: specify database names
+ */
+static int do_databaseNames (void *obj, Tcl_Interp *interp,
+                          int argc, char **argv)
+{
+    int i;
+    IRObj *p = obj;
+
+    if (argc < 3)
+    {
+        interp->result = "wrong # args";
+        return TCL_ERROR;
+    }
+    if (p->databaseNames)
+    {
+        for (i=0; i<p->num_databaseNames; i++)
+            free (p->databaseNames[i]);
+        free (p->databaseNames);
+    }
+    p->num_databaseNames = argc - 2;
+    if (!(p->databaseNames = malloc (sizeof(*p->databaseNames) *
+                               p->num_databaseNames)))
+    {
+        interp->result = "malloc fail";
+        return TCL_ERROR;
+    }
+    for (i=0; i<p->num_databaseNames; i++)
+    {
+        if (ir_strdup (interp, &p->databaseNames[i], argv[2+i]) 
+            == TCL_ERROR)
+            return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
 /* 
  * ir_obj_method: IR Object methods
  */
@@ -419,6 +462,7 @@ static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
     { "init", do_init_request },
     { "disconnect", do_disconnect },
     { "callback", do_callback },
+    { "databaseNames", do_databaseNames},
     { NULL, NULL}
     };
     if (argc < 2)
@@ -470,6 +514,13 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     if (ir_strdup (interp, &obj->implementationId, "TCL/TK/YAZ")
         == TCL_ERROR)
         return TCL_ERROR;
+    
+    obj->smallSetUpperBound = 0;
+    obj->largeSetLowerBound = 2;
+    obj->mediumSetPresentNumber = 0;
+    obj->replaceIndicator = 1;
+    obj->databaseNames = NULL;
+    obj->num_databaseNames = 0; 
 
     ODR_MASK_ZERO (&obj->protocolVersion);
     ODR_MASK_SET (&obj->protocolVersion, 0);
@@ -503,6 +554,69 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
 
 /* ------------------------------------------------------- */
 /*
+ * do_search: Do search request
+ */
+static int do_search (void *o, Tcl_Interp *interp,
+		       int argc, char **argv)
+{
+    Z_SearchRequest req;
+    Z_Query query;
+    Z_APDU apdu, *apdup;
+    static Odr_oid bib1[] = {1, 2, 840, 10003, 3, 1, -1};
+    Odr_oct ccl_query;
+    IRSetObj *obj = o;
+    IRObj *p = obj->parent;
+    char *sbuf;
+    int slen;
+
+    if (argc != 3)
+    {
+        interp->result = "wrong # args";
+        return TCL_ERROR;
+    }
+    if (!p->num_databaseNames)
+    {
+        interp->result = "no databaseNames";
+        return TCL_ERROR;
+    }
+    apdu.which = Z_APDU_searchRequest;
+    apdu.u.searchRequest = &req;
+    apdup = &apdu;
+
+    req.referenceId = 0;
+    req.smallSetUpperBound = &p->smallSetUpperBound;
+    req.largeSetLowerBound = &p->largeSetLowerBound;
+    req.mediumSetPresentNumber = &p->mediumSetPresentNumber;
+    req.replaceIndicator = &p->replaceIndicator;
+    req.resultSetName = "Default";
+    req.num_databaseNames = p->num_databaseNames;
+    req.databaseNames = p->databaseNames;
+    req.smallSetElementSetNames = 0;
+    req.mediumSetElementSetNames = 0;
+    req.preferredRecordSyntax = 0;
+    req.query = &query;
+
+    query.which = Z_Query_type_2;
+    query.u.type_2 = &ccl_query;
+    ccl_query.buf = argv[2];
+    ccl_query.len = strlen (argv[2]);
+
+    if (!z_APDU (p->odr_out, &apdup, 0))
+    {
+        interp->result = odr_errlist [odr_geterror (p->odr_out)];
+        odr_reset (p->odr_out);
+        return TCL_ERROR;
+    } 
+    sbuf = odr_getbuf (p->odr_out, &slen);
+    if (cs_put (p->cs_link, sbuf, slen) < 0)
+    {
+        interp->result = "cs_put failed in init";
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+/*
  * do_query: Set query for a Set Object
  */
 static int do_query (void *obj, Tcl_Interp *interp,
@@ -520,6 +634,7 @@ static int ir_set_obj_method (ClientData clientData, Tcl_Interp *interp,
 {
     static IRMethod tab[] = {
     { "query", do_query },
+    { "search", do_search },
     { NULL, NULL}
     };
 
@@ -577,9 +692,8 @@ static void ir_searchResponse (void *obj, Z_SearchResponse *searchrs)
     if (searchrs->searchStatus)
         printf("Search was a success.\n");
     else
-            printf("Search was a bloomin' failure.\n");
-    printf("Number of hits: %d, setno %d\n",
-           *searchrs->resultCount, 1);
+        printf("Search was a bloomin' failure.\n");
+    printf("Number of hits: %d, setno %d\n", *searchrs->resultCount, 1);
 #if 0
     if (searchrs->records)
         display_records(searchrs->records);
