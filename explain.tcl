@@ -6,7 +6,10 @@
 # Explain Driver
 #
 # $Log: explain.tcl,v $
-# Revision 1.5  1998-05-20 12:27:43  adam
+# Revision 1.6  1999-11-30 14:05:58  adam
+# Updated for new location of YAZ headers.
+#
+# Revision 1.5  1998/05/20 12:27:43  adam
 # Better Explain support.
 #
 # Revision 1.4  1998/04/02 14:32:00  adam
@@ -159,26 +162,22 @@ proc prettyDumpR {x ind} {
 proc explain-check-ok {target zz category finish} {
     global profile settingsChanged
 
-    puts ""
-    puts ""
-    puts ""
-    puts ""
     set crec [z39.categoryList getExplain 1 categoryList]
-    puts "--- categoryList"
-    puts $crec
+    dputs "--- categoryList"
+    dputs $crec
 
     set rec [z39.targetInfo getExplain 1]
 
     set trec [z39.targetInfo getExplain 1 targetInfo]
-    puts "--- targetInfo"
-    puts $rec
+    dputs "--- targetInfo"
+    dputs $rec
 
     set no 1
     while {1} {
         if {[catch {set rec \
                 [z39.databaseInfo getExplain $no databaseInfo]}]} break
-        puts "--- databaseInfo $no"
-	puts $rec
+        dputs "--- databaseInfo $no"
+	dputs $rec
 
         lappend dbRecs $rec
         set db [lindex [lindex $rec 1] 1]
@@ -196,8 +195,8 @@ proc explain-check-ok {target zz category finish} {
     while {1} {
         if {[catch {set rec \
                 [z39.attributeDetails getExplain $no attributeDetails]}]} break
-        puts "--- attributeDetails $no"
-	puts $rec
+        dputs "--- attributeDetails $no"
+	dputs $rec
         incr no
     }
     set data [lindex [lindex [lindex [lindex [lindex $trec 12] 1] 1] 1] 1]

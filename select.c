@@ -1,11 +1,14 @@
 /*
  * IR toolkit for tcl/tk
- * (c) Index Data 1996
+ * (c) Index Data 1996-1999
  * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: select.c,v $
- * Revision 1.6  1999-02-11 11:30:13  adam
+ * Revision 1.7  1999-11-30 14:05:58  adam
+ * Updated for new location of YAZ headers.
+ *
+ * Revision 1.6  1999/02/11 11:30:13  adam
  * Updated for WIN32.
  *
  * Revision 1.5  1997/09/09 10:19:55  adam
@@ -28,7 +31,7 @@
  */
 
 #include <tcl.h>
-#include <log.h>
+#include <yaz/log.h>
 #include "ir-tcl.h"
 
 #if TCL_MAJOR_VERSION == 8

@@ -1,11 +1,14 @@
 /*
  * IR toolkit for tcl/tk
- * (c) Index Data 1995-1998
+ * (c) Index Data 1995-1999
  * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.38  1999-03-22 06:51:34  adam
+ * Revision 1.39  1999-11-30 14:05:58  adam
+ * Updated for new location of YAZ headers.
+ *
+ * Revision 1.38  1999/03/22 06:51:34  adam
  * Implemented sort.
  *
  * Revision 1.37  1998/04/02 14:31:08  adam
@@ -152,25 +155,25 @@
 
 #include <tcl.h>
 
-#include <log.h>
-#include <pquery.h>
+#include <yaz/log.h>
+#include <yaz/pquery.h>
 #if CCL2RPN
-#include <yaz-ccl.h>
+#include <yaz/yaz-ccl.h>
 #endif
 
-#include <comstack.h>
-#include <tcpip.h>
+#include <yaz/comstack.h>
+#include <yaz/tcpip.h>
 
 #if MOSI
-#include <xmosi.h>
+#include <yas/xmosi.h>
 #endif
 
-#include <yaz-version.h>
-#include <odr.h>
-#include <proto.h>
-#include <oid.h>
-#include <diagbib1.h>
-#include <xmalloc.h>
+#include <yaz/yaz-version.h>
+#include <yaz/odr.h>
+#include <yaz/proto.h>
+#include <yaz/oid.h>
+#include <yaz/diagbib1.h>
+#include <yaz/xmalloc.h>
 
 #include "ir-tcl.h"
 

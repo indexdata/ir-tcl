@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.107  1999-02-11 11:30:08  adam
+# Revision 1.108  1999-11-30 14:05:58  adam
+# Updated for new location of YAZ headers.
+#
+# Revision 1.107  1999/02/11 11:30:08  adam
 # Updated for WIN32.
 #
 # Revision 1.106  1998/06/10 13:22:47  adam
@@ -4171,7 +4174,11 @@ if {[catch {ir-version}]} {
 
 .init.msg insert end "IrTcl version [lindex [ir-version] 0]\n"
 .init.msg insert end "YAZ version [lindex [ir-version] 1]\n"
-ir-log-init all irtcl.log
+if $debugMode {	
+	ir-log-init all {} irtcl.log
+} else {
+	ir-log-init none {} {}
+}
 
 # Create Z Assocation
 ir z39

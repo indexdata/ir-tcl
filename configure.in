@@ -1,7 +1,7 @@
 dnl IR toolkit for tcl/tk
-dnl (c) Index Data 1996-1998
+dnl (c) Index Data 1996-1999
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.24 1998-03-11 11:14:04 adam Exp $
+dnl $Id: configure.in,v 1.25 1999-11-30 14:05:58 adam Exp $
 AC_INIT(ir-tcl.h)
 CC=${CC-cc}
 dnl ------ Substitutions
@@ -10,11 +10,6 @@ AC_SUBST(TCLLIB)
 AC_SUBST(TKLIB)
 AC_SUBST(TCLINC)
 AC_SUBST(TKINC)
-AC_SUBST(YAZDIR)
-AC_SUBST(MOSI)
-AC_SUBST(MOSIDIR)
-AC_SUBST(MOSILIB)
-AC_SUBST(MOSIINC)
 AC_SUBST(SHLIB_CFLAGS)
 AC_SUBST(SHLIB_LD)
 AC_SUBST(SHLIB_SUFFIX)
@@ -22,78 +17,81 @@ AC_SUBST(SHLIB_VERSION)
 AC_SUBST(SHLIB_IRTCL)
 AC_SUBST(ALL_SPEC)
 AC_SUBST(IRCLIENT_SHELL)
+AC_SUBST(YAZLIB)
+AC_SUBST(YAZINC)
+dnl
+dnl ------ Build root
+AC_SUBST(build_root)
+AC_ARG_WITH(build-root, [  --with-buildroot        RPM Build root],[build_root=$withval],[build_root=""])
 dnl
 dnl ------ Preliminary settings
 AC_PROG_INSTALL
-AC_PREFIX_PROGRAM(tclsh)
-if test "x$prefix" = xNONE; then
-	AC_PREFIX_PROGRAM(tclsh8.1)
-fi
-if test "x$prefix" = xNONE; then
-	AC_PREFIX_PROGRAM(tclsh8.0)
-fi
-if test "x$prefix" = xNONE; then
-	AC_PREFIX_PROGRAM(tclsh7.6)
-fi
-if test "x$prefix" = xNONE; then
-	AC_PREFIX_PROGRAM(tclsh7.5)
-fi
 AC_STDC_HEADERS
 if test "$ac_cv_header_stdc" = no; then
 	AC_MSG_WARN(Your system doesn't seem to support ANSI C)
 fi
 dnl
-dnl ------ look for YAZ/XTImOSI
-dnl
-AC_MSG_CHECKING(for YAZ directory)
-AC_ARG_WITH(yazdir,[  --with-yazdir           Yaz directory], [YAZDIR=$withval])
-if test "$YAZDIR" = "yes"; then
-	YAZDIR="../yaz-1.4"
-elif test "$YAZDIR" = ""; then
-	YAZDIR=../yaz
+dnl ------ Look for Yaz
+dnl See if user specified location of yaz-config; otherwise
+dnl use ../yaz if is a directory (internal development); otherwise
+dnl use yaz-config found in PATH.
+yazconfig=NONE
+yazpath=NONE
+AC_ARG_WITH(yazconfig, [  --with-yazconfig        Path for yaz-config], [yazpath=$withval])
+if test "x$yazpath" != "xNONE"; then
+        yazconfig=$yazpath/yaz-config
+else
         for i in ../yaz* ../yaz; do
-            if test -d $i; then
-                YAZDIR=$i
-            fi
+                if test -d $i; then
+                        if test -r $i/include/yaz/yaz-version.h; then
+                                yazconfig=$i/yaz-config
+                        fi
+                fi
         done
+        if test "x$yazconfig" = "xNONE"; then
+                AC_PATH_PROG(yazconfig, yaz-config, NONE)
+        fi
 fi
-if test ! -d $YAZDIR; then
-	AC_MSG_WARN(YAZ directory ${YAZDIR} doesn't exist)
+AC_MSG_CHECKING(for YAZ)
+if test -r $yazconfig; then
+        . $yazconfig
+        AC_MSG_RESULT($yazconfig)
 else
-	AC_MSG_RESULT($YAZDIR)
+        AC_MSG_RESULT(Not found)
 fi
-AC_MSG_CHECKING(for MOSI)
-AC_ARG_WITH(mosidir, [  --with-mosidir          MOSI directory], [MOSIDIR=$withval])
-if test "$MOSIDIR" = "yes"; then
-	MOSIDIR="../xtimosi/src"
-elif test "$MOSIDIR" = ""; then
-	MOSIDIR="../xtimosi/src"
-fi
-if test -r ${YAZDIR}/lib/librfc.a; then
-	MOSI=1
-	MOSIDIR=$MOSIDIR
-	MOSILIB='$(MOSIDIR)/libmosi.a $(YAZDIR)/lib/librfc.a'
-	MOSIINC='-I$(MOSIDIR)'
-        MOSITELL=yes
-else
-	MOSI=0
-	MOSIDIR=$MOSIDIR
-        MOSILIB='# $(MOSIDIR)/libmosi.a $(YAZDIR)/lib/librfc.a'
-	MOSIINC='# -I$(MOSIDIR)'
-        MOSITELL=no
-fi
-AC_MSG_RESULT($MOSITELL)
 dnl
 dnl ------ look for Tcl
-dnl
-if test "x$prefix" = xNONE; then
-	tryprefix=/usr/local
-else
+tclconfig=NONE
+tryprefix=NONE
+AC_ARG_WITH(tclconfig, [  --with-tclconfig        Path for tclConfig.sh], [tclconfig=$withval])
+if test "x$tclconfig" = xNONE; then
+        saveprefix=${prefix}
+	AC_PREFIX_PROGRAM(tclsh)
+	if test "x$prefix" = xNONE; then
+		AC_PREFIX_PROGRAM(tclsh8.2)
+	fi
+	if test "x$prefix" = xNONE; then
+		AC_PREFIX_PROGRAM(tclsh8.1)
+	fi
+	if test "x$prefix" = xNONE; then
+		AC_PREFIX_PROGRAM(tclsh8.0)
+	fi
+	if test "x$prefix" = xNONE; then
+		AC_PREFIX_PROGRAM(tclsh7.6)
+	fi
+	if test "x$prefix" = xNONE; then
+		AC_PREFIX_PROGRAM(tclsh7.5)
+	fi
+	if test "x$prefix" = xNONE; then
+		prefix=/usr/local
+	fi
+        tclconfig=${prefix}/lib
 	tryprefix=${prefix}
+        prefix=${saveprefix}
 fi
-if test -r ${tryprefix}/lib/tclConfig.sh; then
+if test -r ${tclconfig}/tclConfig.sh; then
 	AC_MSG_CHECKING(for Tcl)
-	. ${tryprefix}/lib/tclConfig.sh
+	. ${tclconfig}/tclConfig.sh
 	TCLLIB="${TCL_LIB_SPEC} ${TCL_LIBS}"
 	TCLINC=-I${TCL_PREFIX}/include
 	RANLIB=$TCL_RANLIB
@@ -111,17 +109,6 @@ else
 	SHLIB_VERSION=""
 	SHLIB_IRTCL="irtcl-shared"
 	AC_PROG_RANLIB
-	checkBoth=0
-	AC_CHECK_FUNC(connect, tk_checkSocket=0, tk_checkSocket=1)
-	if test "$tk_checkSocket" = 1; then
-		AC_CHECK_LIB(socket, main, LIBS="$LIBS -lsocket", checkBoth=1)
-	fi
-	if test "$checkBoth" = 1; then
-		tk_oldLibs=$LIBS
-		LIBS="$LIBS -lsocket -lnsl"
-		AC_CHECK_FUNC(accept, , [LIBS=$tk_oldLibs])
-	fi
-	AC_CHECK_FUNC(gethostbyname, , AC_CHECK_LIB(nsl, main, [LIBS="$LIBS -lnsl"]))
 	AC_MSG_CHECKING(for Tcl)
 	TCL_VERSION=nope
 	for i in "" 7.4 7.5 7.6 8.0; do
@@ -148,9 +135,9 @@ fi
 dnl 
 dnl ------ look for Tk
 dnl
-if test -r ${tryprefix}/lib/tkConfig.sh; then
+if test -r ${tclconfig}/tkConfig.sh; then
 	AC_MSG_CHECKING(for Tk)
-	. ${tryprefix}/lib/tkConfig.sh
+	. ${tclconfig}/tkConfig.sh
 	AC_MSG_RESULT($TK_VERSION)
 	TKINC=${TK_XINCLUDES}
 	TKLIB="${TK_LIB_SPEC} ${TCL_LIB_SPEC} ${TK_LIBS}"
