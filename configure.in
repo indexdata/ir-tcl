@@ -1,7 +1,7 @@
 dnl IR toolkit for tcl/tk
 dnl (c) Index Data 1996-1998
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.22 1998-01-16 09:24:17 adam Exp $
+dnl $Id: configure.in,v 1.23 1998-01-16 11:01:17 adam Exp $
 AC_INIT(ir-tcl.h)
 CC=${CC-cc}
 dnl ------ Substitutions
@@ -27,10 +27,16 @@ dnl ------ Preliminary settings
 AC_PROG_INSTALL
 AC_PREFIX_PROGRAM(tclsh)
 if test "x$prefix" = xNONE; then
+	AC_PREFIX_PROGRAM(tclsh8.1)
+fi
+if test "x$prefix" = xNONE; then
 	AC_PREFIX_PROGRAM(tclsh8.0)
 fi
 if test "x$prefix" = xNONE; then
 	AC_PREFIX_PROGRAM(tclsh7.6)
+fi
+if test "x$prefix" = xNONE; then
+	AC_PREFIX_PROGRAM(tclsh7.5)
 fi
 AC_STDC_HEADERS
 if test "$ac_cv_header_stdc" = no; then
@@ -42,7 +48,7 @@ dnl
 AC_MSG_CHECKING(for YAZ directory)
 AC_ARG_WITH(yazdir,[  --with-yazdir           Yaz directory], [YAZDIR=$withval])
 if test "$YAZDIR" = "yes"; then
-	YAZDIR="../yaz-1.2"
+	YAZDIR="../yaz-1.4"
 elif test "$YAZDIR" = ""; then
 	YAZDIR=../yaz
         for i in ../yaz* ../yaz; do

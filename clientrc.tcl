@@ -23,7 +23,7 @@ set profile(AGRICOLA,smallSetUpperBound) 0
 set profile(AGRICOLA,targetInfoName) {}
 set profile(AGRICOLA,timeDefine) 878567355
 set profile(AGRICOLA,timeLastExplain) {}
-set profile(AGRICOLA,timeLastInit) 879938261
+set profile(AGRICOLA,timeLastInit) 884946306
 set profile(AGRICOLA,welcomeMessage) {}
 set profile(AGRICOLA,windowNumber) 2
 set profile(AULS,authentication) {}
