@@ -5,7 +5,17 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.30  1996-02-29 15:30:23  adam
+ * Revision 1.31  1996-03-05 09:21:19  adam
+ * Bug fix: memory used by GRS records wasn't freed.
+ * Rewrote some of the error handling code - the connection is always
+ * closed before failback is called.
+ * If failback is defined the send APDU methods (init, search, ...) will
+ * return OK but invoke failback (as is the case if the write operation
+ * fails).
+ * Bug fix: ref_count in assoc object could grow if fraction of PDU was
+ * read.
+ *
+ * Revision 1.30  1996/02/29  15:30:23  adam
  * Export of IrTcl functionality to extensions.
  *
  * Revision 1.29  1996/02/26  18:38:33  adam
@@ -360,7 +370,8 @@ int ir_tcl_strdup (Tcl_Interp *interp, char** p, const char *s);
 int ir_tcl_strdel (Tcl_Interp *interp, char **p);
 
 char *ir_tcl_fread_marc (FILE *inf, size_t *size);
-void ir_tcl_read_grs (Z_GenericRecord *r, IrTcl_GRS_Record **grs_record);
+void ir_tcl_grs_mk (Z_GenericRecord *r, IrTcl_GRS_Record **grs_record);
+void ir_tcl_grs_del (IrTcl_GRS_Record **grs_record);
 int ir_tcl_get_grs (Tcl_Interp *interp, IrTcl_GRS_Record *grs_record, 
                      int argc, char **argv);
 
@@ -387,6 +398,7 @@ void ir_select_remove (int fd, void *obj);
 void ir_select_remove_write (int fd, void *obj);
 
 int ir_tcl_eval (Tcl_Interp *interp, const char *command);
+void ir_tcl_disconnect (IrTcl_Obj *p);
 
 #define IR_TCL_FAIL_CONNECT      1
 #define IR_TCL_FAIL_READ         2

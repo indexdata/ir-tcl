@@ -5,7 +5,17 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: grs.c,v $
- * Revision 1.2  1995-09-20 11:37:01  adam
+ * Revision 1.3  1996-03-05 09:21:01  adam
+ * Bug fix: memory used by GRS records wasn't freed.
+ * Rewrote some of the error handling code - the connection is always
+ * closed before failback is called.
+ * If failback is defined the send APDU methods (init, search, ...) will
+ * return OK but invoke failback (as is the case if the write operation
+ * fails).
+ * Bug fix: ref_count in assoc object could grow if fraction of PDU was
+ * read.
+ *
+ * Revision 1.2  1995/09/20  11:37:01  adam
  * Configure searches for tk4.1 and tk7.5.
  * Work on GRS.
  *
@@ -21,7 +31,57 @@
 
 #include "ir-tclp.h"
 
-void ir_tcl_read_grs (Z_GenericRecord *r, IrTcl_GRS_Record **grs_record)
+void ir_tcl_grs_del (IrTcl_GRS_Record **grs_record)
+{
+    struct GRS_Record_entry *e;
+    int i;
+
+    while (!*grs_record)
+        return;
+    e = (*grs_record)->entries;
+    for (i = 0; i < (*grs_record)->noTags; i++, e++)
+    {
+        switch (e->tagType)
+        {
+        case Z_StringOrNumeric_numeric:
+            break;
+        default:
+            free (e->tagVal.str);
+        }
+        switch (e->dataWhich)
+        {
+        case Z_ElementData_octets:
+            free (e->tagData.octets.buf);
+            break;
+        case Z_ElementData_numeric:
+            break;
+        case Z_ElementData_date:
+            free (e->tagData.str);
+            break;            
+        case Z_ElementData_ext:
+            break;
+        case Z_ElementData_string:
+	    free (e->tagData.str);
+            break;
+        case Z_ElementData_trueOrFalse:
+        case Z_ElementData_oid:
+        case Z_ElementData_intUnit:
+        case Z_ElementData_elementNotThere:
+        case Z_ElementData_elementEmpty:
+        case Z_ElementData_noDataRequested:
+        case Z_ElementData_diagnostic:
+            break;
+        case Z_ElementData_subtree:
+            ir_tcl_grs_del (&e->tagData.sub);
+            break;
+        }
+    }
+    free ((*grs_record)->entries);
+    free (*grs_record);
+    *grs_record = NULL;
+}
+
+void ir_tcl_grs_mk (Z_GenericRecord *r, IrTcl_GRS_Record **grs_record)
 {
     int i;
     struct GRS_Record_entry *e;
@@ -86,7 +146,7 @@ void ir_tcl_read_grs (Z_GenericRecord *r, IrTcl_GRS_Record **grs_record)
         case Z_ElementData_diagnostic:
             break;
         case Z_ElementData_subtree:
-            ir_tcl_read_grs (t->content->u.subtree, &e->tagData.sub);
+            ir_tcl_grs_mk (t->content->u.subtree, &e->tagData.sub);
             break;
         }
     }

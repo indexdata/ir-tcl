@@ -6,7 +6,17 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: queue.c,v $
- * Revision 1.7  1996-02-19 15:41:55  adam
+ * Revision 1.8  1996-03-05 09:21:20  adam
+ * Bug fix: memory used by GRS records wasn't freed.
+ * Rewrote some of the error handling code - the connection is always
+ * closed before failback is called.
+ * If failback is defined the send APDU methods (init, search, ...) will
+ * return OK but invoke failback (as is the case if the write operation
+ * fails).
+ * Bug fix: ref_count in assoc object could grow if fraction of PDU was
+ * read.
+ *
+ * Revision 1.7  1996/02/19  15:41:55  adam
  * Better log messages.
  * Minor improvement of connect method.
  *
@@ -70,8 +80,18 @@ int ir_tcl_send_APDU (Tcl_Interp *interp, IrTcl_Obj *p, Z_APDU *apdu,
         logf (LOG_DEBUG, "send_apdu. Sending %s", msg);
         if (ir_tcl_send_q (p, p->request_queue, msg) == TCL_ERROR)
         {
-            sprintf (interp->result, "cs_put failed in %s", msg);
-            return TCL_ERROR;
+            if (p->failback)
+            {
+                ir_tcl_disconnect (p);
+                p->failInfo = IR_TCL_FAIL_WRITE;
+                ir_tcl_eval (interp, p->failback);
+                return TCL_OK;
+            }
+            else 
+            {
+                sprintf (interp->result, "cs_put failed in %s", msg);
+                return TCL_ERROR;
+            }
         } 
     }
     else
@@ -112,6 +132,7 @@ void ir_tcl_del_q (IrTcl_Obj *p)
 {
     IrTcl_Request *rp, *rp1;
 
+    p->state = IR_TCL_R_Idle;
     for (rp = p->request_queue; rp; rp = rp1)
     {
         free (rp->object_name);

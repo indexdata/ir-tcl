@@ -5,7 +5,17 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.82  1996-02-29 15:30:21  adam
+ * Revision 1.83  1996-03-05 09:21:09  adam
+ * Bug fix: memory used by GRS records wasn't freed.
+ * Rewrote some of the error handling code - the connection is always
+ * closed before failback is called.
+ * If failback is defined the send APDU methods (init, search, ...) will
+ * return OK but invoke failback (as is the case if the write operation
+ * fails).
+ * Bug fix: ref_count in assoc object could grow if fraction of PDU was
+ * read.
+ *
+ * Revision 1.82  1996/02/29  15:30:21  adam
  * Export of IrTcl functionality to extensions.
  *
  * Revision 1.81  1996/02/26  18:38:32  adam
@@ -302,8 +312,6 @@
 #include "ir-tclp.h"
 
 static void ir_deleteDiags (IrTcl_Diagnostic **dst_list, int *dst_num);
-static int do_disconnect (void *obj, Tcl_Interp *interp, 
-                          int argc, char **argv);
 
 static void ir_select_notify (ClientData clientData, int r, int w, int e);
 
@@ -327,6 +335,28 @@ void ir_select_remove_write (int fd, void *obj)
     ir_tcl_select_set (ir_select_notify, fd, obj, 1, 0, 0);
 }
 
+static void delete_IR_record (IrTcl_RecordList *rl)
+{
+    switch (rl->which)
+    {
+    case Z_NamePlusRecord_databaseRecord:
+        switch (rl->u.dbrec.type)
+        {
+        case VAL_GRS1:
+            ir_tcl_grs_del (&rl->u.dbrec.u.grs1);
+            break;
+        default:
+        }
+        free (rl->u.dbrec.buf);
+        break;
+    case Z_NamePlusRecord_surrogateDiagnostic:
+        ir_deleteDiags (&rl->u.surrogateDiagnostics.list,
+                        &rl->u.surrogateDiagnostics.num);
+        break;
+    }
+    free (rl->elements);
+}
+
 static IrTcl_RecordList *new_IR_record (IrTcl_SetObj *setobj, 
                                         int no, int which, 
                                         const char *elements)
@@ -340,18 +370,7 @@ static IrTcl_RecordList *new_IR_record (IrTcl_SetObj *setobj,
         if (no == rl->no && (!rl->elements || !elements ||
                              !strcmp(elements, rl->elements)))
         {
-            free (rl->elements);
-            switch (rl->which)
-            {
-            case Z_NamePlusRecord_databaseRecord:
-                free (rl->u.dbrec.buf);
-                rl->u.dbrec.buf = NULL;
-                break;
-            case Z_NamePlusRecord_surrogateDiagnostic:
-                ir_deleteDiags (&rl->u.surrogateDiagnostics.list,
-                                &rl->u.surrogateDiagnostics.num);
-                break;
-            }
+            delete_IR_record (rl);
             break;
         }
     }
@@ -375,6 +394,7 @@ int ir_tcl_eval (Tcl_Interp *interp, const char *command)
     char *tmp = ir_tcl_malloc (strlen(command)+1);
     int r;
 
+    logf (LOG_DEBUG, "Invoking %.17s ...", command);
     strcpy (tmp, command);
     r = Tcl_Eval (interp, tmp);
     if (r == TCL_ERROR)
@@ -431,16 +451,7 @@ static void delete_IR_records (IrTcl_SetObj *setobj)
 
     for (rl = setobj->record_list; rl; rl = rl1)
     {
-        switch (rl->which)
-        {
-        case Z_NamePlusRecord_databaseRecord:
-            free (rl->u.dbrec.buf);
-            break;
-        case Z_NamePlusRecord_surrogateDiagnostic:
-            ir_deleteDiags (&rl->u.surrogateDiagnostics.list,
-                            &rl->u.surrogateDiagnostics.num);
-            break;
-        }
+        delete_IR_record (rl);
         rl1 = rl->next;
         free (rl);
     }
@@ -1074,7 +1085,7 @@ static int do_connect (void *obj, Tcl_Interp *interp,
         if ((r=cs_connect (p->cs_link, addr)) < 0)
         {
             interp->result = "connect fail";
-            do_disconnect (p, NULL, 2, NULL);
+            ir_tcl_disconnect (p);
             return TCL_ERROR;
         }
 	logf(LOG_DEBUG, "cs_connect() returned %d fd=%d", r,
@@ -1106,25 +1117,11 @@ static int do_connect (void *obj, Tcl_Interp *interp,
     return TCL_OK;
 }
 
-/*
- * do_disconnect: disconnect method on IR object
+/* 
+ * ir_tcl_disconnect: close connection
  */
-static int do_disconnect (void *obj, Tcl_Interp *interp,
-                          int argc, char **argv)
+void ir_tcl_disconnect (IrTcl_Obj *p)
 {
-    IrTcl_Obj *p = obj;
-
-    if (argc == 0)
-    {
-        p->state = IR_TCL_R_Idle;
-        p->eventType = NULL;
-        p->hostname = NULL;
-        p->cs_link = NULL;
-#if IRTCL_GENERIC_FILES
-        p->csFile = 0;
-#endif
-        return TCL_OK;
-    }
     if (p->hostname)
     {
 	logf(LOG_DEBUG, "Closing connection to %s", p->hostname);
@@ -1161,6 +1158,28 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
         ir_tcl_del_q (p);
     }
     assert (!p->cs_link);
+}
+
+/*
+ * do_disconnect: disconnect method on IR object
+ */
+static int do_disconnect (void *obj, Tcl_Interp *interp,
+                          int argc, char **argv)
+{
+    IrTcl_Obj *p = obj;
+
+    if (argc == 0)
+    {
+        p->state = IR_TCL_R_Idle;
+        p->eventType = NULL;
+        p->hostname = NULL;
+        p->cs_link = NULL;
+#if IRTCL_GENERIC_FILES
+        p->csFile = 0;
+#endif
+        return TCL_OK;
+    }
+    ir_tcl_disconnect (p);
     return TCL_OK;
 }
 
@@ -3272,7 +3291,7 @@ static void ir_handleRecords (void *o, Z_Records *zrs, IrTcl_SetObj *setobj,
                 else if (rl->u.dbrec.type == VAL_GRS1 && 
                          oe->which == Z_External_grs1)
                 {
-                    ir_tcl_read_grs (oe->u.grs1, &rl->u.dbrec.u.grs1);
+                    ir_tcl_grs_mk (oe->u.grs1, &rl->u.dbrec.u.grs1);
                     rl->u.dbrec.buf = NULL;
                 }
                 else
@@ -3473,6 +3492,7 @@ static void ir_select_read (ClientData clientData)
             return;
         }
         p->state = IR_TCL_R_Idle;
+        p->ref_count = 2;
 #if IRTCL_GENERIC_FILES
         ir_select_remove_write (p->csFile, p);
 #else
@@ -3481,30 +3501,37 @@ static void ir_select_read (ClientData clientData)
         if (r < 0)
         {
             logf (LOG_DEBUG, "cs_rcvconnect error");
+            ir_tcl_disconnect (p);
             if (p->failback)
             {
                 p->failInfo = IR_TCL_FAIL_CONNECT;
                 ir_tcl_eval (p->interp, p->failback);
             }
-            do_disconnect (p, NULL, 2, NULL);
+            ir_obj_delete (p);
             return;
         }
-        p->state = IR_TCL_R_Idle;
         if (p->callback)
             ir_tcl_eval (p->interp, p->callback);
-        if (p->cs_link && p->request_queue && p->state == IR_TCL_R_Idle)
+        if (p->ref_count == 2 && p->cs_link && p->request_queue
+            && p->state == IR_TCL_R_Idle)
             ir_tcl_send_q (p, p->request_queue, "x");
+        ir_obj_delete (p);
         return;
     }
     do
     {
-        /* signal one more use of ir object - callbacks must not
-           release the ir memory (p pointer) */
         p->state = IR_TCL_R_Reading;
-        ++(p->ref_count);
 
         /* read incoming APDU */
-        if ((r=cs_get (p->cs_link, &p->buf_in, &p->len_in)) <= 0)
+        if ((r=cs_get (p->cs_link, &p->buf_in, &p->len_in)) == 1)
+	{
+	    logf(LOG_DEBUG, "PDU Fraction read");
+            return ;
+	}
+        /* signal one more use of ir object - callbacks must not
+           release the ir memory (p pointer) */
+        p->ref_count = 2;
+        if (r <= 0)
         {
             logf (LOG_DEBUG, "cs_get failed, code %d", r);
 #if IRTCL_GENERIC_FILES
@@ -3512,7 +3539,7 @@ static void ir_select_read (ClientData clientData)
 #else
             ir_select_remove (cs_fileno (p->cs_link), p);
 #endif
-            do_disconnect (p, NULL, 2, NULL);
+            ir_tcl_disconnect (p);
             if (p->failback)
             {
                 p->failInfo = IR_TCL_FAIL_READ;
@@ -3522,11 +3549,6 @@ static void ir_select_read (ClientData clientData)
             ir_obj_delete (p);
             return;
         }        
-        if (r == 1)
-	{
-	    logf(LOG_DEBUG, "PDU Fraction read");
-            return ;
-	}
         /* got complete APDU. Now decode */
         p->apduLen = r;
         p->apduOffset = -1;
@@ -3536,7 +3558,7 @@ static void ir_select_read (ClientData clientData)
         {
             logf (LOG_DEBUG, "cs_get failed: %s",
 		odr_errmsg (odr_geterror (p->odr_in)));
-            do_disconnect (p, NULL, 2, NULL);
+            ir_tcl_disconnect (p);
             if (p->failback)
             {
                 p->failInfo = IR_TCL_FAIL_IN_APDU;
@@ -3591,7 +3613,7 @@ static void ir_select_read (ClientData clientData)
             default:
                 logf (LOG_WARN, "Received unknown APDU type (%d)",
                       apdu->which);
-                do_disconnect (p, NULL, 2, NULL);
+                ir_tcl_disconnect (p);
                 if (p->failback)
                 {
                     p->failInfo = IR_TCL_FAIL_UNKNOWN_APDU;
@@ -3617,7 +3639,7 @@ static void ir_select_read (ClientData clientData)
             ir_obj_delete (p);
             return;
         }
-        --(p->ref_count);
+        ir_obj_delete (p);
     } while (p->cs_link && cs_more (p->cs_link));
     if (p->cs_link && p->request_queue && p->state == IR_TCL_R_Idle)
         ir_tcl_send_q (p, p->request_queue, "x");
@@ -3638,31 +3660,32 @@ static void ir_select_write (ClientData clientData)
 	logf(LOG_DEBUG, "Connect handler");
         r = cs_rcvconnect (p->cs_link);
         if (r == 1)
-            return;
-        p->state = IR_TCL_R_Idle;
-        if (r < 0)
         {
-            logf (LOG_DEBUG, "cs_rcvconnect error");
-#if IRTCL_GENERIC_FILES
-            ir_select_remove_write (p->csFile, p);
-#else
-            ir_select_remove_write (cs_fileno (p->cs_link), p);
-#endif
-            if (p->failback)
-            {
-                p->failInfo = IR_TCL_FAIL_CONNECT;
-                ir_tcl_eval (p->interp, p->failback);
-            }
-            do_disconnect (p, NULL, 2, NULL);
+            logf (LOG_DEBUG, "cs_rcvconnect returned 1");
             return;
         }
+        p->state = IR_TCL_R_Idle;
+        p->ref_count = 2;
 #if IRTCL_GENERIC_FILES
         ir_select_remove_write (p->csFile, p);
 #else
         ir_select_remove_write (cs_fileno (p->cs_link), p);
 #endif
+        if (r < 0)
+        {
+            logf (LOG_DEBUG, "cs_rcvconnect error");
+            ir_tcl_disconnect (p);
+            if (p->failback)
+            {
+                p->failInfo = IR_TCL_FAIL_CONNECT;
+                ir_tcl_eval (p->interp, p->failback);
+            }
+            ir_obj_delete (p);
+            return;
+        }
         if (p->callback)
             ir_tcl_eval (p->interp, p->callback);
+        ir_obj_delete (p);
         return;
     }
     rq = p->request_queue;
@@ -3672,18 +3695,20 @@ static void ir_select_write (ClientData clientData)
     if ((r=cs_put (p->cs_link, rq->buf_out, rq->len_out)) < 0)
     {
         logf (LOG_DEBUG, "cs_put write fail");
+        p->ref_count = 2;
+        free (rq->buf_out);
+        rq->buf_out = NULL;
+        ir_tcl_disconnect (p);
         if (p->failback)
         {
             p->failInfo = IR_TCL_FAIL_WRITE;
             ir_tcl_eval (p->interp, p->failback);
         }
-        free (rq->buf_out);
-        rq->buf_out = NULL;
-        do_disconnect (p, NULL, 2, NULL);
+        ir_obj_delete (p);
     }
     else if (r == 0)            /* remove select bit */
     {
-	logf(LOG_DEBUG, "Write completed");
+	logf (LOG_DEBUG, "Write completed");
         p->state = IR_TCL_R_Waiting;
 #if IRTCL_GENERIC_FILES
         ir_select_remove_write (p->csFile, p);
