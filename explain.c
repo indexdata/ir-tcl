@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: explain.c,v $
- * Revision 1.10  1998-04-02 14:31:08  adam
+ * Revision 1.11  1998-05-20 12:24:41  adam
+ * Fixed bug regaring missing element languages in TargetInfo.
+ * Changed code so that it works with ASN.1 compiled YAZ code.
+ *
+ * Revision 1.10  1998/04/02 14:31:08  adam
  * This version works with compiled ASN.1 code.
  *
  * Revision 1.9  1997/11/24 11:34:38  adam
@@ -214,8 +218,10 @@ ir_match_start (const char *name, void *p, IrExpArg *iea, int argi)
         if (strcmp (name, iea->argv[argi]))
             return 0;
     }
-    else
+    else if (*name)
         Tcl_AppendResult (iea->interp, "{", name, " ", NULL);
+    else
+        Tcl_AppendResult (iea->interp, "{", NULL);
     return 1;
 }
 
@@ -442,6 +448,8 @@ static int ir_TargetInfo (IrExpArg *iea,
                  &p->num_dbCombinations, "dbCombinations", argi);
     ir_sequence (ir_NetworkAddress, iea, p->addresses,
                  &p->num_addresses, "addresses", argi);
+    ir_sequence (ir_InternationalString, iea, p->languages,
+		 &p->num_languages, "languages", argi);
     ir_AccessInfo (iea, p->commonAccessInfo, "commonAccessInfo", argi);
     return ir_match_end (name, iea, argi);
 }
@@ -478,7 +486,6 @@ static int ir_DatabaseInfo (IrExpArg *iea,
 
     ir_choice (iea, arm_recordCount, &p->which,
                                      p->u.actualNumber, argi);
-
     ir_HumanString (iea, p->defaultOrder, "defaultOrder", argi);
     ir_integer (iea, p->avRecordSize, "avRecordSize", argi);
     ir_integer (iea, p->maxRecordSize, "maxRecordSize", argi);
@@ -547,8 +554,13 @@ static int ir_ElementInfoList (IrExpArg *iea,
 {
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
+#if ASN_COMPILED
     ir_sequence (ir_ElementInfo, iea, p->elements,
                  &p->num, "elements", argi);
+#else
+    ir_sequence (ir_ElementInfo, iea, p->list,
+                 &p->num, "elements", argi);
+#endif
     return ir_match_end (name, iea, argi);
 }
 
@@ -582,13 +594,23 @@ static int ir_Path (IrExpArg *iea,
 {
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
+#if ASN_COMPILED
     ir_sequence (ir_PathUnit, iea, p->elements, 
                  &p->num, "elements", argi);
+#else
+    ir_sequence (ir_PathUnit, iea, p->list, 
+                 &p->num, "elements", argi);
+#endif
     return ir_match_end (name, iea, argi);
 }
 
+#if ASN_COMPILED
 static int ir_TagSetElements (IrExpArg *iea,
             Z_TagSetElements *p, const char *name, int argi)
+#else
+static int ir_TagSetElements (IrExpArg *iea,
+            Z_TagSetInfoElements *p, const char *name, int argi)
+#endif
 {
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
@@ -1491,8 +1513,8 @@ static int ir_AttributeCombination (IrExpArg *iea,
 {
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_sequence (ir_AttributeOccurrence, iea, p->elements,
-                 &p->num, "occurrences", argi);
+    ir_sequence (ir_AttributeOccurrence, iea, p->occurrences,
+                 &p->num_occurrences, "occurrences", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1501,8 +1523,8 @@ static int ir_AttributeValueList (IrExpArg *iea,
 {
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_sequence (ir_StringOrNumeric, iea, p->elements,
-                 &p->num, "attributes", argi);
+    ir_sequence (ir_StringOrNumeric, iea, p->attributes,
+                 &p->num_attributes, "attributes", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1510,8 +1532,8 @@ static int ir_AttributeOccurrence (IrExpArg *iea,
             Z_AttributeOccurrence *p, const char *name, int argi)
 {
     static IrExpChoice arm [] = {
-        { "anyOrNone",   Z_AttributeOccurrence_any_or_none, ir_null },
-        { "specific",    Z_AttributeOccurrence_specific, 
+        { "anyOrNone",   Z_AttributeOcc_any_or_none, ir_null },
+        { "specific",    Z_AttributeOcc_specific, 
 	  ir_AttributeValueList },
         { NULL, 0, NULL } };
     if (!ir_match_start (name, p, iea, ++argi))
@@ -1519,7 +1541,7 @@ static int ir_AttributeOccurrence (IrExpArg *iea,
     ir_oid (iea, p->attributeSet, "attributeSet", argi);
     ir_integer (iea, p->attributeType, "attributeType", argi);
     ir_null (iea, p->mustBeSupplied, "mustBeSupplied", argi);
-    ir_choice (iea, arm, &p->which, p->u.any_or_none, argi);
+    ir_choice (iea, arm, &p->which, p->attributeValues.any_or_none, argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1592,20 +1614,20 @@ static int ir_OtherInformationUnit (IrExpArg *iea,
 {
     static IrExpChoice arm[] = {
         { "characterInfo",
-	  Z_OtherInformationUnit_characterInfo, ir_InternationalString },
+	  Z_OtherInfo_characterInfo, ir_InternationalString },
         { "binaryInfo",
-	  Z_OtherInformationUnit_binaryInfo, ir_octet},
+	  Z_OtherInfo_binaryInfo, ir_octet},
         { "externallyDefinedInfo",
-	  Z_OtherInformationUnit_externallyDefinedInfo,
+	  Z_OtherInfo_externallyDefinedInfo,
 	  ir_External},
         { "oid",
-	  Z_OtherInformationUnit_oid, ir_oid},
+	  Z_OtherInfo_oid, ir_oid},
         { NULL, 0, NULL }};
 
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
     ir_InfoCategory (iea, p->category, "category", argi);
-    ir_choice (iea, arm, &p->which, p->u.characterInfo, argi);
+    ir_choice (iea, arm, &p->which, p->information.characterInfo, argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1614,8 +1636,8 @@ static int ir_OtherInformation (IrExpArg *iea,
 {
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_sequence (ir_OtherInformationUnit, iea, p->elements,
-                 &p->num, "list", argi);
+    ir_sequence (ir_OtherInformationUnit, iea, p->list,
+                 &p->num_elements, "list", argi);
     return ir_match_end (name, iea, argi);
 }
 
