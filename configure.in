@@ -1,7 +1,7 @@
 dnl IR toolkit for tcl/tk
 dnl (c) Index Data 1996
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.16 1996-06-06 10:46:00 adam Exp $
+dnl $Id: configure.in,v 1.17 1996-06-28 08:43:55 adam Exp $
 AC_INIT(ir-tcl.h)
 CC=${CC-cc}
 dnl ------ Substitutions
@@ -26,10 +26,10 @@ dnl ------ look for YAZ/XTImOSI
 AC_MSG_CHECKING(for YAZ directory)
 AC_ARG_WITH(yazdir,[  --with-yazdir           Yaz directory], [YAZDIR=$withval])
 if test "$YAZDIR" = "yes"; then
-	YAZDIR="../yaz-1.0"
+	YAZDIR="../yaz-1.2"
 elif test "$YAZDIR" = ""; then
         YAZDIR="../yaz"
-        for i in ../yaz-1.0pl3 ../yaz-1.0pl4 ../yaz-1.0pl5 ../yaz; do
+        for i in ../yaz-1.2 ../yaz-1.3 ../yaz; do
             if test -d $i; then
                 YAZDIR=$i
             fi

@@ -1,6 +1,6 @@
 .\" Copyright (c) 1995, 1996 Index Data
 .\" All rights reserved.
-.\" $Id: ir-assoc.n,v 1.2 1996-06-24 16:24:38 adam Exp $
+.\" $Id: ir-assoc.n,v 1.3 1996-06-28 08:43:58 adam Exp $
 .TH ir-assoc N  "24 June 1996" "IrTcl" "IR Association"
 .SH NAME
 ir \- IR association 
@@ -58,7 +58,7 @@ or \fBmosi\fR.
 Sets/gets the protocol type.\fItype\fR is either \fBZ39\fR (the default)
 or \fBSR\fR.
 .SH INIT
-The following operations concern the initialize fase.
+The following operations concern initialization.
 .TP
 .BI "" z " init"
 Sends an initialize request.
@@ -77,7 +77,8 @@ or the empty string (no password used).
 .BI "" z " protocolVersion [" version "]"
 Sets/gets the protocol version: 2, 3, etc. Before an initialize-request is
 sent the protocol version should be set to the preferred version. After
-an initalize response is read the version holds the negotiated version.
+an initialize response is returned by the target the version holds
+the negotiated version.
 .TP
 .BI "" z " preferredMessageSize [" size "]"
 Sets/gets Z39.50/SR preferred-message-size; default is 30000.

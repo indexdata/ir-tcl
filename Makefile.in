@@ -2,11 +2,11 @@
 # (c) Index Data 1995
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.35 1996-06-24 16:24:28 adam Exp $
+# $Id: Makefile.in,v 1.36 1996-06-28 08:43:53 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
-VERSION=1.1
+VERSION=1.2
 
 # Directory prefix with machine independent files (scripts, setup files, etc.)
 prefix = @prefix@
