@@ -1,6 +1,10 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.30  1995-06-06 11:35:41  adam
+# Revision 1.31  1995-06-06 16:31:09  adam
+# Bug fix: target names couldn't contain blanks.
+# Bug fix: scan.
+#
+# Revision 1.30  1995/06/06  11:35:41  adam
 # Work on scan. Display of old sets.
 #
 # Revision 1.29  1995/06/05  14:11:18  adam
@@ -394,7 +398,7 @@ proc set-target-hotlist {} {
     set i 1
     foreach target $hotTargets {
         .top.target.m add command -label "$i $target" -command \
-                "reopen-target $target {}"
+                [list reopen-target $target {}]
         incr i
         if {$i > 8} {
              break
@@ -410,7 +414,7 @@ proc reopen-target {target base} {
 
 proc define-target-action {} {
     global profile
-
+    
     set target [.target-define.top.target.entry get]
     if {$target == ""} {
         return
@@ -422,7 +426,11 @@ proc define-target-action {} {
             return
         }
     }
+    set seq [lindex $profile(Default) 12]
+    puts "seq=${seq}"
     set profile($target) $profile(Default)
+    set profile(Default) [lreplace $profile(Default) 12 12 [incr seq]]
+
     protocol-setup $target
     destroy .target-define
 }
@@ -639,7 +647,7 @@ proc scan-request {attr} {
         bind $w.top.list <Down> [list scan-down $attr]
     }
     focus $w.top.entry
-    z39 callback [list scan-response $attr 0 25]
+    z39 callback [list scan-response $attr 0 35]
     z39.scan numberOfTermsRequested 5
     z39.scan preferredPositionInResponse 1
     z39.scan scan "${attr} 0"
@@ -660,10 +668,9 @@ proc scan-term-h {attr} {
         return
     }
     set scanTerm $nScanTerm
-    z39 callback [list scan-response $attr 0 25]
+    z39 callback [list scan-response $attr 0 35]
     z39.scan numberOfTermsRequested 5
     z39.scan preferredPositionInResponse 1
-    $w.top.list delete 0 end
     puts "${attr} \{${scanTerm}\}"
     if {$scanTerm == ""} {
         z39.scan scan "${attr} 0"
@@ -676,6 +683,7 @@ proc scan-term-h {attr} {
 proc scan-response {attr start toget} {
     global cancelFlag
     global scanTerm
+    global scanView
 
     set w .scan-window
     puts "In scan-response"
@@ -692,11 +700,10 @@ proc scan-response {attr start toget} {
     }
     set nScanTerm [$w.top.entry get]
     if {$nScanTerm != $scanTerm} {
-        z39 callback [list scan-response $attr 0 25]
+        z39 callback [list scan-response $attr 0 35]
         z39.scan numberOfTermsRequested 5
         z39.scan preferredPositionInResponse 1
         set scanTerm $nScanTerm
-        $w.top.list delete 0 end
         puts "${attr} \{${scanTerm}\}"
         if {$scanTerm == ""} {
             z39.scan scan "${attr} 0"
@@ -704,6 +711,14 @@ proc scan-response {attr start toget} {
             z39.scan scan "${attr} \{${scanTerm}\}"
         }
         show-status {Scan} 1 0
+        return
+    }
+    set status [z39.scan scanStatus]
+    if {$status == 6} {
+        tkerror "Scan fail"
+        show-status {Ready} 0 1
+        set cancelFlag 0
+        return
     }
     if {$toget < 0} {
         for {set i 0} {$i < $m} {incr i} {
@@ -711,6 +726,8 @@ proc scan-response {attr start toget} {
             set nostr [format " %-6d" [lindex [z39.scan scanLine $i] 2]]
             $w.top.list insert $i "$nostr $term"
         }
+        incr scanView $m
+        $w.top.list yview $scanView
     } else {
         $w.top.list delete $start end
         for {set i 0} {$i < $m} {incr i} {
@@ -767,7 +784,7 @@ proc scan-down {attr} {
     set scanView [expr $scanView + 5]
     set s [$w.top.list size]
     if {$scanView > $s} {
-        z39 callback [list scan-response $attr [expr $s - 1] 30]
+        z39 callback [list scan-response $attr [expr $s - 1] 25]
         set q [string range [$w.top.list get [expr $s - 1]] 8 end]
         puts "down: $q"
         z39.scan numberOfTermsRequested 10
@@ -784,8 +801,9 @@ proc scan-up {attr} {
     global scanView
 
     set w .scan-window
-    if {$scanView < 5} {
-        z39 callback [list scan-response $attr 0 -30]
+    set scanView [expr $scanView - 5]
+    if {$scanView < 0} {
+        z39 callback [list scan-response $attr 0 -25]
         set q [string range [$w.top.list get 0] 8 end]
         puts "up: $q"
         z39.scan numberOfTermsRequested 10
@@ -794,7 +812,6 @@ proc scan-up {attr} {
         z39.scan scan "${attr} \{$q\}"
         return
     }
-    set scanView [expr $scanView - 5]
     $w.top.list yview $scanView
 }
 
@@ -1016,32 +1033,32 @@ proc protocol-setup-action {target} {
     global CCLCheck
     global ResultSetCheck
 
-    set w .setup-${target}.top
-
-    #set w .protocol-setup.top
+    set wno [lindex $profile($target) 12]
+    set w .setup-${wno}
     
     set b {}
     set settingsChanged 1
-    set len [$w.databases.list size]
+    set len [$w.top.databases.list size]
     for {set i 0} {$i < $len} {incr i} {
-        lappend b [$w.databases.list get $i]
+        lappend b [$w.top.databases.list get $i]
     }
-    set profile($target) [list [$w.description.entry get] \
-            [$w.host.entry get] \
-            [$w.port.entry get] \
-            [$w.idAuthentication.entry get] \
-            [$w.maximumRecordSize.entry get] \
-            [$w.preferredMessageSize.entry get] \
+    set profile($target) [list [$w.top.description.entry get] \
+            [$w.top.host.entry get] \
+            [$w.top.port.entry get] \
+            [$w.top.idAuthentication.entry get] \
+            [$w.top.maximumRecordSize.entry get] \
+            [$w.top.preferredMessageSize.entry get] \
             $csRadioType \
             $b \
             $RPNCheck \
             $CCLCheck \
             $ResultSetCheck \
-            $protocolRadioType ]
+            $protocolRadioType \
+            $wno]
 
     cascade-target-list
     puts $profile($target)
-    destroy .setup-${target}
+    destroy $w
 }
 
 proc place-force {window parent} {
@@ -1056,20 +1073,26 @@ proc place-force {window parent} {
 }
 
 proc add-database-action {target} {
-    set w .setup-${target}
-    
-    ${w}.top.databases.list insert end \
+    global profile
+
+    set wno [lindex $profile($target) 12]
+    set w .setup-${wno}
+
+    $w.top.databases.list insert end \
             [.database-select.top.database.entry get]
     destroy .database-select
 }
 
 proc add-database {target} {
+    global profile
+
     set w .database-select
 
     set oldFocus [focus]
     toplevel $w
-
-    place-force $w .setup-${target}
+ 
+    set wno [lindex $profile($target) 12]
+    place-force $w .setup-${wno}
 
     top-down-window $w
 
@@ -1086,8 +1109,11 @@ proc add-database {target} {
 }
 
 proc delete-database {target} {
-    set w .setup-${target}
-    
+    global profile
+
+    set wno [lindex $profile($target) 12]
+    set w .setup-${wno}
+
     foreach i [lsort -decreasing \
             [$w.top.databases.list curselection]] {
         $w.top.databases.list delete $i
@@ -1095,7 +1121,6 @@ proc delete-database {target} {
 }
 
 proc protocol-setup {target} {
-    set w .setup-$target
 
     global profile
     global csRadioType
@@ -1103,6 +1128,9 @@ proc protocol-setup {target} {
     global RPNCheck
     global CCLCheck
     global ResultSetCheck
+
+    set wno [lindex $profile($target) 12]
+    set w .setup-${wno}
 
     toplevel $w
 
@@ -1142,8 +1170,8 @@ proc protocol-setup {target} {
     foreach sub {description host port idAuthentication \
             maximumRecordSize preferredMessageSize} {
         puts $sub
-        bind $w.top.$sub.entry <Control-a> "add-database $target"
-        bind $w.top.$sub.entry <Control-d> "delete-database $target"
+        bind $w.top.$sub.entry <Control-a> [list add-database $target]
+        bind $w.top.$sub.entry <Control-d> [list delete-database $target]
     }
     $w.top.description.entry insert 0 [lindex $profile($target) 0]
     $w.top.host.entry insert 0 [lindex $profile($target) 1]
@@ -1165,9 +1193,9 @@ proc protocol-setup {target} {
 
     label $w.top.databases.label -text "Databases"
     button $w.top.databases.add -text "Add" \
-            -command "add-database $target"
+            -command [list add-database $target]
     button $w.top.databases.delete -text "Delete" \
-            -command "delete-database $target"
+            -command [list delete-database $target]
     listbox $w.top.databases.list -geometry 20x6 \
             -yscrollcommand "$w.top.databases.scroll set"
     scrollbar $w.top.databases.scroll -orient vertical -border 1
@@ -1287,11 +1315,11 @@ proc cascade-target-list {} {
                 menu .top.target.m.clist.$nl
                 foreach b [lindex $profile($n) 7] {
                     .top.target.m.clist.$nl add command -label $b \
-                            -command "reopen-target $n $b"
+                            -command [list reopen-target $n $b]
                 }
             } else {
                 .top.target.m.clist add command -label $n \
-                        -command "reopen-target $n {}"
+                        -command [list reopen-target $n {}]
             }
         }
     }
@@ -1299,7 +1327,7 @@ proc cascade-target-list {} {
     foreach n [array names profile] {
         if {$n != "Default"} {
             .top.target.m.slist add command -label $n \
-                    -command "protocol-setup $n"
+                    -command [list protocol-setup $n]
         }
     }
 }
@@ -1337,7 +1365,7 @@ proc save-settings {} {
     puts $f "set hotTargets \{ $hotTargets \}"
 
     foreach n [array names profile] {
-        puts -nonewline $f "set profile($n) \{"
+        puts -nonewline $f "set \{profile($n)\} \{"
         puts -nonewline $f $profile($n)
         puts $f "\}"
     }
@@ -1849,7 +1877,7 @@ index-lines .lines 1 $queryButtonsFind [lindex $queryInfo 0] activate-index
 button .mid.search -width 7 -text {Search} -command search-request \
         -state disabled
 button .mid.scan -width 7 -text {Scan} \
-        -command [list scan-request "@attr 1=4"] -state disabled 
+        -command [list scan-request "@attr 1=4 @attr 5=1 @attr 4=1"] -state disabled 
 button .mid.present -width 7 -text {Present} -command [list present-more 10] \
         -state disabled
 
