@@ -1,5 +1,5 @@
-# $Id: Makefile,v 1.2 1995-05-31 08:37:01 adam Exp $
-all: -tcl.ps ir-tcl.txt
+# $Id: Makefile,v 1.3 1995-05-31 13:13:20 adam Exp $
+all: ir-tcl.ps ir-tcl.txt ir-tcl.html
 
 ir-tcl.txt: ir-tcl.sgml
 	sgml-format -T nroff ir-tcl| qroff >ir-tcl.txt
