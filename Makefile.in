@@ -2,7 +2,7 @@
 # (c) Index Data 1995
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.30 1996-02-29 15:30:19 adam Exp $
+# $Id: Makefile.in,v 1.31 1996-03-20 13:54:01 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -130,7 +130,7 @@ install: ir-tcl
 	fi; 
 
 clean:
-	rm -f *.[oa] ir-tk ir-tcl core gmon.out mon.out *.bak config.cache
+	rm -f *.[oa] ir-tk ir-tcl wais-tcl core gmon.out mon.out *.bak config.cache
 
 autoconf:
 	-rm config.cache

@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.85  1996-03-15 11:15:48  adam
+ * Revision 1.86  1996-03-20 13:54:04  adam
+ * The Tcl_File structure is only manipulated in the Tk-event interface
+ * in tkinit.c.
+ *
+ * Revision 1.85  1996/03/15  11:15:48  adam
  * Modified to use new prototypes for p_query_rpn and p_query_scan.
  *
  * Revision 1.84  1996/03/07  12:42:49  adam
@@ -312,8 +316,6 @@
 #include <assert.h>
 
 #define CS_BLOCK 0
-
-#define IRTCL_GENERIC_FILES 0
 
 #include "ir-tclp.h"
 
@@ -1082,34 +1084,19 @@ static int do_connect (void *obj, Tcl_Interp *interp,
         }
         if (ir_tcl_strdup (interp, &p->hostname, argv[2]) == TCL_ERROR)
             return TCL_ERROR;
-#if IRTCL_GENERIC_FILES
-#ifdef WINDOWS
-        p->csFile = Tcl_GetFile (cs_fileno(p->cs_link), TCL_WIN_SOCKET);
-#else
-        p->csFile = Tcl_GetFile (cs_fileno(p->cs_link), TCL_UNIX_FD);
-#endif
-#endif
         if ((r=cs_connect (p->cs_link, addr)) < 0)
         {
             interp->result = "connect fail";
             ir_tcl_disconnect (p);
             return TCL_ERROR;
         }
-	logf(LOG_DEBUG, "cs_connect() returned %d fd=%d", r,
+        logf(LOG_DEBUG, "cs_connect() returned %d fd=%d", r,
              cs_fileno(p->cs_link));
         p->eventType = "connect";
-#if IRTCL_GENERIC_FILES
-        ir_select_add (p->csFile, p);
-#else
         ir_select_add (cs_fileno (p->cs_link), p);
-#endif
         if (r == 1)
         {
-#if IRTCL_GENERIC_FILES
-            ir_select_add_write (p->csFile, p);
-#else
             ir_select_add_write (cs_fileno (p->cs_link), p);
-#endif
             p->state = IR_TCL_R_Connecting;
         }
         else
@@ -1131,26 +1118,17 @@ void ir_tcl_disconnect (IrTcl_Obj *p)
 {
     if (p->hostname)
     {
-	logf(LOG_DEBUG, "Closing connection to %s", p->hostname);
+        logf(LOG_DEBUG, "Closing connection to %s", p->hostname);
         free (p->hostname);
         p->hostname = NULL;
-#if IRTCL_GENERIC_FILES
-        ir_select_remove_write (p->csFile, p);
-        ir_select_remove (p->csFile, p);
-#else
         ir_select_remove_write (cs_fileno (p->cs_link), p);
         ir_select_remove (cs_fileno (p->cs_link), p);
-#endif
 
         odr_reset (p->odr_in);
 
         assert (p->cs_link);
         cs_close (p->cs_link);
         p->cs_link = NULL;
-#if IRTCL_GENERIC_FILES
-        Tcl_FreeFile (p->csFile);
-        p->csFile = NULL;
-#endif
 
         ODR_MASK_ZERO (&p->options);
         ODR_MASK_SET (&p->options, 0);
@@ -1181,9 +1159,6 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
         p->eventType = NULL;
         p->hostname = NULL;
         p->cs_link = NULL;
-#if IRTCL_GENERIC_FILES
-        p->csFile = 0;
-#endif
         return TCL_OK;
     }
     ir_tcl_disconnect (p);
@@ -3493,7 +3468,7 @@ static void ir_select_read (ClientData clientData)
     logf(LOG_DEBUG, "Read handler fd=%d", cs_fileno(p->cs_link));
     if (p->state == IR_TCL_R_Connecting)
     {
-	logf(LOG_DEBUG, "read: connect");
+        logf(LOG_DEBUG, "read: connect");
         r = cs_rcvconnect (p->cs_link);
         if (r == 1)
         {
@@ -3502,11 +3477,7 @@ static void ir_select_read (ClientData clientData)
         }
         p->state = IR_TCL_R_Idle;
         p->ref_count = 2;
-#if IRTCL_GENERIC_FILES
-        ir_select_remove_write (p->csFile, p);
-#else
         ir_select_remove_write (cs_fileno (p->cs_link), p);
-#endif
         if (r < 0)
         {
             logf (LOG_DEBUG, "cs_rcvconnect error");
@@ -3533,21 +3504,17 @@ static void ir_select_read (ClientData clientData)
 
         /* read incoming APDU */
         if ((r=cs_get (p->cs_link, &p->buf_in, &p->len_in)) == 1)
-	{
-	    logf(LOG_DEBUG, "PDU Fraction read");
+        {
+            logf(LOG_DEBUG, "PDU Fraction read");
             return ;
-	}
+        }
         /* signal one more use of ir object - callbacks must not
            release the ir memory (p pointer) */
         p->ref_count = 2;
         if (r <= 0)
         {
             logf (LOG_DEBUG, "cs_get failed, code %d", r);
-#if IRTCL_GENERIC_FILES
-            ir_select_remove (p->csFile, p);
-#else
             ir_select_remove (cs_fileno (p->cs_link), p);
-#endif
             ir_tcl_disconnect (p);
             if (p->failback)
             {
@@ -3566,7 +3533,7 @@ static void ir_select_read (ClientData clientData)
         if (!z_APDU (p->odr_in, &apdu, 0))
         {
             logf (LOG_DEBUG, "cs_get failed: %s",
-		odr_errmsg (odr_geterror (p->odr_in)));
+                odr_errmsg (odr_geterror (p->odr_in)));
             ir_tcl_disconnect (p);
             if (p->failback)
             {
@@ -3578,7 +3545,7 @@ static void ir_select_read (ClientData clientData)
             ir_obj_delete (p);
             return;
         }
-	logf(LOG_DEBUG, "Decoded ok");
+        logf(LOG_DEBUG, "Decoded ok");
         /* handle APDU and invoke callback */
         rq = p->request_queue;
         if (!rq)
@@ -3596,7 +3563,7 @@ static void ir_select_read (ClientData clientData)
             case Z_APDU_initResponse:
                 p->eventType = "init";
                 ir_initResponse (p, apdu->u.initResponse);
-		apdu_call = p->initResponse;
+                apdu_call = p->initResponse;
                 break;
             case Z_APDU_searchResponse:
                 p->eventType = "search";
@@ -3666,7 +3633,7 @@ static void ir_select_write (ClientData clientData)
     logf (LOG_DEBUG, "Write handler fd=%d", cs_fileno(p->cs_link));
     if (p->state == IR_TCL_R_Connecting)
     {
-	logf(LOG_DEBUG, "write: connect");
+        logf(LOG_DEBUG, "write: connect");
         r = cs_rcvconnect (p->cs_link);
         if (r == 1)
         {
@@ -3675,11 +3642,7 @@ static void ir_select_write (ClientData clientData)
         }
         p->state = IR_TCL_R_Idle;
         p->ref_count = 2;
-#if IRTCL_GENERIC_FILES
-        ir_select_remove_write (p->csFile, p);
-#else
         ir_select_remove_write (cs_fileno (p->cs_link), p);
-#endif
         if (r < 0)
         {
             logf (LOG_DEBUG, "cs_rcvconnect error");
@@ -3717,13 +3680,9 @@ static void ir_select_write (ClientData clientData)
     }
     else if (r == 0)            /* remove select bit */
     {
-	logf (LOG_DEBUG, "Write completed");
+        logf (LOG_DEBUG, "Write completed");
         p->state = IR_TCL_R_Waiting;
-#if IRTCL_GENERIC_FILES
-        ir_select_remove_write (p->csFile, p);
-#else
         ir_select_remove_write (cs_fileno (p->cs_link), p);
-#endif
         free (rq->buf_out);
         rq->buf_out = NULL;
     }
@@ -3733,7 +3692,7 @@ static void ir_select_notify (ClientData clientData, int r, int w, int e)
 {
     if (r)
         ir_select_read (clientData);
-    if (w)
+    else if (w)
         ir_select_write (clientData);
 }
 

@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.31  1996-03-05 09:21:19  adam
+ * Revision 1.32  1996-03-20 13:54:05  adam
+ * The Tcl_File structure is only manipulated in the Tk-event interface
+ * in tkinit.c.
+ *
+ * Revision 1.31  1996/03/05  09:21:19  adam
  * Bug fix: memory used by GRS records wasn't freed.
  * Rewrote some of the error handling code - the connection is always
  * closed before failback is called.
@@ -186,10 +190,7 @@ typedef struct {
     int         protocol_type;
     int         failInfo;
     COMSTACK    cs_link;
-#if IRTCL_GENERIC_FILES
-    Tcl_File    csFile;
-#endif
-    
+
     int         state;
 
     int         preferredMessageSize;

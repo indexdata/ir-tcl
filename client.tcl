@@ -4,7 +4,11 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.89  1996-03-05 09:16:04  adam
+# Revision 1.90  1996-03-20 13:54:02  adam
+# The Tcl_File structure is only manipulated in the Tk-event interface
+# in tkinit.c.
+#
+# Revision 1.89  1996/03/05  09:16:04  adam
 # Sets tearoff to off on several menus.
 #
 # Revision 1.88  1996/01/23  15:24:09  adam
@@ -3954,7 +3958,7 @@ if {[catch {ir z39}]} {
 }
 
 # Init: Uncomment this line if you wan't to enable logging.
-#z39 logLevel all {} irtcl.log
+z39 logLevel all {} irtcl.log
 
 # Init: If hostid is a valid target, a new connection will be established
 # immediately.

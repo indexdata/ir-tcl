@@ -6,7 +6,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: queue.c,v $
- * Revision 1.8  1996-03-05 09:21:20  adam
+ * Revision 1.9  1996-03-20 13:54:05  adam
+ * The Tcl_File structure is only manipulated in the Tk-event interface
+ * in tkinit.c.
+ *
+ * Revision 1.8  1996/03/05  09:21:20  adam
  * Bug fix: memory used by GRS records wasn't freed.
  * Rewrote some of the error handling code - the connection is always
  * closed before failback is called.
@@ -109,11 +113,7 @@ int ir_tcl_send_q (IrTcl_Obj *p, IrTcl_Request *rp, const char *msg)
         return TCL_ERROR;
     else if (r == 1)
     {
-#if IRTCL_GENERIC_FILES
-        ir_select_add_write (p->csFile, p);
-#else
         ir_select_add_write (cs_fileno (p->cs_link), p);
-#endif
         logf (LOG_DEBUG, "Send part of %s", msg);
         p->state = IR_TCL_R_Writing;
     }
