@@ -1,6 +1,10 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.21  1995-05-11 15:34:46  adam
+# Revision 1.22  1995-05-26 11:44:09  adam
+# Bugs fixed. More work on MARC utilities and queries. Test
+# client is up-to-date again.
+#
+# Revision 1.21  1995/05/11  15:34:46  adam
 # Scan request changed a bit. This version works with RLG.
 #
 # Revision 1.20  1995/04/21  16:31:57  adam
@@ -79,9 +83,10 @@ set setNo 0
 
 set queryTypes {Simple}
 set queryButtons { { {I 0} {I 1} {I 2} } }
-set queryInfo { { {Title ti} {Author au} {Subject sh} {Any any} } }
+set queryInfo { { {Title {1=4 4=1 6=1}} {Author {1=1 4=1 6=1}} \
+        {Subject {1=21 4=1 6=1}} {Any {1=1016 4=1 6=1}} } }
 
-wm minsize . 300 250
+wm minsize . 350 250
 
 if {[file readable "~/.tk-c"]} {
     source "~/.tk-c"
@@ -216,7 +221,7 @@ proc show-full-marc {no} {
     }
     incr no
     
-    set r [z39.$setNo recordMarc $no line * * *]
+    set r [z39.$setNo getMarc $no list * * *]
 
     $w.top.record tag configure marc-tag -foreground blue
     $w.top.record tag configure marc-data -foreground black
@@ -331,7 +336,7 @@ proc open-target {target base} {
 
     z39 disconnect
     z39 comstack [lindex $profile($target) 6]
-    # z39 idAuthentication [lindex $profile($target) 3]
+    z39 idAuthentication [lindex $profile($target) 3]
     z39 maximumRecordSize [lindex $profile($target) 4]
     z39 preferredMessageSize [lindex $profile($target) 5]
     puts -nonewline "maximumRecordSize="
@@ -371,7 +376,7 @@ proc load-set-action {} {
     global setNo
 
     incr setNo
-    ir-set z39.$setNo
+    ir-set z39.$setNo z39
 
     set fname [.load-set.top.filename.entry get]
     destroy .load-set
@@ -422,6 +427,11 @@ proc init-response {} {
     .top.search configure -state normal
     .mid.search configure -state normal
     .mid.scan configure -state normal
+    if {![z39 initResult]} {
+        set u [z39 userInformationField]
+        close-target
+        tkerror "Connection rejected by target: $u"
+    }
 }
 
 proc search-request {} {
@@ -436,19 +446,20 @@ proc search-request {} {
         return
     }
     incr setNo
-    ir-set z39.$setNo
+    ir-set z39.$setNo z39
 
-
-    if {[lindex $profile($target) 10] != ""} {
+    if {[lindex $profile($target) 10] == 1} {
         z39.$setNo setName $setNo
+        puts "setName=${setNo}"
     } else {
         z39.$setNo setName Default
+        puts "setName=Default"
     }
-    if {[lindex $profile($target) 8] != ""} {
-        z39 query rpn
+    if {[lindex $profile($target) 8] == 1} {
+        z39.$setNo queryType rpn
     }
-    if {[lindex $profile($target) 9] != ""} {
-        z39 query ccl
+    if {[lindex $profile($target) 9] == 1} {
+        z39.$setNo queryType ccl
     }
     z39 callback {search-response}
     z39.$setNo search $query
@@ -485,7 +496,7 @@ proc scan-request {} {
         top-down-ok-cancelx $w [list {Close} [list destroy $w]] 0 
     }
     z39.scan numberOfTermsRequested 100
-    z39.scan scan ti=0
+    z39.scan scan "@attr 1=4 0"
     
     show-status {Scan} 1
 }
@@ -564,8 +575,8 @@ proc init-title-lines {} {
 proc add-title-lines {setno no offset} {
     for {set i 0} {$i < $no} {incr i} {
         set o [expr $i + $offset]
-        set title [lindex [z39.$setno recordMarc $o field 245 * a] 0]
-        set year  [lindex [z39.$setno recordMarc $o field 260 * c] 0]
+        set title [lindex [z39.$setno getMarc $o field 245 * a] 0]
+        set year  [lindex [z39.$setno getMarc $o field 260 * c] 0]
         set nostr [format "%5d" $o]
         .data.list insert end "$nostr $title - $year"
     }
@@ -1321,13 +1332,16 @@ proc index-query {} {
         set term [string trim [.lines.$i.e get]]
         if {$term != ""} {
             set attr [lindex [lindex $queryInfoFind [lindex $b 1]] 1]
+
+            set term "\{${term}\}"
+            foreach a $attr {
+                set term "@attr $a ${term}"
+            }
             if {$qs != ""} {
-                set qs "${qs} and "
+                set qs "@and ${qs} ${term}"
+            } else {
+                set qs $term
             }
-            if {$attr != ""} {
-                set qs "${qs}${attr}="
-            }
-            set qs "${qs}(${term})"
         }
         incr i
     }

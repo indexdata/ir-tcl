@@ -4,7 +4,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.3  1995-05-26 08:54:17  adam
+ * Revision 1.4  1995-05-26 11:44:10  adam
+ * Bugs fixed. More work on MARC utilities and queries. Test
+ * client is up-to-date again.
+ *
+ * Revision 1.3  1995/05/26  08:54:17  adam
  * New MARC utilities. Uses prefix query.
  *
  * Revision 1.2  1995/05/24  14:10:23  adam
@@ -22,6 +26,7 @@
 
 #include <tcl.h>
 
+#include <log.h>
 #include <pquery.h>
 #if CCL2RPN
 #include <yaz-ccl.h>
@@ -127,7 +132,9 @@ typedef struct IRRecordList_ {
 typedef struct IRSetObj_ {
     IRObj      *parent;
     int         searchStatus;
+    int         presentStatus;
     int         resultCount;
+    int         nextResultSetPosition;
     int         start;
     int         number;
     int         numberOfRecordsReturned;

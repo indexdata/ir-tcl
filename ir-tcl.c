@@ -4,7 +4,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.30  1995-05-26 08:54:11  adam
+ * Revision 1.31  1995-05-26 11:44:10  adam
+ * Bugs fixed. More work on MARC utilities and queries. Test
+ * client is up-to-date again.
+ *
+ * Revision 1.30  1995/05/26  08:54:11  adam
  * New MARC utilities. Uses prefix query.
  *
  * Revision 1.29  1995/05/24  14:10:22  adam
@@ -112,6 +116,10 @@ typedef struct {
     int (*method) (void *obj, Tcl_Interp *interp, int argc, char **argv);
 } IRMethod;
 
+typedef struct {
+    void *obj;
+    IRMethod *tab;
+} IRMethods;
 
 static int do_disconnect (void *obj,Tcl_Interp *interp, int argc, char **argv);
 
@@ -235,19 +243,22 @@ static int get_parent_info (Tcl_Interp *interp, const char *name,
 /*
  * ir_method: Search for method in table and invoke method handler
  */
-int ir_method (void *obj, Tcl_Interp *interp, int argc, char **argv,
-               IRMethod *tab, int sigerr)
+int ir_method (Tcl_Interp *interp, int argc, char **argv, IRMethods *tab)
 {
+    IRMethods *tab_i = tab;
     IRMethod *t;
-    for (t = tab; t->name; t++)
-        if (!strcmp (t->name, argv[1]))
-            return (*t->method)(obj, interp, argc, argv);
-    if (sigerr)
-        return TCL_ERROR;
-    Tcl_AppendResult (interp, "Bad method. Possible values:", NULL);
-    for (t = tab; t->name; t++)
-        Tcl_AppendResult (interp, " ", t->name, NULL);
+
+    for (tab_i = tab; tab_i->tab; tab_i++)
+        for (t = tab_i->tab; t->name; t++)
+            if (!strcmp (t->name, argv[1]))
+                return (*t->method)(tab_i->obj, interp, argc, argv);
+
+    Tcl_AppendResult (interp, "Bad method. Possible methods:", NULL);
+    for (tab_i = tab; tab_i->tab; tab_i++)
+        for (t = tab_i->tab; t->name; t++)
+            Tcl_AppendResult (interp, " ", t->name, NULL);
     return TCL_ERROR;
+
 }
 
 /*
@@ -374,6 +385,8 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
         interp->result = "not connected";
         return TCL_ERROR;
     }
+    odr_reset (p->odr_out);
+
     req.referenceId = 0;
     req.options = &p->options;
     req.protocolVersion = &p->protocolVersion;
@@ -388,24 +401,15 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
         auth->which = Z_IdAuthentication_idPass;
         auth->u.idPass = pass;
         if (p->idAuthenticationGroupId && *p->idAuthenticationGroupId)
-        {
-            printf ("i");
             pass->groupId = p->idAuthenticationGroupId;
-        }
         else
             pass->groupId = NULL;
         if (p->idAuthenticationUserId && *p->idAuthenticationUserId)
-        {
-            printf ("u");
             pass->userId = p->idAuthenticationUserId;
-        }
         else
             pass->userId = NULL;
         if (p->idAuthenticationPassword && *p->idAuthenticationPassword)
-        {
-            printf ("p");
             pass->password = p->idAuthenticationPassword;
-        }
         else
             pass->password = NULL;
         req.idAuthentication = auth;
@@ -445,10 +449,10 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
     else if (r == 1)
     {
         ir_select_add_write (cs_fileno(p->cs_link), p);
-        printf("Sent part of initializeRequest (%d bytes).\n", p->slen);
+        logf (LOG_DEBUG, "Sent part of initializeRequest (%d bytes)", p->slen);
     }
     else
-        printf("Sent whole initializeRequest (%d bytes).\n", p->slen);
+        logf (LOG_DEBUG, "Sent whole initializeRequest (%d bytes)", p->slen);
     return TCL_OK;
 }
 
@@ -692,7 +696,7 @@ static int do_connect (void *obj, Tcl_Interp *interp,
                 interp->result = "tcpip_strtoaddr fail";
                 return TCL_ERROR;
             }
-            printf ("tcp/ip connect %s\n", argv[2]);
+            logf (LOG_DEBUG, "tcp/ip connect %s", argv[2]);
         }
 #if MOSI
         else if (!strcmp (p->cs_type, "mosi"))
@@ -704,7 +708,7 @@ static int do_connect (void *obj, Tcl_Interp *interp,
                 interp->result = "mosi_strtoaddr fail";
                 return TCL_ERROR;
             }
-            printf ("mosi connect %s\n", argv[2]);
+            logf (LOG_DEBUG, "mosi connect %s", argv[2]);
         }
 #endif
         else 
@@ -967,12 +971,12 @@ static IRMethod ir_method_tab[] = {
 };
 
 static IRMethod ir_set_c_method_tab[] = {
-{ 0, "databaseNames",           do_databaseNames},
-{ 0, "replaceIndicator",        do_replaceIndicator},
-{ 0, "queryType",               do_queryType },
-{ 0, "smallSetUpperBound",      do_smallSetUpperBound},
-{ 0, "largeSetLowerBound",      do_largeSetLowerBound},
-{ 0, "mediumSetPresentNumber",  do_mediumSetPresentNumber},
+{ 0, "databaseNames",               do_databaseNames},
+{ 0, "replaceIndicator",            do_replaceIndicator},
+{ 0, "queryType",                   do_queryType },
+{ 0, "smallSetUpperBound",          do_smallSetUpperBound},
+{ 0, "largeSetLowerBound",          do_largeSetLowerBound},
+{ 0, "mediumSetPresentNumber",      do_mediumSetPresentNumber},
 { 0, NULL, NULL}
 };
 
@@ -982,13 +986,19 @@ static IRMethod ir_set_c_method_tab[] = {
 static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
 int argc, char **argv)
 {
+    IRMethods tab[3];
+    IRObj *p = clientData;
+
     if (argc < 2)
         return ir_method_r (clientData, interp, argc, argv, ir_method_tab);
-    if (ir_method (clientData, interp, argc, argv,
-                   ir_method_tab, 1) == TCL_OK)
-        return TCL_OK;
-    return ir_method (&((IRObj*) clientData)->set_inher, interp,
-                      argc, argv, ir_set_c_method_tab, 0);
+
+    tab[0].tab = ir_method_tab;
+    tab[0].obj = p;
+    tab[1].tab = ir_set_c_method_tab;
+    tab[1].obj = &p->set_inher;
+    tab[2].tab = NULL;
+
+    return ir_method (interp, argc, argv, tab);
 }
 
 /* 
@@ -1144,6 +1154,7 @@ static int do_search (void *o, Tcl_Interp *interp,
         interp->result = "not connected";
         return TCL_ERROR;
     }
+    odr_reset (p->odr_out);
     apdu.which = Z_APDU_searchRequest;
     apdu.u.searchRequest = &req;
 
@@ -1153,11 +1164,11 @@ static int do_search (void *o, Tcl_Interp *interp,
     req.mediumSetPresentNumber = &p->set_inher.mediumSetPresentNumber;
     req.replaceIndicator = &p->set_inher.replaceIndicator;
     req.resultSetName = obj->setName ? obj->setName : "Default";
+    logf (LOG_DEBUG, "Search, resultSetName %s", req.resultSetName);
     req.num_databaseNames = p->set_inher.num_databaseNames;
     req.databaseNames = p->set_inher.databaseNames;
-    printf ("Search:");
     for (r=0; r < p->set_inher.num_databaseNames; r++)
-        printf (" %s", p->set_inher.databaseNames[r]);
+        logf (LOG_DEBUG, " Database %s", p->set_inher.databaseNames[r]);
     req.smallSetElementSetNames = 0;
     req.mediumSetElementSetNames = 0;
     req.preferredRecordSyntax = 0;
@@ -1176,7 +1187,7 @@ static int do_search (void *o, Tcl_Interp *interp,
         RPNquery->attributeSetId = oid_getoidbyent (&p->bib1);
         query.which = Z_Query_type_1;
         query.u.type_1 = RPNquery;
-        printf ("- RPN\n");
+        logf (LOG_DEBUG, "RPN");
     }
 #if CCL2RPN
     else if (!strcmp (p->set_inher.queryType, "cclrpn"))
@@ -1198,7 +1209,7 @@ static int do_search (void *o, Tcl_Interp *interp,
         RPNquery->attributeSetId = oid_getoidbyent (&p->bib1);
         query.which = Z_Query_type_1;
         query.u.type_1 = RPNquery;
-        printf ("- CCLRPN\n");
+        logf (LOG_DEBUG, "CCLRPN");
     }
 #endif
     else if (!strcmp (p->set_inher.queryType, "ccl"))
@@ -1207,7 +1218,7 @@ static int do_search (void *o, Tcl_Interp *interp,
         query.u.type_2 = &ccl_query;
         ccl_query.buf = (unsigned char *) argv[2];
         ccl_query.len = strlen (argv[2]);
-        printf ("- CCL\n");
+        logf (LOG_DEBUG, "CCL");
     }
     else
     {
@@ -1229,11 +1240,11 @@ static int do_search (void *o, Tcl_Interp *interp,
     else if (r == 1)
     {
         ir_select_add_write (cs_fileno(p->cs_link), p);
-        printf("Sent part of searchRequest (%d bytes).\n", p->slen);
+        logf (LOG_DEBUG, "Sent part of searchRequest (%d bytes)", p->slen);
     }
     else
     {
-        printf ("Whole search request\n");
+        logf (LOG_DEBUG, "Whole search request (%d bytes)", p->slen);
     }
     return TCL_OK;
 }
@@ -1258,6 +1269,29 @@ static int do_searchStatus (void *o, Tcl_Interp *interp,
     IRSetObj *obj = o;
 
     return get_set_int (&obj->searchStatus, interp, argc, argv);
+}
+
+/*
+ * do_presentStatus: Get search status (after search/present response)
+ */
+static int do_presentStatus (void *o, Tcl_Interp *interp,
+		            int argc, char **argv)
+{
+    IRSetObj *obj = o;
+
+    return get_set_int (&obj->presentStatus, interp, argc, argv);
+}
+
+/*
+ * do_nextResultSetPosition: Get next result set position
+ *       (after search/present response)
+ */
+static int do_nextResultSetPosition (void *o, Tcl_Interp *interp,
+                                     int argc, char **argv)
+{
+    IRSetObj *obj = o;
+
+    return get_set_int (&obj->nextResultSetPosition, interp, argc, argv);
 }
 
 /*
@@ -1289,73 +1323,6 @@ static int do_numberOfRecordsReturned (void *o, Tcl_Interp *interp,
 
     return get_set_int (&obj->numberOfRecordsReturned, interp, argc, argv);
 }
-
-#if 0
-static int get_marc_fields(Tcl_Interp *interp, Iso2709Rec rec,
-                           int argc, char **argv)
-{
-    Iso2709Anchor a;
-    char *data;
-
-    if (!rec)
-        return TCL_OK;
-    a = iso2709_a_mk (rec);
-    while (iso2709_a_search (a, argv[4], argv[5], argv[6]))
-    {
-        if (!(iso2709_a_info_field (a, NULL, NULL, NULL, &data)))
-            break;
-        Tcl_AppendElement (interp, data);
-        iso2709_a_next (a);
-    }
-
-    iso2709_a_rm (a);
-    return TCL_OK;
-}
-#endif
-
-#if 0
-static int get_marc_lines(Tcl_Interp *interp, Iso2709Rec rec,
-                         int argc, char **argv)
-{
-    Iso2709Anchor a;
-    char *tag;
-    char *indicator;
-    char *identifier;
-    char *data;
-    char *ptag = "";
-    
-    if (!rec)
-        return TCL_OK;
-    a = iso2709_a_mk (rec);
-    while (iso2709_a_search (a, argv[4], argv[5], argv[6]))
-    {
-        if (!(iso2709_a_info_field (a, &tag, &indicator, &identifier, &data)))
-            break;
-        if (strcmp (tag, ptag))
-        {
-            if (*ptag)
-                Tcl_AppendResult (interp, "}} ", NULL);
-            if (!indicator)
-                Tcl_AppendResult (interp, "{", tag, " {} {", NULL);
-            else
-                Tcl_AppendResult (interp, "{", tag, " {", indicator, 
-                                  "} {", NULL);
-            ptag = tag;
-        }
-        if (!identifier)
-            Tcl_AppendResult (interp, "{{}", NULL);
-        else
-            Tcl_AppendResult (interp, "{", identifier, NULL);
-        Tcl_AppendElement (interp, data);
-        Tcl_AppendResult (interp, "} ", NULL);
-        iso2709_a_next (a);
-    }
-    if (*ptag)
-        Tcl_AppendResult (interp, "}} ", NULL);
-    iso2709_a_rm (a);
-    return TCL_OK;
-}
-#endif
 
 /*
  * do_recordType: Return record type (if any) at position.
@@ -1513,6 +1480,7 @@ static int do_present (void *o, Tcl_Interp *interp,
         interp->result = "not connected";
         return TCL_ERROR;
     }
+    odr_reset (p->odr_out);
     obj->start = start;
     obj->number = number;
 
@@ -1543,13 +1511,13 @@ static int do_present (void *o, Tcl_Interp *interp,
     else if (r == 1)
     {
         ir_select_add_write (cs_fileno(p->cs_link), p);
-        printf ("Part of present request, start=%d, num=%d (%d bytes)\n",
-                start, number, p->slen);
+        logf (LOG_DEBUG, "Part of present request, start=%d, num=%d" 
+              " (%d bytes)", start, number, p->slen);
     }
     else
     {
-        printf ("Whole present request, start=%d, num=%d (%d bytes)\n",
-                start, number, p->slen);
+        logf (LOG_DEBUG, "Whole present request, start=%d, num=%d"
+              " (%d bytes)", start, number, p->slen);
     }
     return TCL_OK;
 }
@@ -1601,27 +1569,34 @@ static int ir_set_obj_method (ClientData clientData, Tcl_Interp *interp,
     static IRMethod tab[] = {
     { 0, "search",                  do_search },
     { 0, "searchStatus",            do_searchStatus },
+    { 0, "presentStatus",           do_presentStatus },
+    { 0, "nextResultSetPosition",   do_nextResultSetPosition },
     { 0, "setName",                 do_setName },
     { 0, "resultCount",             do_resultCount },
     { 0, "numberOfRecordsReturned", do_numberOfRecordsReturned },
     { 0, "present",                 do_present },
     { 0, "recordType",              do_recordType },
     { 0, "getMarc",                 do_getMarc },
-    { 0, "recordDiag",              do_recordDiag },
+    { 0, "Diag",                    do_recordDiag },
     { 0, "responseStatus",          do_responseStatus },
     { 0, "loadFile",                do_loadFile },
     { 0, NULL, NULL}
     };
+    IRMethods tabs[3];
+    IRSetObj *p = clientData;
 
     if (argc < 2)
     {
         interp->result = "wrong # args";
         return TCL_ERROR;
     }
-    if (ir_method (clientData, interp, argc, argv, tab, 1) == TCL_OK)
-        return TCL_OK;
-    return ir_method (&((IRSetObj *)clientData)->set_inher, interp, argc,
-                      argv, ir_set_c_method_tab, 0);
+    tabs[0].tab = tab;
+    tabs[0].obj = p;
+    tabs[1].tab = ir_set_c_method_tab;
+    tabs[1].obj = &p->set_inher;
+    tabs[2].tab = NULL;
+
+    return ir_method (interp, argc, argv, tabs);
 }
 
 /* 
@@ -1671,7 +1646,6 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
             return TCL_ERROR;
         for (i = 0; i < dst->num_databaseNames; i++)
         {
-            printf ("database %i %s\n", i, src->databaseNames[i]);
             if (ir_strdup (interp, &dst->databaseNames[i],
                            src->databaseNames[i]) == TCL_ERROR)
                 return TCL_ERROR;
@@ -1683,8 +1657,6 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
         dst->smallSetUpperBound = src->smallSetUpperBound;
         dst->largeSetLowerBound = src->largeSetLowerBound;
         dst->mediumSetPresentNumber = src->mediumSetPresentNumber;
-        printf ("ssu lsl msp %d %d %d\n", dst->smallSetUpperBound,
-                dst->largeSetLowerBound, dst->mediumSetPresentNumber);
     }   
     else
         obj->parent = NULL;
@@ -1730,6 +1702,7 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
         interp->result = "not connected";
 	return TCL_ERROR;
     }
+    odr_reset (p->odr_out);
     apdu.which = Z_APDU_scanRequest;
     apdu.u.scanRequest = &req;
     req.referenceId = NULL;
@@ -1758,10 +1731,11 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     req.stepSize = &obj->stepSize;
     req.numberOfTermsRequested = &obj->numberOfTermsRequested;
     req.preferredPositionInResponse = &obj->preferredPositionInResponse;
-    printf ("stepSize=%d\n", *req.stepSize);
-    printf ("numberOfTermsRequested=%d\n", *req.numberOfTermsRequested);
-    printf ("preferredPositionInResponse=%d\n",
-            *req.preferredPositionInResponse);
+    logf (LOG_DEBUG, "stepSize=%d", *req.stepSize);
+    logf (LOG_DEBUG, "numberOfTermsRequested=%d",
+          *req.numberOfTermsRequested);
+    logf (LOG_DEBUG, "preferredPositionInResponse=%d",
+          *req.preferredPositionInResponse);
 
     if (!z_APDU (p->odr_out, &apdup, 0))
     {
@@ -1778,11 +1752,11 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     else if (r == 1)
     {
         ir_select_add_write (cs_fileno(p->cs_link), p);
-        printf("Sent part of scanRequest (%d bytes).\n", p->slen);
+        logf (LOG_DEBUG, "Sent part of scanRequest (%d bytes)", p->slen);
     }
     else
     {
-        printf ("Whole scan request\n");
+        logf (LOG_DEBUG, "Whole scan request (%d bytes)", p->slen);
     }
     return TCL_OK;
 }
@@ -1904,13 +1878,19 @@ static int ir_scan_obj_method (ClientData clientData, Tcl_Interp *interp,
     { 0, "scanLine",                do_scanLine },
     { 0, NULL, NULL}
     };
+    IRMethods tabs[3];
 
     if (argc < 2)
     {
         interp->result = "wrong # args";
         return TCL_ERROR;
     }
-    return ir_method (clientData, interp, argc, argv, tab, 0);
+
+    tabs[0].tab = tab;
+    tabs[0].obj = clientData;
+    tabs[1].tab = NULL;
+
+    return ir_method (interp, argc, argv, tabs);
 }
 
 /* 
@@ -1961,9 +1941,9 @@ static void ir_initResponse (void *obj, Z_InitResponse *initrs)
 
     p->initResult = *initrs->result ? 1 : 0;
     if (!*initrs->result)
-        printf("Connection rejected by target.\n");
+        logf (LOG_DEBUG, "Connection rejected by target");
     else
-        printf("Connection accepted by target.\n");
+        logf (LOG_DEBUG, "Connection accepted by target");
 
     free (p->targetImplementationId);
     ir_strdup (p->interp, &p->targetImplementationId,
@@ -2019,10 +1999,10 @@ static void ir_handleRecords (void *o, Z_Records *zrs)
         addinfo = zrs->u.nonSurrogateDiagnostic->addinfo;
         if (addinfo && (setobj->addinfo = malloc (strlen(addinfo) + 1)))
             strcpy (setobj->addinfo, addinfo);
-        printf ("Diagnostic response. %s (%d): %s\n",
-                diagbib1_str (setobj->condition),
-                setobj->condition,
-                setobj->addinfo ? setobj->addinfo : "");
+        logf (LOG_DEBUG, "Diagnostic response. %s (%d): %s",
+              diagbib1_str (setobj->condition),
+              setobj->condition,
+              setobj->addinfo ? setobj->addinfo : "");
     }
     else
     {
@@ -2031,7 +2011,7 @@ static void ir_handleRecords (void *o, Z_Records *zrs)
         
         setobj->numberOfRecordsReturned = 
             zrs->u.databaseOrSurDiagnostics->num_records;
-        printf ("Got %d records\n", setobj->numberOfRecordsReturned);
+        logf (LOG_DEBUG, "Got %d records", setobj->numberOfRecordsReturned);
         for (offset = 0; offset<setobj->numberOfRecordsReturned; offset++)
         {
             rl = new_IR_record (setobj, setobj->start + offset,
@@ -2081,15 +2061,20 @@ static void ir_searchResponse (void *o, Z_SearchResponse *searchrs)
     {
         setobj->searchStatus = searchrs->searchStatus ? 1 : 0;
         setobj->resultCount = *searchrs->resultCount;
-        printf ("Search response %d, %d hits\n", 
-                 setobj->searchStatus, setobj->resultCount);
+        if (searchrs->presentStatus)
+            setobj->presentStatus = *searchrs->presentStatus;
+        if (searchrs->nextResultSetPosition)
+            setobj->nextResultSetPosition = *searchrs->nextResultSetPosition;
+
+        logf (LOG_DEBUG, "Search response %d, %d hits", 
+              setobj->searchStatus, setobj->resultCount);
         if (zrs)
             ir_handleRecords (o, zrs);
         else
             setobj->recordFlag = 0;
     }
     else
-        printf ("Search response, no object!\n");
+        logf (LOG_DEBUG, "Search response, no object!");
 }
 
 
@@ -2099,13 +2084,15 @@ static void ir_presentResponse (void *o, Z_PresentResponse *presrs)
     IRSetObj *setobj = p->set_child;
     Z_Records *zrs = presrs->records;
     
-    printf ("Received presentResponse\n");
+    logf (LOG_DEBUG, "Received presentResponse");
+    setobj->presentStatus = *presrs->presentStatus;
+    setobj->nextResultSetPosition = *presrs->nextResultSetPosition;
     if (zrs)
         ir_handleRecords (o, zrs);
     else
     {
         setobj->recordFlag = 0;
-        printf ("No records!\n");
+        logf (LOG_DEBUG, "No records!");
     }
 }
 
@@ -2114,23 +2101,24 @@ static void ir_scanResponse (void *o, Z_ScanResponse *scanrs)
     IRObj *p = o;
     IRScanObj *scanobj = p->scan_child;
     
-    printf ("Received scanResponse\n");
+    logf (LOG_DEBUG, "Received scanResponse");
 
     scanobj->scanStatus = *scanrs->scanStatus;
-    printf ("scanStatus=%d\n", scanobj->scanStatus);
+    logf (LOG_DEBUG, "scanStatus=%d", scanobj->scanStatus);
 
     if (scanrs->stepSize)
         scanobj->stepSize = *scanrs->stepSize;
-    printf ("stepSize=%d\n", scanobj->stepSize);
+    logf (LOG_DEBUG, "stepSize=%d", scanobj->stepSize);
 
     scanobj->numberOfEntriesReturned = *scanrs->numberOfEntriesReturned;
-    printf ("numberOfEntriesReturned=%d\n", scanobj->numberOfEntriesReturned);
+    logf (LOG_DEBUG, "numberOfEntriesReturned=%d",
+          scanobj->numberOfEntriesReturned);
 
     if (scanrs->positionOfTerm)
         scanobj->positionOfTerm = *scanrs->positionOfTerm;
     else
         scanobj->positionOfTerm = -1;
-    printf ("positionOfTerm=%d\n", scanobj->positionOfTerm);
+    logf (LOG_DEBUG, "positionOfTerm=%d", scanobj->positionOfTerm);
 
     free (scanobj->entries);
     scanobj->entries = NULL;
@@ -2216,7 +2204,7 @@ void ir_select_read (ClientData clientData)
         ir_select_remove_write (cs_fileno (p->cs_link), p);
         if (r < 0)
         {
-            printf ("cs_rcvconnect error\n");
+            logf (LOG_DEBUG, "cs_rcvconnect error");
             if (p->failback)
                 Tcl_Eval (p->interp, p->failback);
             do_disconnect (p, NULL, 0, NULL);
@@ -2228,9 +2216,9 @@ void ir_select_read (ClientData clientData)
     }
     do
     {
-        if ((r=cs_get (p->cs_link, &p->buf_in, &p->len_in))  <= 0)
+        if ((r=cs_get (p->cs_link, &p->buf_in, &p->len_in)) <= 0)
         {
-            printf ("cs_get failed\n");
+            logf (LOG_DEBUG, "cs_get failed, code %d", r);
             ir_select_remove (cs_fileno (p->cs_link), p);
             if (p->failback)
                 Tcl_Eval (p->interp, p->failback);
@@ -2240,10 +2228,10 @@ void ir_select_read (ClientData clientData)
         if (r == 1)
             return ;
         odr_setbuf (p->odr_in, p->buf_in, r, 0);
-        printf ("cs_get ok, got %d\n", r);
+        logf (LOG_DEBUG, "cs_get ok, got %d", r);
         if (!z_APDU (p->odr_in, &apdu, 0))
         {
-            printf ("%s\n", odr_errlist [odr_geterror (p->odr_in)]);
+            logf (LOG_DEBUG, "%s", odr_errlist [odr_geterror (p->odr_in)]);
             if (p->failback)
                 Tcl_Eval (p->interp, p->failback);
             do_disconnect (p, NULL, 0, NULL);
@@ -2264,15 +2252,15 @@ void ir_select_read (ClientData clientData)
             ir_scanResponse (p, apdu->u.scanResponse);
             break;
         default:
-            printf("Received unknown APDU type (%d).\n", 
-                   apdu->which);
+            logf (LOG_WARN, "Received unknown APDU type (%d)", apdu->which);
             if (p->failback)
                 Tcl_Eval (p->interp, p->failback);
             do_disconnect (p, NULL, 0, NULL);
         }
+        odr_reset (p->odr_in);
         if (p->callback)
 	    Tcl_Eval (p->interp, p->callback);
-    } while (cs_more (p->cs_link));    
+    } while (p->cs_link && cs_more (p->cs_link));    
 }
 
 /*
@@ -2283,7 +2271,7 @@ void ir_select_write (ClientData clientData)
     IRObj *p = clientData;
     int r;
 
-    printf ("In write handler.....\n");
+    logf (LOG_DEBUG, "In write handler");
     if (p->connectFlag)
     {
         r = cs_rcvconnect (p->cs_link);
@@ -2292,7 +2280,7 @@ void ir_select_write (ClientData clientData)
         p->connectFlag = 0;
         if (r < 0)
         {
-            printf ("cs_rcvconnect error\n");
+            logf (LOG_DEBUG, "cs_rcvconnect error");
             ir_select_remove_write (cs_fileno (p->cs_link), p);
             if (p->failback)
                 Tcl_Eval (p->interp, p->failback);
@@ -2306,7 +2294,7 @@ void ir_select_write (ClientData clientData)
     }
     if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
     {   
-        printf ("select write fail\n");
+        logf (LOG_DEBUG, "select write fail");
         if (p->failback)
             Tcl_Eval (p->interp, p->failback);
         do_disconnect (p, NULL, 0, NULL);

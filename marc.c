@@ -4,7 +4,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: marc.c,v $
- * Revision 1.1  1995-05-26 08:54:19  adam
+ * Revision 1.2  1995-05-26 11:44:11  adam
+ * Bugs fixed. More work on MARC utilities and queries. Test
+ * client is up-to-date again.
+ *
+ * Revision 1.1  1995/05/26  08:54:19  adam
  * New MARC utilities. Uses prefix query.
  *
  */
@@ -84,11 +88,13 @@ int ir_tcl_get_marc (Tcl_Interp *interp, const char *buf,
     int length_data_entry;
     int length_starting;
     int length_implementation;
+    char ptag[4];
     int mode = 0;
 
+    *ptag = '\0';
     if (!strcmp (argv[3], "field"))
         mode = 'f';
-    else if (!strcmp (argv[3], "lines"))
+    else if (!strcmp (argv[3], "lines") || !strcmp (argv[3], "list"))
         mode = 'l';
     else
     {
@@ -142,9 +148,10 @@ int ir_tcl_get_marc (Tcl_Interp *interp, const char *buf,
 	    continue;
 	while (buf[i] != ISO2709_RS && buf[i] != ISO2709_FS && i < end_offset)
 	{
+            int i0;
+
             if (memcmp (tag, "00", 2) && identifier_length)
 	    {
-	        int i0;
 	        i++;
                 for (j = 1; j<identifier_length; j++)
 		    identifier[j-1] = buf[i++];
@@ -154,104 +161,55 @@ int ir_tcl_get_marc (Tcl_Interp *interp, const char *buf,
 	                     buf[i] != ISO2709_FS && i < end_offset; 
 			     i++)
 		    ;
-		if (marc_compare (identifier, argv[6])==0)
-		{
-                    char *data = malloc (i-i0+1);
-
-		    memcpy (data, buf+i0, i-i0);
-		    data[i-i0] = '\0';
-                    Tcl_AppendElement (interp, data);
-		    free (data);
-		}
 	    }
 	    else
 	    {
-	        int i0;
-
 	        for (i0 = i; buf[i] != ISO2709_RS && 
 	                     buf[i] != ISO2709_FS && i < end_offset; 
 			     i++)
 		    ;
-		if (marc_compare (NULL, argv[6])==0)
-		{
-                    char *data = malloc (i-i0+1);
-
-		    memcpy (data, buf+i0, i-i0);
-		    data[i-i0] = '\0';
-                    Tcl_AppendElement (interp, data);
-		    free (data);
-		}
-
+                *identifier = '\0';
 	    }
+            if (marc_compare (identifier, argv[6])==0)
+            {
+                char *data = malloc (i-i0+1);
+             
+                memcpy (data, buf+i0, i-i0);
+                data[i-i0] = '\0';
+                if (mode == 'l')
+                {
+                    if (strcmp (tag, ptag))
+                    {
+                        if (*ptag)
+                            Tcl_AppendResult (interp, "}} ", NULL);
+                        if (!*indicator)
+                            Tcl_AppendResult (interp, "{", tag, " {} {", NULL);
+                        else
+                            Tcl_AppendResult (interp, "{", tag, " {",
+                                              indicator, "} {", NULL);
+                        strcpy (ptag, tag);
+                    }
+                    if (!*identifier)
+                        Tcl_AppendResult (interp, "{{}", NULL);
+                    else
+                        Tcl_AppendResult (interp, "{", identifier, NULL);
+                    Tcl_AppendElement (interp, data);
+                    Tcl_AppendResult (interp, "} ", NULL);
+                }
+                else
+                    Tcl_AppendElement (interp, data);
+                free (data);
+            }
 	}
 	if (i < end_offset)
-	    fprintf (outf, "-- separator but not at end of field\n");
+            logf (LOG_WARN, "MARC: separator but not at end of field");
 	if (buf[i] != ISO2709_RS && buf[i] != ISO2709_FS)
-	    fprintf (outf, "-- no separator at end of field\n");
+            logf (LOG_WARN, "MARC: no separator at end of field");
     }
-    return TCL_OK;
-}
-
-#if 0
-int ir_tcl_get_marc_fields(Tcl_Interp *interp, const char *buf,
-                           size_t size, int argc, char **argv)
-{
-    Iso2709Anchor a;
-    char *data;
-
-    if (!rec)
-        return TCL_OK;
-    a = iso2709_a_mk (rec);
-    while (iso2709_a_search (a, argv[4], argv[5], argv[6]))
-    {
-        if (!(iso2709_a_info_field (a, NULL, NULL, NULL, &data)))
-            break;
-        Tcl_AppendElement (interp, data);
-        iso2709_a_next (a);
-    }
-    iso2709_a_rm (a);
-    return TCL_OK;
-}
-
-int ir_tcl_get_marc_lines(Tcl_Interp *interp, const char *buf,
-                          size_t size, int argc, char **argv)
-{
-    Iso2709Anchor a;
-    char *tag;
-    char *indicator;
-    char *identifier;
-    char *data;
-    char *ptag = "";
-    
-    if (!rec)
-        return TCL_OK;
-    a = iso2709_a_mk (rec);
-    while (iso2709_a_search (a, argv[4], argv[5], argv[6]))
-    {
-        if (!(iso2709_a_info_field (a, &tag, &indicator, &identifier, &data)))
-            break;
-        if (strcmp (tag, ptag))
-        {
-            if (*ptag)
-                Tcl_AppendResult (interp, "}} ", NULL);
-            if (!indicator)
-                Tcl_AppendResult (interp, "{", tag, " {} {", NULL);
-            else
-                Tcl_AppendResult (interp, "{", tag, " {", indicator, 
-                                  "} {", NULL);
-            ptag = tag;
-        }
-        if (!identifier)
-            Tcl_AppendResult (interp, "{{}", NULL);
-        else
-            Tcl_AppendResult (interp, "{", identifier, NULL);
-        Tcl_AppendElement (interp, data);
-        Tcl_AppendResult (interp, "} ", NULL);
-        iso2709_a_next (a);
-    }
-    if (*ptag)
+    if (mode == 'l' && *ptag)
         Tcl_AppendResult (interp, "}} ", NULL);
-    iso2709_a_rm (a);
     return TCL_OK;
 }
-#endif
+
+
+
