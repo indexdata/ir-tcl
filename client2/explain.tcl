@@ -1,6 +1,7 @@
 #Procedure get-attributeDetails
 #If the target supports explain the Attribute Details are extracted here.
-#The number 1.2.840.10003.3.1 is Bib1, 1.2.840.10003.3.2 is Explain and 1.2.840.10003.3.5 is Gils.
+#The number 1.2.840.10003.3.1 is Bib1, 1.2.840.10003.3.2 is Explain and 
+#1.2.840.10003.3.5 is Gils.
 proc get-attributeDetails {target base} {
 	global profile
 	set index 1
@@ -18,18 +19,17 @@ proc get-attributeDetails {target base} {
 					foreach attributeType [lindex $tagset 1] {
 						if {[lindex [lindex $attributeType 0] 1] == 1} {
 							foreach attributeValues [lrange [lindex $attributeType 2] 1 end] {
-								lappend profile($target,AttributeDetails,$db,Bib1Use) [lindex [lindex [lindex $attributeValues 0] 1] 1]
+								lappend profile($target,AttributeDetails,$db,Bib1Use) \
+									[lindex [lindex [lindex $attributeValues 0] 1] 1]
 							}
 						}						
 					}
 				} elseif {[lindex [lindex $tagset 0] 1] == "1.2.840.10003.3.5"} {
-#					.debug-window.top.t insert end Gils\n
 					foreach attributeType [lindex $tagset 1] {
-#					.debug-window.top.t insert end [lindex $tagset 1]
 						if {[lindex [lindex $attributeType 0] 1] == 1} {
 							foreach attributeValues [lrange [lindex $attributeType 2] 1 end] {
-								lappend profile($target,AttributeDetails,$db,Gils) [lindex [lindex [lindex $attributeValues 0] 1] 1]
-#								.debug-window.top.t insert end [lindex [lindex [lindex $attributeValues 0] 1] 1]\n
+								lappend profile($target,AttributeDetails,$db,Gils) \
+									[lindex [lindex [lindex $attributeValues 0] 1] 1]
 							}
 						}						
 					}
@@ -57,8 +57,7 @@ proc change-queryInfo {target base} {
 
 
 # Procedure explain-search
-#  Issue search request with explain-attribute set and specific
-#  category.
+# Issue search request with explain-attribute set and specific category.
 proc explain-search-request {target zz category finish response fresponse} {
     z39 callback [list explain-search-response $target $zz $category $finish \
             $response $fresponse]

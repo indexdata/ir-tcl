@@ -1,3 +1,4 @@
+set bib1(0)	{None}
 set bib1(1) {Personal name}
 set bib1(2) {Corporate name}
 set bib1(3) {Conference name}
@@ -90,6 +91,7 @@ set bib1(1025) {Music-key}
 set bib1(1026) {Related-periodical}
 set bib1(1027) {Report-no.}
 set bib1(1028) {Stock-no.}
+set bib1(1029) {None}
 set bib1(1030) {Thematic-no.}
 set bib1(1031) {Material-type}
 set bib1(1032) {Doc-id}

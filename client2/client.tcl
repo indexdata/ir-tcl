@@ -1,14 +1,12 @@
 wm title . "IrTcl Client"
-#wm iconname . "IrTcl Client"
-
 
 # Procedure irmenu
 proc irmenu {w} {
-	menu $w -tearoff off
+    menu $w -tearoff off
 }
 
 proc debug-window {} {
-	set w .debug-window
+    set w .debug-window
     toplevel $w
 
     wm title $w "Debug Window" 
@@ -17,7 +15,7 @@ proc debug-window {} {
     frame $w.bot -relief raised -border 1
     pack  $w.top -side top -fill both -expand yes
     pack  $w.bot -fill both
-	scrollbar $w.top.s -command [list $w.top.t yview]
+    scrollbar $w.top.s -command [list $w.top.t yview]
     text $w.top.t -width 60 -height 10 -wrap word -relief flat -borderwidth 0 \
         -font fixed -yscroll [list $w.top.s set]
     pack $w.top.s -side right -fill y
@@ -31,7 +29,7 @@ debug-window
 #  n   menu entry number (0 is first entry)
 # Enables menu entry
 proc configure-enable-e {w n} {
-	$w entryconfigure $n -state normal
+    $w entryconfigure $n -state normal
 }
 
 # Procedure configure-disable-e {w n}
@@ -39,7 +37,7 @@ proc configure-enable-e {w n} {
 #  n   menu entry number (0 is first entry)
 # Disables menu entry
 proc configure-disable-e {w n} {
-	$w entryconfigure $n -state disabled
+    $w entryconfigure $n -state disabled
 }
 set noFocus [list -takefocus 0]
 
@@ -145,29 +143,29 @@ set font(ss,bold) {Helvetica 8 bold}
 # Override the Tk error handler function.
 if {1} {
     proc tkerror err {
-		global font
-		set w .tkerrorw
-		
-		if {[winfo exists $w]} {
-		    destroy $w
-		}
-		toplevel $w
-		wm title $w "Error"
-		
-		place-force $w .
-		top-down-window $w
-		
-		label $w.top.b -bitmap error
-		message $w.top.t -aspect 300 -text "Error: $err" -font $font(b,bold)
-		pack $w.top.b $w.top.t -side left -padx 10 -pady 10
-		
-		bottom-buttons $w [list {Close} [list destroy $w]] 1
+        global font
+        set w .tkerrorw
+        
+        if {[winfo exists $w]} {
+            destroy $w
+        }
+        toplevel $w
+        wm title $w "Error"
+        
+        place-force $w .
+        top-down-window $w
+        
+        label $w.top.b -bitmap error
+        message $w.top.t -aspect 300 -text "Error: $err" -font $font(b,bold)
+        pack $w.top.b $w.top.t -side left -padx 10 -pady 10
+        
+        bottom-buttons $w [list {Close} [list destroy $w]] 1
     }
 }
 
 # Read tag set file (if present)
 if {[file readable [file join $libdir tagsets.tcl]]} {
-	source [file join $libdir tagsets.tcl]
+    source [file join $libdir tagsets.tcl]
 }
 
 # Read the global target configuration file.
@@ -194,24 +192,24 @@ set queryAutoOld $queryAuto
 foreach target [array names profile] {
     set timedef [clock seconds]
     if {[string first , $target] == -1} {
-	if {![info exists profile($target,port)]} {
-	    foreach n [array names profile Default,*] {
-		set profile($target,[string range $n 8 end]) $profile($n)
-	    }
-	    set profile($target,description) [lindex $profile($target) 0]
-	    set profile($target,host) [lindex $profile($target) 1]
-	    set profile($target,port) [lindex $profile($target) 2]
-	    set profile($target,authentication) [lindex $profile($target) 3]
-	    set profile($target,maximumRecordSize) \
-		[lindex $profile($target) 4]
-	    set profile($target,preferredMessageSize) \
-		[lindex $profile($target) 5]
-	    set profile($target,comstack) [lindex $profile($target) 6]
-	    set profile($target,databases) [lindex $profile($target) 7]
-	    set profile($target,timeDefine) $timedef
-	    set profile($target,windowNumber) 1
-	}
-	unset profile($target)
+    if {![info exists profile($target,port)]} {
+        foreach n [array names profile Default,*] {
+        set profile($target,[string range $n 8 end]) $profile($n)
+        }
+        set profile($target,description) [lindex $profile($target) 0]
+        set profile($target,host) [lindex $profile($target) 1]
+        set profile($target,port) [lindex $profile($target) 2]
+        set profile($target,authentication) [lindex $profile($target) 3]
+        set profile($target,maximumRecordSize) \
+        [lindex $profile($target) 4]
+        set profile($target,preferredMessageSize) \
+        [lindex $profile($target) 5]
+        set profile($target,comstack) [lindex $profile($target) 6]
+        set profile($target,databases) [lindex $profile($target) 7]
+        set profile($target,timeDefine) $timedef
+        set profile($target,windowNumber) 1
+    }
+    unset profile($target)
     }
 }
 
@@ -239,7 +237,7 @@ proc read-formats {} {
     cd [file join $libdir formats]
     set formats [glob {*.[tT][cC][lL]}]
     foreach f $formats {
-	if {[file readable $f]} {
+    if {[file readable $f]} {
             source $f
             set l [string length $f]
             set f [string tolower [string range $f 0 [expr $l - 5]]]
@@ -292,8 +290,8 @@ proc apduDump {} {
         top-down-window $w
         
         text $w.top.t -font fixed -width 60 -height 12 -wrap word \
-			-relief flat -borderwidth 0 \
-			-yscrollcommand [list $w.top.s set] -background grey85
+            -relief flat -borderwidth 0 \
+            -yscrollcommand [list $w.top.s set] -background grey85
         scrollbar $w.top.s -command [list $w.top.t yview]
         pack $w.top.s -side right -fill y
         pack $w.top.t -expand yes -fill both
@@ -429,7 +427,7 @@ proc bottom-buttons {w buttonList g} {
     frame $w.bot.$i -relief sunken -border 1
     pack $w.bot.$i -side left -expand yes -padx 2 -pady 2
     button $w.bot.$i.ok -text [lindex $buttonList $i] \
-		-command [lindex $buttonList [expr $i + 1]]
+        -command [lindex $buttonList [expr $i + 1]]
     pack $w.bot.$i.ok -expand yes -padx 2 -pady 2 -side left
 
     incr i 2
@@ -472,7 +470,7 @@ proc show-target {target base} {
         return
     }
     if {![string length $base]} {
-		.bot.a.target configure -text "$target"
+        .bot.a.target configure -text "$target"
     } else {
          .bot.a.target configure -text "$target - $base"
     }
@@ -741,7 +739,7 @@ proc popup-marc {sno no b df} {
         $w.top.record tag configure marc-id -foreground red
         $w.top.record tag configure marc-data -foreground black
         $w.top.record tag configure marc-head -font $font(n,bold) \
-         	-background black -foreground white
+             -background black -foreground white
         $w.top.record tag configure marc-pref -font $font(n,normal) -foreground blue
         $w.top.record tag configure marc-text -font $font(n,normal) -foreground black
         $w.top.record tag configure marc-it -font $font(n,normal) -foreground black
@@ -763,7 +761,7 @@ proc popup-marc {sno no b df} {
     set i 0
     foreach f $displayFormats {
         $w.bot.formats.m add radiobutton -label $f -variable popupMarcdf -value $i \
-        	-command [list popup-marc $sno $no $b 0]
+            -command [list popup-marc $sno $no $b 0]
         incr i
     }
     $w.top.record delete 0.0 end
@@ -822,7 +820,7 @@ proc delete-target-hotlist {target} {
     set i 0
     foreach e $hotTargets {
         if {$target == [lindex $e 0]} {
-	    set hotTargets [lreplace $hotTargets $i $i]
+        set hotTargets [lreplace $hotTargets $i $i]
         }
         incr i
     }
@@ -888,7 +886,7 @@ proc define-target-action {} {
         }
     }
     foreach n [array names profile Default,*] {
-	set profile($target,[string range $n 8 end]) $profile($n)
+    set profile($target,[string range $n 8 end]) $profile($n)
 
     }
     incr profile(Default,windowNumber)
@@ -912,7 +910,7 @@ proc fail-response {target} {
     }
     close-target
 #    tkerror "$m ($c)"
-	bgerror "$m ($c)"
+    bgerror "$m ($c)"
 }
 
 # Procedure connect-response {target base}
@@ -1094,7 +1092,7 @@ proc init-response {target base} {
 #        tkerror "Connection rejected by target: $u"
         bgerror "Connection rejected by target: $u"
     } else {
-		z39 failback [list explain-crash $target $base]
+        z39 failback [list explain-crash $target $base]
         explain-check $target [list ready-response $base] $base
     }
 }
@@ -1124,12 +1122,12 @@ proc ready-response {base target} {
     
     z39 failback [list fail-response $target]
     if {[string length $base]} {
-	set profile($target,timeLastInit) [clock seconds]
-	set settingsChanged 1
+    set profile($target,timeLastInit) [clock seconds]
+    set settingsChanged 1
 
-	z39 databaseNames $base
-	cascade-dblist $target $base
-	show-target $target $base
+    z39 databaseNames $base
+    cascade-dblist $target $base
+    show-target $target $base
     }
     if {[lsearch [z39 options] scan] >= 0} {
         set scanEnable 1
@@ -1145,7 +1143,7 @@ proc ready-response {base target} {
     }
     set data [string trim $profile($target,welcomeMessage)]
     if {[string length $data]} {
-		.data.record insert end "Welcome Message:\n$data\n\n"
+        .data.record insert end "Welcome Message:\n$data\n\n"
     }
     set data [string trim $profile($target,recentNews)]
     if {[string length $data]} {
@@ -1159,19 +1157,24 @@ proc ready-response {base target} {
 #proc ready-response-actions {target base}
 #This procedure take care of all the actions that should start if connect is succesfull.
 proc ready-response-actions {target base} {
-	global profile queryAuto
-#	changeQueryButtons $target $base 
-	configureOptionsSyntax $target $base
-	if {[info exists profile($target,AttributeDetails,$base,Bib1Use)] && $queryAuto == 1} {
-		changeQueryButtons $target $base 
-		change-queryInfo $target $base
-		query-select 2
-		.top.options.m.query.slist entryconfigure 2 -state normal
-#		listbuttonx
-	} else {
-		query-select 0
-		.top.options.m.query.slist entryconfigure 2 -state disabled
-	}
+    global profile queryAuto attributeTypeSelected
+    configureOptionsSyntax $target $base
+    if {[info exists profile($target,AttributeDetails,$base,Bib1Use)] && $queryAuto == 1} {
+        changeQueryButtons $target $base 
+        change-queryInfo $target $base
+        query-select 2
+        .top.options.m.query.slist entryconfigure 2 -state normal
+    } else {
+        query-select 0
+        .top.options.m.query.slist entryconfigure 2 -state disabled
+    }
+    if {[info exists attributeTypeSelected]} {
+        global attribute[set attributeTypeSelected]
+        set attribute$attributeTypeSelected 1
+    } else {
+        global attributeBib1
+        set attributeBib1 1
+    }
 }
 
 # Procedure search-request
@@ -1218,9 +1221,9 @@ proc search-request {bflag} {
         dputs "setName=default"
     }
     if {$profile($target,queryRPN)} {
-		z39.$setNo queryType rpn
+        z39.$setNo queryType rpn
     } elseif {$profile($target,queryCCL)} {
-		z39.$setNo queryType ccl
+        z39.$setNo queryType ccl
     }
     dputs Setting
     dputs $recordSyntax
@@ -1263,7 +1266,7 @@ proc scan-request {} {
     set w .scan-window
 
     global profile hostid scanView scanTerm curIndexEntry queryButtonsFind \
-		queryInfoFind cancelFlag delayRequest
+        queryInfoFind cancelFlag delayRequest
 
     dputs "scan-request"
     if {$cancelFlag} {
@@ -1615,7 +1618,7 @@ proc present-more {number} {
 
     if {$setNo == 0} {
         dputs "setNo=$setNo"
-	return
+    return
     }
     set setOffset [z39.$setNo nextResultSetPosition]
     dputs "setOffest=${setOffset}"
@@ -1867,7 +1870,7 @@ proc add-database {target wp} {
     top-down-window $w
     frame $w.top.database
     pack $w.top.database -side top -anchor e -pady 2
-   	entry-fields $w.top {database} {{Database to add:}} \
+       entry-fields $w.top {database} {{Database to add:}} \
             [list add-database-action $target $wp] {destroy .database-select}
 
     top-down-ok-cancel $w [list add-database-action $target $wp] 1
@@ -1935,17 +1938,17 @@ proc advanced-setup {target b} {
             [list advanced-setup-action $target $b] [list destroy $w]
 
     $w.top.largeSetLowerBound.entry configure -textvariable \
-	profileS($target,largeSetLowerBound)
+    profileS($target,largeSetLowerBound)
     $w.top.smallSetUpperBound.entry configure -textvariable \
-	profileS($target,smallSetUpperBound)
+    profileS($target,smallSetUpperBound)
     $w.top.mediumSetPresentNumber.entry configure -textvariable \
-	profileS($target,mediumSetPresentNumber)
+    profileS($target,mediumSetPresentNumber)
     $w.top.presentChunk.entry configure -textvariable \
-	profileS($target,presentChunk)
+    profileS($target,presentChunk)
     $w.top.maximumRecordSize.entry configure -textvariable \
-	profileS($target,maximumRecordSize)
+    profileS($target,maximumRecordSize)
     $w.top.preferredMessageSize.entry configure -textvariable \
-	profileS($target,preferredMessageSize)
+    profileS($target,preferredMessageSize)
     
     bottom-buttons $w [list {Ok} [list advanced-setup-action $target $b] \
             {Cancel} [list destroy $w]] 0   
@@ -2031,10 +2034,10 @@ proc cascade-dblist {target base} {
     set w .top.service.m.dblist
     $w delete 0 200
     if {[info exists profile($target,databases)]} {
-		foreach db $profile($target,databases) {
-		    $w add command -label $db \
-			-command [list cascade-dblist-select $target $db]
-		}
+        foreach db $profile($target,databases) {
+            $w add command -label $db \
+            -command [list cascade-dblist-select $target $db]
+        }
     }
 }
 
@@ -2050,38 +2053,38 @@ proc cascade-target-list {} {
     }
     .top.target.m.clist delete 0 last
     foreach nn [lsort [array names profile *,host]] {
-		if {[string length $profile($nn)]} {
-		    set ll [expr {[string length $nn] - 6}]
-		    set n [string range $nn 0 $ll]
-		    
-		    set nl $profile($n,windowNumber)
-		    if {[info exists profile($n,databases)]} {
-				set ndb [llength $profile($n,databases)]
-		    } else {
-				set ndb 0
-		    }
-		    if {$ndb > 1} {
-				.top.target.m.clist add cascade -label $n \
-				    -menu .top.target.m.clist.$nl
-				irmenu .top.target.m.clist.$nl
-				foreach b $profile($n,databases) {
-				    .top.target.m.clist.$nl add command -label $b \
-					-command [list reopen-target $n $b]
-				}
-		    } elseif {$ndb == 1} {
-				.top.target.m.clist add command -label $n -command \
-			    	[list reopen-target $n [lindex $profile($n,databases) 0]]
-		    } else {
-				.top.target.m.clist add command -label $n -command \
-			    	[list reopen-target $n {}]
-		    }
-		}
+        if {[string length $profile($nn)]} {
+            set ll [expr {[string length $nn] - 6}]
+            set n [string range $nn 0 $ll]
+            
+            set nl $profile($n,windowNumber)
+            if {[info exists profile($n,databases)]} {
+                set ndb [llength $profile($n,databases)]
+            } else {
+                set ndb 0
+            }
+            if {$ndb > 1} {
+                .top.target.m.clist add cascade -label $n \
+                    -menu .top.target.m.clist.$nl
+                irmenu .top.target.m.clist.$nl
+                foreach b $profile($n,databases) {
+                    .top.target.m.clist.$nl add command -label $b \
+                    -command [list reopen-target $n $b]
+                }
+            } elseif {$ndb == 1} {
+                .top.target.m.clist add command -label $n -command \
+                    [list reopen-target $n [lindex $profile($n,databases) 0]]
+            } else {
+                .top.target.m.clist add command -label $n -command \
+                    [list reopen-target $n {}]
+            }
+        }
     }
     .top.target.m.slist delete 0 last
     foreach nn [lsort [array names profile *,host]] {
-		set ll [expr {[string length $nn] - 6}]
-		set n [string range $nn 0 $ll]
-	    .top.target.m.slist add command -label $n -command [list protocol-setup $n]
+        set ll [expr {[string length $nn] - 6}]
+        set n [string range $nn 0 $ll]
+        .top.target.m.slist add command -label $n -command [list protocol-setup $n]
     }
 }
 
@@ -2094,12 +2097,12 @@ proc query-select {i} {
     global queryButtonsFind queryInfoFind queryButtons queryInfo queryAuto queryAutoOld hostid currentDb profile
     
     if {$queryAutoOld == 1 && $queryAuto == 0} {
-    	set queryAutoOld $queryAuto
-    	return
+        set queryAutoOld $queryAuto
+        return
     }
     if {$queryAutoOld == 0 && $queryAuto == 1 && [info exists profile($hostid,AttributeDetails,$currentDb,Bib1Use)] == 0} {
-    	set queryAutoOld $queryAuto
-    	return
+        set queryAutoOld $queryAuto
+        return
     }
     set queryInfoFind [lindex $queryInfo $i]
     set queryButtonsFind [lindex $queryButtons $i]
@@ -2170,39 +2173,46 @@ proc query-delete {queryNo} {
 
     label $w.top.warning -bitmap warning
     message $w.top.quest -text "Are you sure you want to delete the \
-		query type $n ?"  -aspect 300
+        query type $n ?"  -aspect 300
     pack $w.top.warning $w.top.quest -side left -expand yes -padx 10 -pady 5
     bottom-buttons $w [list {Ok} [list query-delete-action $queryNo] \
-		{Cancel} [list destroy $w]] 1
+        {Cancel} [list destroy $w]] 1
 }
 
 # Procedure cascade-query-list
 # Updates the entries below Options|Query to list all query types.
 proc cascade-query-list {} {
-    global queryTypes hostid queryAuto
+    global queryTypes hostid queryAuto attributeTypes
     set w .top.options.m.query
     set i 0
     $w.clist delete 0 last
     foreach n $queryTypes {
-    	if {$n == "Auto"} {
-    		$w.clist add check -label $n -variable queryAuto -command [list query-select $i]
+        if {$n == "Auto"} {
+            $w.clist add check -label $n -variable queryAuto -command [list query-select $i]
         } else {
-        	$w.clist add command -label $n -command [list query-select $i]      
+            $w.clist add command -label $n -command [list query-select $i]      
         }
         incr i
     }
     set i 0
     $w.slist delete 0 last
     foreach n $queryTypes {
-    	if {$n == "Auto"} {
-    	   	if {$hostid == "Default"} {
-        		$w.slist add command -label $n -state disabled -command [list query-setup $i]
-        	} else {
-        		$w.slist add command -label $n -command [list query-setup $i]
-        	}
+        if {$n == "Auto"} {
+               if {$hostid == "Default"} {
+                $w.slist add command -label $n -state disabled -command [list query-setup $i]
+            } else {
+                $w.slist add command -label $n -command [list query-setup $i]
+            }
         } else {
-        	$w.slist add command -label $n -command [list query-setup $i]
+            $w.slist add command -label $n -command [list query-setup $i]
         }
+        incr i
+    }
+    set i 0
+    $w.tlist delete 0 last
+    foreach n $attributeTypes {
+        global attribute$n
+        $w.tlist add check -label $n -variable attribute$n -command [list attribute-select $i]
         incr i
     }
     set i 0
@@ -2220,7 +2230,7 @@ proc cascade-query-list {} {
 # saved.
 proc save-geometry {} {
     global windowGeometry hotTargets textWrap displayFormat popupMarcdf \
-		recordSyntax elementSetNames hostid
+        recordSyntax elementSetNames hostid
 
     set windowGeometry(.) [wm geometry .]
 
@@ -2250,7 +2260,7 @@ proc save-geometry {} {
 # is normally kept in the directory /usr/local/lib/irtcl.
 # All query types and target defintion profiles are saved.
 proc save-settings {} {
-    global profile libdir settingsChanged queryTypes queryButtons queryInfo queryAuto
+    global profile libdir settingsChanged queryTypes queryButtons queryInfo queryAuto attributeTypes attributeTypeSelected
 
     if {[file writable [file join $libdir irtdb.tcl]]} {
         set f [open [file join $libdir irtdb.tcl] w]
@@ -2261,6 +2271,8 @@ proc save-settings {} {
     foreach n [lsort [array names profile]] {
         puts $f "set [list profile($n)] [list $profile($n)]"
     }
+    puts $f "set attributeTypes [list $attributeTypes]"
+    puts $f "set attributeTypeSelected [list $attributeTypeSelected]"
     puts $f "set queryTypes [list $queryTypes]"
     puts $f "set queryButtons [list $queryButtons]"
     puts $f "set queryInfo [list $queryInfo]"
@@ -2337,26 +2349,26 @@ proc listbuttonaction {w name h user i} {
 #  user    user argument to the $handle function
 # Makes an extended listbutton.
 proc listbuttonx {button no names handle user} {
-	set width 10
-	foreach name $names {
-		set buttonName [lindex $name 0]
-		if {[string length $buttonName] > $width} {
-			set width [string length $buttonName]
-		}
-	} 
+    set width 10
+    foreach name $names {
+        set buttonName [lindex $name 0]
+        if {[string length $buttonName] > $width} {
+            set width [string length $buttonName]
+        }
+    } 
     if {[winfo exists $button]} {
         $button configure -width $width -text [lindex [lindex $names $no] 0]
         ${button}.m delete 0 last
     } else {
         menubutton $button -text [lindex [lindex $names $no] 0] \
-			-width $width -menu ${button}.m -relief raised -border 1
+            -width $width -menu ${button}.m -relief raised -border 1
         irmenu ${button}.m
         ${button}.m configure -tearoff off
     }
     set i 0
     foreach name $names {
         ${button}.m add command -label [lindex $name 0] \
-			-command [list listbuttonaction ${button} $name $handle $user $i]
+            -command [list listbuttonaction ${button} $name $handle $user $i]
         incr i
     }
 }
@@ -2494,12 +2506,12 @@ proc query-add-index {queryNo} {
 # the user commits the query setup changes by pressing button "Ok".
 proc query-setup-action {queryNo} {
     global queryButtons queryInfo queryButtonsTmp queryInfoTmp queryButtonsFind \
-		queryInfoFind settingsChanged hostid currentDb profile
+        queryInfoFind settingsChanged hostid currentDb profile
     set settingsChanged 1
     set queryInfo [lreplace $queryInfo $queryNo $queryNo $queryInfoTmp]
     set queryButtons [lreplace $queryButtons $queryNo $queryNo $queryButtonsTmp]
     if {[info exists profile($hostid,AttributeDetails,$currentDb,Bib1Use)]} {
-    	set profile($hostid,queryButtons,$currentDb) $queryButtonsTmp
+        set profile($hostid,queryButtons,$currentDb) $queryButtonsTmp
     }
     set queryInfoFind $queryInfoTmp
     set queryButtonsFind $queryButtonsTmp
@@ -2507,24 +2519,36 @@ proc query-setup-action {queryNo} {
     index-lines .lines 1 $queryButtonsFind $queryInfoFind activate-index
 }
 
+#This procedure handles selection of what attribute set the user wants to use for searching.
+#queryNo    index in the attributeTypes list (also the menu item number in Query|Type).
+proc attribute-select {queryNo} {
+    global attributeTypes attributeTypeSelected
+    set attributeTypeSelected [lindex $attributeTypes $queryNo]
+    foreach type $attributeTypes {
+        global attribute[set type]
+        set attribute$type 0
+    }
+    set attribute[lindex $attributeTypes $queryNo] 1
+}
+
 #proc changeQueryButtons {target base}
-#target		target name
-#base		database name
+#target        target name
+#base        database name
 #Substitutes the third element (the Auto element) in queryButtons with 
 #profile(target,queryButtons,base). The third element in queryInfo is also substituted with
 #profile(target,AttributeDetails,base,Bib1Use)
 proc changeQueryButtons {target base} {
-	source bib-1.tcl
-	global profile queryButtons queryInfo
-	if {[info exists profile($target,queryButtons,$base)]} {
-		set queryButtons [lreplace $queryButtons 2 2 $profile($target,queryButtons,$base)]
-		foreach tag $profile($target,AttributeDetails,$base,Bib1Use) {
-			if {$tag < 1037} {
-				lappend tempList [list $bib1($tag) 1=$tag]
-			}
-		}
-		set queryInfo [lreplace $queryInfo 2 2 $tempList]
-	}
+    source bib-1.tcl
+    global profile queryButtons queryInfo
+    if {[info exists profile($target,queryButtons,$base)]} {
+        set queryButtons [lreplace $queryButtons 2 2 $profile($target,queryButtons,$base)]
+        foreach tag $profile($target,AttributeDetails,$base,Bib1Use) {
+            if {$tag < 1037} {
+                lappend tempList [list $bib1($tag) 1=$tag]
+            }
+        }
+        set queryInfo [lreplace $queryInfo 2 2 $tempList]
+    }
 }
 
 # Procedure activate-e-index {value no i}
@@ -2586,6 +2610,8 @@ proc update-attr {} {
 # is 0 the current selection of the listbox is read and the global
 # $useTmpValue is set to the current use-value.
 proc use-attr {init} {
+    global useTmpValue
+    source bib-1.tcl
     set attr {
         {None}                           0
         {Personal name}                  1 
@@ -2688,17 +2714,18 @@ proc use-attr {init} {
         {Anywhere}                     1035 
     }
     set w .index-setup
-    global useTmpValue
-    set l [llength $attr]
 
     if {$init} {
         set s 0
         set lno 0
-        for {set i 0} {$i < $l} {incr i} {
-            $w.top.use.list insert end [lindex $attr $i]
+        for {set i 0} {$i < 1037} {incr i} {
+            $w.top.use.list insert end $bib1($i)
             incr i
-            if {$useTmpValue == [lindex $attr $i]} {
+            if {$useTmpValue == $bib1($i)} {
                 set s $lno
+            }
+            if {$i == 63} {
+                set i 1000
             }
             incr lno
         }
@@ -2712,7 +2739,7 @@ proc use-attr {init} {
     } else {
         set lno [lindex [$w.top.use.list curselection] 0]
         set i [expr {$lno+$lno+1}]
-        set useTmpValue [lindex $attr $i]
+        set useTmpValue $bib1($i)
         dputs "useTmpValue=$useTmpValue"
     }
 }
@@ -2727,7 +2754,7 @@ proc index-setup-action {oldAttr queryNo indexNo} {
     set attr [lindex $oldAttr 0]
 
     global useTmpValue relationTmpValue structureTmpValue truncationTmpValue \
-    	completenessTmpValue positionTmpValue queryInfoTmp
+        completenessTmpValue positionTmpValue queryInfoTmp
 
     use-attr 0
 
@@ -2767,7 +2794,7 @@ proc index-setup {attr queryNo indexNo} {
     set w .index-setup
 
     global relationTmpValue structureTmpValue truncationTmpValue \
-		completenessTmpValue positionTmpValue useTmpValue
+        completenessTmpValue positionTmpValue useTmpValue
     set relationTmpValue 0
     set truncationTmpValue 0
     set structureTmpValue 0
@@ -2821,7 +2848,7 @@ proc index-setup {attr queryNo indexNo} {
     pack $w.top.use -side left -pady 6 -padx 6 -fill y
 
     label $w.top.use.label -text "Use"
-	listbox $w.top.use.list -width 26 -yscrollcommand "$w.top.use.scroll set"
+    listbox $w.top.use.list -width 26 -yscrollcommand "$w.top.use.scroll set"
     scrollbar $w.top.use.scroll -orient vertical -border 1
     pack $w.top.use.label -side top -fill x -padx 2 -pady 2
     pack $w.top.use.list -side left -fill both -expand yes -padx 2 -pady 2
@@ -2867,8 +2894,8 @@ proc index-setup {attr queryNo indexNo} {
 
     # Ok-cancel
     bottom-buttons $w [list \
-	    {Ok} [list index-setup-action $attr $queryNo $indexNo] \
-	    {Cancel} [list destroy $w]] 0
+        {Ok} [list index-setup-action $attr $queryNo $indexNo] \
+        {Cancel} [list destroy $w]] 0
 
 }
 
@@ -2990,7 +3017,7 @@ proc index-clear {} {
 #    left truncation; (?) on right-side indicates right-truncation; (?)
 #    on both sides indicates both-left-and-right truncation.
 proc index-query {} {
-    global queryButtonsFind queryInfoFind
+    global queryButtonsFind queryInfoFind attributeTypeSelected
 
     set i 0
     set qs {}
@@ -3040,17 +3067,17 @@ proc index-query {} {
             }
             set term "\{${term}\}"
             if {$right && $left} {
-                set term "@attr 5=3 ${term}"
+                set term "@attrset $attributeTypeSelected @attr 5=3 ${term}"
             } elseif {$right} {
-                set term "@attr 5=1 ${term}"
+                set term "@attrset $attributeTypeSelected @attr 5=1 ${term}"
             } elseif {$left} {
-                set term "@attr 5=2 ${term}"
+                set term "@attrset $attributeTypeSelected @attr 5=2 ${term}"
             }
             if {$relation != ""} {
-                set term "@attr 2=${relation} ${term}"
+                set term "@attrset $attributeTypeSelected @attr 2=${relation} ${term}"
             }
             foreach a $attr {
-                set term "@attr $a ${term}"
+                set term "@attrset $attributeTypeSelected @attr $a ${term}"
             }
             if {$qs != ""} {
                 set qs "@and ${qs} ${term}"
@@ -3095,7 +3122,7 @@ proc index-lines {w realOp buttonInfo queryInfo handle} {
             if {! [winfo exists $w.$i.e]} {
                 entry $w.$i.e -width 32 -relief sunken -border 1
                 bind $w.$i.e <FocusIn> [list index-focus-in $w $i]
-				bind $w.$i.e <FocusOut> [list $w.$i configure -background white]
+                bind $w.$i.e <FocusOut> [list $w.$i configure -background white]
                 pack $w.$i.l -side left
                 pack $w.$i.e -side left -fill x -expand yes
                 pack $w.$i -side top -fill x -padx 2 -pady 2
@@ -3125,43 +3152,43 @@ proc index-lines {w realOp buttonInfo queryInfo handle} {
         set j $k
     }
     if {$i >= 0} {
-		bind $w.$i.e <Tab> "focus $w.0.e"
+        bind $w.$i.e <Tab> "focus $w.0.e"
         focus $w.0.e
     }
 }
 
 #Procedure configureOptionsSyntax {target base}
-#target		target name
-#base 		database name
+#target        target name
+#base         database name
 #Changes the Options|Syntax menu acording to the information obtained via explain.
 proc configureOptionsSyntax {target base} {
-	global profile syntaxList recordSyntax 
-	set activate 0
-	set i -1
-	set w .top.options.m.syntax
-	if {[info exists profile($target,RecordSyntaxes,$base)]} {
-		foreach syntax $syntaxList {
-			incr i
-			if {$syntax == "sep"} {continue}
-			if {[lsearch $profile($target,RecordSyntaxes,$base) $syntax] != -1} {
-				configure-enable-e $w $i
-				if {$activate == 0} {
-					$w invoke $i
-					set recordSyntax $syntax
-					set activate 1
-				}
-			} else {
-				configure-disable-e $w $i
-			}
-		}
-	} else {
-		foreach syntax $syntaxList {
-			incr i
-			if {$syntax == "sep"} {continue}
-			configure-enable-e $w $i
-		}
-		$w invoke 0
-	}
+    global profile syntaxList recordSyntax 
+    set activate 0
+    set i -1
+    set w .top.options.m.syntax
+    if {[info exists profile($target,RecordSyntaxes,$base)]} {
+        foreach syntax $syntaxList {
+            incr i
+            if {$syntax == "sep"} {continue}
+            if {[lsearch $profile($target,RecordSyntaxes,$base) $syntax] != -1} {
+                configure-enable-e $w $i
+                if {$activate == 0} {
+                    $w invoke $i
+                    set recordSyntax $syntax
+                    set activate 1
+                }
+            } else {
+                configure-disable-e $w $i
+            }
+        }
+    } else {
+        foreach syntax $syntaxList {
+            incr i
+            if {$syntax == "sep"} {continue}
+            configure-enable-e $w $i
+        }
+        $w invoke 0
+    }
 }
 
 # Init: The geometry information for the main window is set - either
@@ -3246,11 +3273,13 @@ irmenu .top.options.m
 # Init: Definition of the Options|Query menu.
 irmenu .top.options.m.query
 .top.options.m.query add cascade -label Select -menu .top.options.m.query.clist
+.top.options.m.query add cascade -label Type -menu .top.options.m.query.tlist
 .top.options.m.query add cascade -label Edit -menu .top.options.m.query.slist
 .top.options.m.query add command -label New -command {query-new}
 .top.options.m.query add cascade -label Delete -menu .top.options.m.query.dlist
 
 irmenu .top.options.m.query.slist
+irmenu .top.options.m.query.tlist
 irmenu .top.options.m.query.clist
 irmenu .top.options.m.query.dlist
 cascade-query-list
@@ -3275,16 +3304,16 @@ irmenu .top.options.m.wrap
 
 # Init: Definition of the Options|Syntax menu.
 proc initOptionsSyntax {} {
-	global syntaxList recordSyntax
-	set w .top.options.m.syntax
-	irmenu $w
-	foreach syntax $syntaxList {
-		if {$syntax == "sep"} {
-			$w add separator
-		} else {
-			$w add radiobutton -label $syntax -value $syntax -variable recordSyntax
-		}
-	}
+    global syntaxList recordSyntax
+    set w .top.options.m.syntax
+    irmenu $w
+    foreach syntax $syntaxList {
+        if {$syntax == "sep"} {
+            $w add separator
+        } else {
+            $w add radiobutton -label $syntax -value $syntax -variable recordSyntax
+        }
+    }
 }
 initOptionsSyntax
 
@@ -3292,8 +3321,7 @@ initOptionsSyntax
 irmenu .top.options.m.elements
 .top.options.m.elements add radiobutton -label Unspecified \
         -value None -variable elementSetNames
-.top.options.m.elements add radiobutton -label Full \
-        -value F -variable elementSetNames
+.top.options.m.elements add radiobutton -label Full -value F -variable elementSetNames
 .top.options.m.elements add radiobutton -label Brief -value B -variable elementSetNames
 
 # Init: Definition of Help menu.
@@ -3322,7 +3350,7 @@ pack .mid.search .mid.scan .mid.present .mid.clear -side left -fill y -pady 1
 
 # Init: Define record area in main window.
 text .data.record -font fixed -height 2 -width 20 -wrap none -borderwidth 0 \
-	-relief flat -yscrollcommand [list .data.scroll set] -wrap $textWrap
+    -relief flat -yscrollcommand [list .data.scroll set] -wrap $textWrap
 scrollbar .data.scroll -command [list .data.record yview]
 .data.record configure -takefocus 0
 .data.scroll configure -takefocus 0

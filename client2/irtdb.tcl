@@ -23,7 +23,7 @@ set profile(BIBSYS,smallSetUpperBound) 0
 set profile(BIBSYS,targetInfoName) {}
 set profile(BIBSYS,timeDefine) 878567355
 set profile(BIBSYS,timeLastExplain) {}
-set profile(BIBSYS,timeLastInit) 908265242
+set profile(BIBSYS,timeLastInit) 908447189
 set profile(BIBSYS,welcomeMessage) {}
 set profile(BIBSYS,windowNumber) 3
 set profile(Bagel:210,AttributeDetails,gils,Bib1Use) {1012 1019 1007 62 1005 4}
@@ -56,8 +56,8 @@ set profile(Bagel:210,recentNews) {}
 set profile(Bagel:210,smallSetUpperBound) 0
 set profile(Bagel:210,targetInfoName) Zebra
 set profile(Bagel:210,timeDefine) {}
-set profile(Bagel:210,timeLastExplain) 908206139
-set profile(Bagel:210,timeLastInit) 908206139
+set profile(Bagel:210,timeLastExplain) 913116790
+set profile(Bagel:210,timeLastInit) 913116790
 set profile(Bagel:210,welcomeMessage) {}
 set profile(Bagel:210,windowNumber) 1
 set {profile(Bell Laboratories Library Network,authentication)} {}
@@ -86,7 +86,7 @@ set {profile(Bell Laboratories Library Network,timeDefine)} 878567355
 set {profile(Bell Laboratories Library Network,timeLastExplain)} 907838464
 set {profile(Bell Laboratories Library Network,timeLastInit)} 907838464
 set {profile(Bell Laboratories Library Network,welcomeMessage)} {Salutations - this is Lucent Technologies experimental Z39.50 server. No guarentees, but free and unlimited access!}
-set {profile(Bell Laboratories Library Network,windowNumber)} 15
+set {profile(Bell Laboratories Library Network,windowNumber)} 14
 set {profile(Bibliothèque Nationale du Québec,authentication)} {}
 set {profile(Bibliothèque Nationale du Québec,comstack)} tcpip
 set {profile(Bibliothèque Nationale du Québec,databases)} IRIS
@@ -197,7 +197,7 @@ set profile(Default,timeDefine) {}
 set profile(Default,timeLastExplain) {}
 set profile(Default,timeLastInit) {}
 set profile(Default,welcomeMessage) {}
-set profile(Default,windowNumber) 19
+set profile(Default,windowNumber) 18
 set profile(LOC,authentication) {}
 set profile(LOC,comstack) tcpip
 set profile(LOC,databases) {BOOKS NAMES AUTH MAPS MUSIC BIB SERIALS SUBJECTS}
@@ -228,7 +228,7 @@ set profile(LOC,timeDefine) 878567355
 set profile(LOC,timeLastExplain) {}
 set profile(LOC,timeLastInit) 907942726
 set profile(LOC,welcomeMessage) {}
-set profile(LOC,windowNumber) 12
+set profile(LOC,windowNumber) 11
 set {profile(OCLC FirstSearch,authentication)} {}
 set {profile(OCLC FirstSearch,comstack)} tcpip
 set {profile(OCLC FirstSearch,databases)} {AGRICOLA MEDLINE}
@@ -259,7 +259,7 @@ set {profile(OCLC FirstSearch,timeDefine)} {}
 set {profile(OCLC FirstSearch,timeLastExplain)} {}
 set {profile(OCLC FirstSearch,timeLastInit)} 907164654
 set {profile(OCLC FirstSearch,welcomeMessage)} {}
-set {profile(OCLC FirstSearch,windowNumber)} 14
+set {profile(OCLC FirstSearch,windowNumber)} 12
 set profile(Penn,authentication) {}
 set profile(Penn,comstack) tcpip
 set profile(Penn,databases) CATALOG
@@ -290,7 +290,7 @@ set profile(Penn,timeDefine) 878567355
 set profile(Penn,timeLastExplain) {}
 set profile(Penn,timeLastInit) 902483000
 set profile(Penn,welcomeMessage) {}
-set profile(Penn,windowNumber) 18
+set profile(Penn,windowNumber) 17
 set {profile(Steiermrkische Landesbibliothek,authentication)} {}
 set {profile(Steiermrkische Landesbibliothek,comstack)} tcpip
 set {profile(Steiermrkische Landesbibliothek,databases)} {lbopac miopac}
@@ -350,6 +350,34 @@ set {profile(University of Crete,timeLastExplain)} {}
 set {profile(University of Crete,timeLastInit)} 907077673
 set {profile(University of Crete,welcomeMessage)} {}
 set {profile(University of Crete,windowNumber)} 5
+set {profile(Z39.50 Implementors Workshop mailing list,authentication)} {}
+set {profile(Z39.50 Implementors Workshop mailing list,comstack)} tcpip
+set {profile(Z39.50 Implementors Workshop mailing list,databases)} ziw
+set {profile(Z39.50 Implementors Workshop mailing list,description)} {}
+set {profile(Z39.50 Implementors Workshop mailing list,host)} z3950.mds.rmit.edu.au
+set {profile(Z39.50 Implementors Workshop mailing list,idAuthentication)} {}
+set {profile(Z39.50 Implementors Workshop mailing list,largeSetLowerBound)} 2
+set {profile(Z39.50 Implementors Workshop mailing list,maxResultSets)} {}
+set {profile(Z39.50 Implementors Workshop mailing list,maxResultSize)} {}
+set {profile(Z39.50 Implementors Workshop mailing list,maxTerms)} {}
+set {profile(Z39.50 Implementors Workshop mailing list,maximumRecordSize)} 50000
+set {profile(Z39.50 Implementors Workshop mailing list,mediumSetPresentNumber)} 0
+set {profile(Z39.50 Implementors Workshop mailing list,multipleDatabases)} 0
+set {profile(Z39.50 Implementors Workshop mailing list,namedResultSets)} 1
+set {profile(Z39.50 Implementors Workshop mailing list,port)} 210
+set {profile(Z39.50 Implementors Workshop mailing list,preferredMessageSize)} 30000
+set {profile(Z39.50 Implementors Workshop mailing list,presentChunk)} 4
+set {profile(Z39.50 Implementors Workshop mailing list,protocol)} Z39
+set {profile(Z39.50 Implementors Workshop mailing list,queryCCL)} 0
+set {profile(Z39.50 Implementors Workshop mailing list,queryRPN)} 1
+set {profile(Z39.50 Implementors Workshop mailing list,recentNews)} {}
+set {profile(Z39.50 Implementors Workshop mailing list,smallSetUpperBound)} 0
+set {profile(Z39.50 Implementors Workshop mailing list,targetInfoName)} {}
+set {profile(Z39.50 Implementors Workshop mailing list,timeDefine)} {}
+set {profile(Z39.50 Implementors Workshop mailing list,timeLastExplain)} {}
+set {profile(Z39.50 Implementors Workshop mailing list,timeLastInit)} {}
+set {profile(Z39.50 Implementors Workshop mailing list,welcomeMessage)} {}
+set {profile(Z39.50 Implementors Workshop mailing list,windowNumber)} 13
 set profile(arcatarget,authentication) {}
 set profile(arcatarget,comstack) tcpip
 set profile(arcatarget,databases) {IEI-books IR-Explain-1}
@@ -408,7 +436,7 @@ set profile(author,timeDefine) 878567355
 set profile(author,timeLastExplain) {}
 set profile(author,timeLastInit) 887288138
 set profile(author,welcomeMessage) {}
-set profile(author,windowNumber) 17
+set profile(author,windowNumber) 16
 set profile(dranet,authentication) {}
 set profile(dranet,comstack) tcpip
 set profile(dranet,databases) drewdb
@@ -462,71 +490,10 @@ set profile(libris,queryRPN) 1
 set profile(libris,recentNews) {}
 set profile(libris,smallSetUpperBound) 0
 set profile(libris,targetInfoName) {}
-set profile(libris,timeDefine) 878567355
-set profile(libris,timeLastExplain) {}
-set profile(libris,timeLastInit) 887285394
-set profile(libris,welcomeMessage) {}
 set profile(libris,windowNumber) 7
-set profile(madison,authentication) {}
-set profile(madison,comstack) tcpip
-set profile(madison,databases) madison
-set profile(madison,description) {University of Wisconsin-Madison}
-set profile(madison,host) z3950.adp.wisc.edu
-set profile(madison,largeSetLowerBound) 2
-set profile(madison,maxResultSets) {}
-set profile(madison,maxResultSize) {}
-set profile(madison,maxTerms) {}
-set profile(madison,maximumRecordSize) 16384
-set profile(madison,mediumSetPresentNumber) 0
-set profile(madison,multipleDatabases) 0
-set profile(madison,namedResultSets) 1
-set profile(madison,port) 210
-set profile(madison,preferredMessageSize) 8192
-set profile(madison,presentChunk) 4
-set profile(madison,protocol) Z39
-set profile(madison,queryCCL) 0
-set profile(madison,queryRPN) 1
-set profile(madison,recentNews) {}
-set profile(madison,smallSetUpperBound) 0
-set profile(madison,targetInfoName) {}
-set profile(madison,timeDefine) 878567355
-set profile(madison,timeLastExplain) {}
-set profile(madison,timeLastInit) 887289602
-set profile(madison,welcomeMessage) {}
-set profile(madison,windowNumber) 11
-set profile(ztest9999,authentication) {}
-set profile(ztest9999,comstack) tcpip
-set profile(ztest9999,databases) {dranet.dra.com IR-Explain-1 gils marc}
-set profile(ztest9999,description) {YAZ server on localhost}
-set profile(ztest9999,descripton) Z_TDBS.ztdb_description
-set profile(ztest9999,host) bagel.indexdata.dk
-set profile(ztest9999,idAuthentication) {}
-set profile(ztest9999,largeSetLowerBound) 2
-set profile(ztest9999,maxResultSets) {}
-set profile(ztest9999,maxResultSize) {}
-set profile(ztest9999,maxTerms) {}
-set profile(ztest9999,maximumRecordSize) 50000
-set profile(ztest9999,mediumSetPresentNumber) 0
-set profile(ztest9999,multipleDatabases) 1
-set profile(ztest9999,namedResultSets) 1
-set profile(ztest9999,port) 210
-set profile(ztest9999,preferredMessageSize) 30000
-set profile(ztest9999,presentChunk) 4
-set profile(ztest9999,protocol) Z39
-set profile(ztest9999,queryCCL) 0
-set profile(ztest9999,queryRPN) 1
-set profile(ztest9999,recentNews) {}
-set profile(ztest9999,smallSetUpperBound) 0
-set profile(ztest9999,targetInfoName) Zebra
-set profile(ztest9999,targetMaxResultSets) {}
-set profile(ztest9999,targetMaxResultSize) {}
-set profile(ztest9999,targetMaxTerms) {}
-set profile(ztest9999,timeDefine) 878567355
-set profile(ztest9999,timeLastExplain) 902228978
-set profile(ztest9999,timeLastInit) 902228978
-set profile(ztest9999,welcomeMessage) {}
-set profile(ztest9999,windowNumber) 13
+set attributeTypes {Bib1 Gils}
+set attributeTypeSelected Gils
 set queryTypes {Simple Phrase Auto}
 set queryButtons {{{I 3} {I 0} {I 0}} {{I 0} {I 1} {I 0}} {{I 4} {I 5} {I 3}}}
-set queryInfo {{{Title {1=4}} {Author {1=1}} {Subject {1=21}} {Any {1=1016}} {Query 1=1016 2=102} {Title-rank 1=4 2=102} {Date/time 1=1012} {Title-regular 1=4 2=3 4=2 5=102} {Ranked 1=1016 2=102 3=3 4=1 6=1}} {{Title 1=4 4=1 6=2} {Author 1=1003 4=1 6=2} {ISBN 1=7} {ISSN 1=8} {Year 1=30 4=4 6=2} {Any {}}} {{{Date/time last mod.} 1=1012} {Record-source 1=1019} {Identifier--standard 1=1007} {Abstract 1=62} {{Author, corporate} 1=1005} {Title 1=4}}}
+set queryInfo {{{Title {1=4}} {Author {1=1}} {Subject {1=21}} {Any {1=1016}} {Query 1=1016 2=102} {Title-rank 1=4 2=102} {Date/time 1=1012} {Title-regular 1=4 2=3 4=2 5=102} {Ranked 1=1016 2=102 3=3 4=1 6=1} {per {}}} {{Title 1=4 4=1 6=2} {Author 1=1003 4=1 6=2} {ISBN 1=7} {ISSN 1=8} {Year 1=30 4=4 6=2} {Any {}}} {{{Date/time last mod.} 1=1012} {Record-source 1=1019} {Identifier--standard 1=1007} {Abstract 1=62} {{Author, corporate} 1=1005} {Title 1=4}}}
 set queryAuto 1
