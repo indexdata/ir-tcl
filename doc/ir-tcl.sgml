@@ -1,14 +1,14 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.29 1999-02-11 10:57:21 adam Exp $
+  $Id: ir-tcl.sgml,v 1.30 1999-03-22 06:48:58 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference 
 <author><htmlurl url="http://www.indexdata.dk/" name="Index Data">,
 <tt><htmlurl url="mailto:info@indexdata.dk" name="info@indexdata.dk"></tt>
-<date>$Revision: 1.29 $
+<date>$Revision: 1.30 $
 <abstract>
 This document describes IrTcl -- an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
@@ -116,10 +116,10 @@ Summary of files installed (the names refer to the Makefile variables):
 <descrip>
 <tag><tt>irtcl.so</tt></tag> The <sf/IrTcl/ shared dynamic library. 
 The actual name of this library vary. Installed in <tt>IRTCLDIR</tt>.
-This file is only generated when using newer versions of Tcl.
+This file is only generated when using newer versions of Tcl/Tk.
 
 <tag><tt>ir-tk</tt></tag> The <sf/IrTcl/ shell for Tk. This shell
- is not needed when using a Tk that support for shared libraries is present.
+ is not needed when using a Tk version that supports shared libraries.
  Installed in <tt>BINDIR</tt> -- defaults to
  <tt>/usr/local/bin</tt>. <tt>ir-tk</tt> works like
  <tt>wish</tt> &mdash without arguments it reads commands from stdin.
