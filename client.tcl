@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.93  1996-06-28 08:43:54  adam
+# Revision 1.94  1996-07-25 15:55:34  adam
+# IrTcl version 1.2 release.
+#
+# Revision 1.93  1996/06/28  08:43:54  adam
 # Moved towards version 1.2.
 #
 # Revision 1.92  1996/03/29  16:04:30  adam
@@ -3975,7 +3978,7 @@ if {[catch {ir z39}]} {
 }
 
 # Init: Uncomment this line if you wan't to enable logging.
-z39 logLevel all
+#z39 logLevel all
 
 # Init: If hostid is a valid target, a new connection will be established
 # immediately.
