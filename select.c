@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: select.c,v $
- * Revision 1.1  1996-08-20 09:33:23  adam
+ * Revision 1.2  1996-09-13 10:51:48  adam
+ * Bug fix: ir_tcl_select_set called Tcl_GetFile at disconnect.
+ *
+ * Revision 1.1  1996/08/20  09:33:23  adam
  * Tcl7.5 Generic file handling.
  *
  */
@@ -67,6 +70,8 @@ void ir_tcl_select_set (void (*f)(ClientData clientData, int r, int w, int e),
     }
     if (!*sp)
     {
+        if (!f)
+            return;
         *sp = ir_tcl_malloc (sizeof(**sp));
         (*sp)->next = NULL;
         (*sp)->fd = fd;
@@ -116,6 +121,8 @@ void ir_tcl_select_set (void (*f)(ClientData clientData, int r, int w, int e),
     }
     if (!sp)
     {
+        if (!f)
+            return;
         sp = ir_tcl_malloc (sizeof(*sp));
         sp->next = sel_proc_list;
         sel_proc_list = sp;

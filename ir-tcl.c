@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.94  1996-08-21 13:32:53  adam
+ * Revision 1.95  1996-09-13 10:51:49  adam
+ * Bug fix: ir_tcl_select_set called Tcl_GetFile at disconnect.
+ *
+ * Revision 1.94  1996/08/21  13:32:53  adam
  * Implemented saveFile method and extended loadFile method to work with it.
  *
  * Revision 1.93  1996/08/16  15:07:45  adam
@@ -1161,12 +1164,11 @@ void ir_tcl_disconnect (IrTcl_Obj *p)
         logf(LOG_DEBUG, "Closing connection to %s", p->hostname);
         xfree (p->hostname);
         p->hostname = NULL;
-        ir_select_remove_write (cs_fileno (p->cs_link), p);
+        assert (p->cs_link);
         ir_select_remove (cs_fileno (p->cs_link), p);
 
         odr_reset (p->odr_in);
 
-        assert (p->cs_link);
         cs_close (p->cs_link);
         p->cs_link = NULL;
 
