@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.16  1995-03-31 08:56:36  adam
+# Revision 1.17  1995-03-31 09:34:57  adam
+# Search-button disabled when there is no connection.
+#
+# Revision 1.16  1995/03/31  08:56:36  adam
 # New button "Search".
 #
 # Revision 1.15  1995/03/28  12:45:22  adam
@@ -229,7 +232,7 @@ proc set-target-hotlist {} {
     set i 1
     foreach target $hotTargets {
         .top.target.m add command -label "$i $target" -command \
-                "menu-open-target $target {}"
+                "reopen-target $target {}"
         incr i
         if {$i > 8} {
              break
@@ -237,7 +240,8 @@ proc set-target-hotlist {} {
     }
 }
 
-proc menu-open-target {target base} {
+proc reopen-target {target base} {
+    close-target
     open-target $target $base
     update-target-hotlist $target
 }
@@ -297,6 +301,7 @@ proc open-target {target base} {
     set hostid $target
     .top.target.m disable 0
     .top.target.m enable 1
+    .top.search configure -state normal
 }
 
 proc close-target {} {
@@ -309,6 +314,7 @@ proc close-target {} {
     show-message {}
     .top.target.m disable 1
     .top.target.m enable 0
+    .top.search configure -state disabled
 }
 
 proc load-set-action {} {
@@ -426,6 +432,9 @@ proc present-more {number} {
     global setMax
 
     puts "present-more"
+    if {$setNo == 0} {
+	return
+    }
     set max [z39.$setNo resultCount]
     if {$max <= $setMax} {
         return
@@ -585,7 +594,6 @@ proc protocol-setup-action {target} {
     destroy .setup-${target}
 }
 
-
 proc place-force {window parent} {
     set g [wm geometry $parent]
 
@@ -596,7 +604,6 @@ proc place-force {window parent} {
     set y [expr 60+[string range $g [expr $p2 +1] end]]
     wm geometry $window +${x}+${y}
 }
-
 
 proc add-database-action {target} {
     set w .setup-${target}
@@ -812,11 +819,11 @@ proc cascade-target-list {} {
                 menu .top.target.m.clist.$nl
                 foreach b [lindex $profile($n) 7] {
                     .top.target.m.clist.$nl add command -label $b \
-                            -command "menu-open-target $n $b"
+                            -command "reopen-target $n $b"
                 }
             } else {
                 .top.target.m.clist add command -label $n \
-                        -command "menu-open-target $n {}"
+                        -command "reopen-target $n {}"
             }
         }
     }
@@ -925,6 +932,7 @@ menu .top.search.m.querytype
 menu .top.search.m.present
 .top.search.m.present add command -label "More" -command [list present-more 10]
 .top.search.m.present add command -label "All" -command [list present-more {}]
+.top.search configure -state disabled
 
 menubutton .top.help -text "Help" -menu .top.help.m
 menu .top.help.m
