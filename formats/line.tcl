@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: line.tcl,v $
-# Revision 1.9  1995-10-17 14:18:09  adam
+# Revision 1.10  1995-10-17 17:39:46  adam
+# Minor bug fix in call to display-grs-line.
+#
+# Revision 1.9  1995/10/17  14:18:09  adam
 # Minor changes in presentation formats.
 #
 # Revision 1.8  1995/10/17  10:58:08  adam
@@ -81,7 +84,7 @@ proc display-line {sno no w hflag} {
         if {$rtype == "SUTRS"} {
             insertWithTags $w [join [z39.$sno getSutrs $no]]
         } elseif {$rtype == "GRS1"} {
-            display-grs-line $w [z39.$sno getGrs $no] 6
+            display-grs-line $w [z39.$sno getGrs $no] 0
         } else {
             if {[catch {
                 set title [lindex [z39.$sno getMarc $no field 245 * a] 0]
