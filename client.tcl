@@ -4,7 +4,11 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.70  1995-10-12 14:46:52  adam
+# Revision 1.71  1995-10-13 15:35:27  adam
+# Relational operators may be used in search entries - changes
+# in proc index-query.
+#
+# Revision 1.70  1995/10/12  14:46:52  adam
 # Better record popup windows. Next/prev buttons in popup record windows.
 # The record position in the raw format is much more visible.
 #
@@ -2800,6 +2804,32 @@ proc index-query {} {
         if {$term != ""} {
             set attr [lrange [lindex $queryInfoFind [lindex $b 1]] 1 end]
 
+            set relation ""
+            set len [string length $term]
+            incr len -1
+
+            if {$len > 1} {
+                if {[string index $term 0] == ">"} {
+                    if {[string index $term 1] == "=" } {
+                        set term [string trim [string range $term 2 $len]]
+                        set relation 4
+                    } else {
+                        set term [string trim [string range $term 1 $len]]
+                        set relation 5
+                    }
+                } elseif {[string index $term 0] == "<"} {
+                    if {[string index $term 1] == "=" } {
+                        set term [string trim [string range $term 2 $len]]
+                        set relation 2
+                    } elseif {[string index $term 1] == ">"} {
+                        set term [string trim [string range $term 2 $len]]
+                        set relation 6
+                    } else {
+                        set term [string trim [string range $term 1 $len]]
+                        set relation 1
+                    }
+                }
+            } 
             set len [string length $term]
             incr len -1
             set left 0
@@ -2819,6 +2849,9 @@ proc index-query {} {
                 set term "@attr 5=1 ${term}"
             } elseif {$left} {
                 set term "@attr 5=2 ${term}"
+            }
+            if {$relation != ""} {
+                set term "@attr 2=${relation} ${term}"
             }
             foreach a $attr {
                 set term "@attr $a ${term}"
