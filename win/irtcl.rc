@@ -1,4 +1,4 @@
-//Microsoft Developer Studio generated resource script.
+// Microsoft Visual C++ generated resource script.
 //
 #include "resource.h"
 
@@ -27,18 +27,18 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE DISCARDABLE 
+1 TEXTINCLUDE 
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE DISCARDABLE 
+2 TEXTINCLUDE 
 BEGIN
     "#include ""afxres.h""\r\n"
     "\0"
 END
 
-3 TEXTINCLUDE DISCARDABLE 
+3 TEXTINCLUDE 
 BEGIN
     "\r\n"
     "\0"
@@ -47,15 +47,14 @@ END
 #endif    // APSTUDIO_INVOKED
 
 
-#ifndef _MAC
 /////////////////////////////////////////////////////////////////////////////
 //
 // Version
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,4,1,1
- PRODUCTVERSION 1,4,1,1
+ FILEVERSION 1,4,2,1
+ PRODUCTVERSION 1,4,2,1
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -70,18 +69,15 @@ BEGIN
     BEGIN
         BLOCK "000004b0"
         BEGIN
-            VALUE "Comments", "Information Retrieval Toolkit for Tcl\0"
-            VALUE "CompanyName", "Index Data\0"
-            VALUE "FileDescription", "IrTcl\0"
-            VALUE "FileVersion", "1, 4, 1, 1\0"
-            VALUE "InternalName", "IrTcl\0"
-            VALUE "LegalCopyright", "Copyright © 1995-2003 Index Data\0"
-            VALUE "LegalTrademarks", "\0"
-            VALUE "OriginalFilename", "irtcl.rc\0"
-            VALUE "PrivateBuild", "\0"
-            VALUE "ProductName", "IrTcl\0"
-            VALUE "ProductVersion", "1, 4, 1, 1\0"
-            VALUE "SpecialBuild", "\0"
+            VALUE "Comments", "Information Retrieval Toolkit for Tcl"
+            VALUE "CompanyName", "Index Data"
+            VALUE "FileDescription", "IrTcl"
+            VALUE "FileVersion", "1, 4, 2, 1"
+            VALUE "InternalName", "IrTcl"
+            VALUE "LegalCopyright", "Copyright © 1995-2004 Index Data"
+            VALUE "OriginalFilename", "irtcl.rc"
+            VALUE "ProductName", "IrTcl"
+            VALUE "ProductVersion", "1, 4, 2, 1"
         END
     END
     BLOCK "VarFileInfo"
@@ -89,8 +85,6 @@ BEGIN
         VALUE "Translation", 0x0, 1200
     END
 END
-
-#endif    // !_MAC
 
 #endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////

@@ -1,8 +1,8 @@
 # IRTCL makefile for MS NMAKE 
-# $Id: makefile,v 1.4 2003-03-05 22:06:32 adam Exp $
+# $Id: makefile,v 1.5 2004-04-26 09:31:00 adam Exp $
 #
 # Log at the end of the file
-VERSION=1.4.1
+VERSION=1.4.2
  
 ###########################################################
 ############### Parameters 
@@ -22,8 +22,9 @@ all: dirs irtcl
 ROOTDIR=..   # The home of IRTCL
 
 # TCL include files, libraries, etc.
-TCLINCL="c:\program files\tcl\include"
-TCLLIB="c:\program files\tcl\lib\tclstub83.lib"
+TCLDIR=c:\tcl
+TCLINCL=$(TCLDIR)\include
+TCLLIB=$(TCLDIR)\lib\tclstub84.lib
 
 # YAZ include files, libraries, etc.
 YAZDIR=$(ROOTDIR)\..\YAZ
@@ -62,7 +63,8 @@ irtcl : $(IRTCLDLL)
 # (if you set things up right!)
 
 COMMON_C_OPTIONS=          \
-  /nologo /W3 /GX /FD /c   \
+  /nologo \
+  /W3 /GX /FD /c   \
   /D "WIN32" \
   /D "IR_TCL_VERSION=\"$(VERSION)\""  \
   /D USE_TCL_STUBS=1       \
@@ -71,9 +73,9 @@ COMMON_C_OPTIONS=          \
   /Fd"$(OBJDIR)\\"
 
 COMMON_C_INCLUDES= \
-  /I$(SRCDIR) \
-  /I$(YAZINCL) \
-  /I$(TCLINCL) \
+  /I"$(SRCDIR)" \
+  /I"$(YAZINCL)" \
+  /I"$(TCLINCL)" \
 
 DEBUG_C_OPTIONS=  \
   /D "_DEBUG"      \
@@ -109,7 +111,6 @@ LINK_LIBS= kernel32.lib user32.lib   gdi32.lib   winspool.lib \
            wsock32.lib  advapi32.lib
 
 COMMON_LNK_OPTIONS= \
-	/nologo \
 	/machine:i386 \
 	/incremental:no
 
@@ -160,10 +161,10 @@ ALL_OBJS=$(IRTCL_OBJS)
 # source files. Funny way of doing it, but it works.
 
 {$(SRCDIR)}.cpp{$(OBJDIR)}.obj:
-	@$(CPP) $(COPT) $<
+	$(CPP) $(COPT) $<
 
 {$(SRCDIR)}.c{$(OBJDIR)}.obj:
-	@$(CPP) $(COPT) $<
+	$(CPP) $(COPT) $<
 
 ###########################################################
 ############### Resources
@@ -197,9 +198,9 @@ $(IRTCLDLL) : "$(BINDIR)" $(IRTCL_OBJS) $(RES)
 		/nologo
 		$(IRTCL_OBJS) 
 		$(RES)
-		/out:$(IRTCLDLL) 
-		$(YAZLIB)
-		$(TCLLIB)
+		/out:"$(IRTCLDLL)"
+		"$(YAZLIB)"
+		"$(TCLLIB)"
 <<
 
 
@@ -238,7 +239,10 @@ $(ALL_OBJS): makefile
 ###########################################################
 #
 # $Log: makefile,v $
-# Revision 1.4  2003-03-05 22:06:32  adam
+# Revision 1.5  2004-04-26 09:31:00  adam
+# Update for 1.4.2
+#
+# Revision 1.4  2003/03/05 22:06:32  adam
 # TclStubs on WIN32
 #
 # Revision 1.3  2003/01/30 13:27:07  adam
