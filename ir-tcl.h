@@ -24,7 +24,10 @@
  * OF THIS SOFTWARE.
  *
  * $Log: ir-tcl.h,v $
- * Revision 1.8  1995-06-19 13:06:08  adam
+ * Revision 1.9  1995-06-19 13:54:21  adam
+ * New version.
+ *
+ * Revision 1.8  1995/06/19  13:06:08  adam
  * New define: IR_TCL_VERSION.
  *
  * Revision 1.7  1995/05/29  08:44:23  adam
@@ -49,7 +52,7 @@
 #ifndef IR_TCL_H
 #define IR_TCL_H
 
-#define IR_TCL_VERSION "0.1"
+#define IR_TCL_VERSION "1.0beta"
 
 int ir_tcl_init (Tcl_Interp *interp);
 
