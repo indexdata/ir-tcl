@@ -1,6 +1,4 @@
 # Setup file
-set profile(BIBSYS,AttributeDetails,gils,Bib1Use) {1012 1019 1007 62 1005 4}
-set profile(BIBSYS,AttributeDetails,marc,Bib1Use) {1005 30 1018 1006 59 4 1003 1004}
 set profile(BIBSYS,authentication) {}
 set profile(BIBSYS,comstack) tcpip
 set profile(BIBSYS,databases) {BIBSYS PERI}
@@ -25,11 +23,12 @@ set profile(BIBSYS,smallSetUpperBound) 0
 set profile(BIBSYS,targetInfoName) {}
 set profile(BIBSYS,timeDefine) 878567355
 set profile(BIBSYS,timeLastExplain) {}
-set profile(BIBSYS,timeLastInit) 907078128
+set profile(BIBSYS,timeLastInit) 907773417
 set profile(BIBSYS,welcomeMessage) {}
-set profile(BIBSYS,windowNumber) 4
+set profile(BIBSYS,windowNumber) 3
 set profile(Bagel:210,AttributeDetails,gils,Bib1Use) {1012 1019 1007 62 1005 4}
 set profile(Bagel:210,AttributeDetails,marc,Bib1Use) {1005 30 1018 1006 59 4 1003 1004}
+set profile(Bagel:210,RecordSyntaxes,gils) {SUTRS GRS1 USMARC}
 set profile(Bagel:210,authentication) {}
 set profile(Bagel:210,comstack) tcpip
 set profile(Bagel:210,databases) {dranet.dra.com IR-Explain-1 gils marc}
@@ -56,8 +55,8 @@ set profile(Bagel:210,recentNews) {}
 set profile(Bagel:210,smallSetUpperBound) 0
 set profile(Bagel:210,targetInfoName) Zebra
 set profile(Bagel:210,timeDefine) {}
-set profile(Bagel:210,timeLastExplain) 907078051
-set profile(Bagel:210,timeLastInit) 907078051
+set profile(Bagel:210,timeLastExplain) 907773347
+set profile(Bagel:210,timeLastInit) 907773347
 set profile(Bagel:210,welcomeMessage) {}
 set profile(Bagel:210,windowNumber) 1
 set {profile(Bell Laboratories Library Network,authentication)} {}
@@ -86,7 +85,7 @@ set {profile(Bell Laboratories Library Network,timeDefine)} 878567355
 set {profile(Bell Laboratories Library Network,timeLastExplain)} 887288368
 set {profile(Bell Laboratories Library Network,timeLastInit)} 887288368
 set {profile(Bell Laboratories Library Network,welcomeMessage)} {Salutations - this is Lucent Technologies experimental Z39.50 server. No guarentees, but free and unlimited access!}
-set {profile(Bell Laboratories Library Network,windowNumber)} 16
+set {profile(Bell Laboratories Library Network,windowNumber)} 15
 set {profile(Bibliothèque Nationale du Québec,authentication)} {}
 set {profile(Bibliothèque Nationale du Québec,comstack)} tcpip
 set {profile(Bibliothèque Nationale du Québec,databases)} IRIS
@@ -143,7 +142,7 @@ set {profile(British Library:,timeDefine)} {}
 set {profile(British Library:,timeLastExplain)} {}
 set {profile(British Library:,timeLastInit)} 893840445
 set {profile(British Library:,welcomeMessage)} {}
-set {profile(British Library:,windowNumber)} 3
+set {profile(British Library:,windowNumber)} 4
 set profile(DanBib,authentication) {}
 set profile(DanBib,comstack) tcpip
 set profile(DanBib,databases) DANBIBV2
@@ -197,7 +196,7 @@ set profile(Default,timeDefine) {}
 set profile(Default,timeLastExplain) {}
 set profile(Default,timeLastInit) {}
 set profile(Default,welcomeMessage) {}
-set profile(Default,windowNumber) 20
+set profile(Default,windowNumber) 19
 set profile(LOC,authentication) {}
 set profile(LOC,comstack) tcpip
 set profile(LOC,databases) {BOOKS NAMES AUTH MAPS MUSIC BIB SERIALS SUBJECTS}
@@ -226,7 +225,7 @@ set profile(LOC,targetMaxResultSize) {}
 set profile(LOC,targetMaxTerms) {}
 set profile(LOC,timeDefine) 878567355
 set profile(LOC,timeLastExplain) {}
-set profile(LOC,timeLastInit) 902482859
+set profile(LOC,timeLastInit) 907587281
 set profile(LOC,welcomeMessage) {}
 set profile(LOC,windowNumber) 12
 set {profile(OCLC FirstSearch,authentication)} {}
@@ -257,9 +256,9 @@ set {profile(OCLC FirstSearch,targetMaxResultSize)} {}
 set {profile(OCLC FirstSearch,targetMaxTerms)} {}
 set {profile(OCLC FirstSearch,timeDefine)} {}
 set {profile(OCLC FirstSearch,timeLastExplain)} {}
-set {profile(OCLC FirstSearch,timeLastInit)} 893840324
+set {profile(OCLC FirstSearch,timeLastInit)} 907164654
 set {profile(OCLC FirstSearch,welcomeMessage)} {}
-set {profile(OCLC FirstSearch,windowNumber)} 15
+set {profile(OCLC FirstSearch,windowNumber)} 14
 set profile(Penn,authentication) {}
 set profile(Penn,comstack) tcpip
 set profile(Penn,databases) CATALOG
@@ -290,7 +289,7 @@ set profile(Penn,timeDefine) 878567355
 set profile(Penn,timeLastExplain) {}
 set profile(Penn,timeLastInit) 902483000
 set profile(Penn,welcomeMessage) {}
-set profile(Penn,windowNumber) 19
+set profile(Penn,windowNumber) 18
 set {profile(Steiermrkische Landesbibliothek,authentication)} {}
 set {profile(Steiermrkische Landesbibliothek,comstack)} tcpip
 set {profile(Steiermrkische Landesbibliothek,databases)} {lbopac miopac}
@@ -322,8 +321,6 @@ set {profile(Steiermrkische Landesbibliothek,timeLastExplain)} 893840781
 set {profile(Steiermrkische Landesbibliothek,timeLastInit)} {}
 set {profile(Steiermrkische Landesbibliothek,welcomeMessage)} {}
 set {profile(Steiermrkische Landesbibliothek,windowNumber)} 2
-set {profile(University of Crete,AttributeDetails,gils,Bib1Use)} {1012 1019 1007 62 1005 4}
-set {profile(University of Crete,AttributeDetails,marc,Bib1Use)} {1005 30 1018 1006 59 4 1003 1004}
 set {profile(University of Crete,authentication)} {}
 set {profile(University of Crete,comstack)} tcpip
 set {profile(University of Crete,databases)} ptolemeos_ii
@@ -410,7 +407,7 @@ set profile(author,timeDefine) 878567355
 set profile(author,timeLastExplain) {}
 set profile(author,timeLastInit) 887288138
 set profile(author,welcomeMessage) {}
-set profile(author,windowNumber) 18
+set profile(author,windowNumber) 17
 set profile(dranet,authentication) {}
 set profile(dranet,comstack) tcpip
 set profile(dranet,databases) drewdb
@@ -527,8 +524,8 @@ set profile(ztest9999,timeDefine) 878567355
 set profile(ztest9999,timeLastExplain) 902228978
 set profile(ztest9999,timeLastInit) 902228978
 set profile(ztest9999,welcomeMessage) {}
-set profile(ztest9999,windowNumber) 14
+set profile(ztest9999,windowNumber) 13
 set queryTypes {Simple Phrase Auto}
 set queryButtons {{{I 3} {I 0} {I 0}} {{I 0} {I 1} {I 0}} {{I 4} {I 5} {I 3}}}
-set queryInfo {{{Title {1=4}} {Author {1=1}} {Subject {1=21}} {Any {1=1016}} {Query 1=1016 2=102} {Title-rank 1=4 2=102} {Date/time 1=1012} {Title-regular 1=4 2=3 4=2 5=102} {Ranked 1=1016 2=102 3=3 4=1 6=1}} {{Title 1=4 4=1 6=2} {Author 1=1003 4=1 6=2} {ISBN 1=7} {ISSN 1=8} {Year 1=30 4=4 6=2} {Any {}}} {{{Author-name corporate} 1=1005} {Date 1=30} {Publisher 1=1018} {{Author-name conference} 1=1006} {{Place publication} 1=59} {Title 1=4} {Author 1=1003} {{Author-name personal} 1=1004}}}
-set queryAuto 0
+set queryInfo {{{Title {1=4}} {Author {1=1}} {Subject {1=21}} {Any {1=1016}} {Query 1=1016 2=102} {Title-rank 1=4 2=102} {Date/time 1=1012} {Title-regular 1=4 2=3 4=2 5=102} {Ranked 1=1016 2=102 3=3 4=1 6=1}} {{Title 1=4 4=1 6=2} {Author 1=1003 4=1 6=2} {ISBN 1=7} {ISSN 1=8} {Year 1=30 4=4 6=2} {Any {}}} {{{Date/time last mod.} 1=1012} {Record-source 1=1019} {Identifier--standard 1=1007} {Abstract 1=62} {{Author, corporate} 1=1005} {Title 1=4}}}
+set queryAuto 1

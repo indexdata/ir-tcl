@@ -41,6 +41,7 @@ proc get-attributeDetails {target base} {
 			}	
 			incr index
 		}
+		rename z39.attributeDetails ""
 	} else {
 		.debug-window.top.t insert end "Ingen explain\n"
 	}
@@ -210,7 +211,6 @@ proc explain-check-ok {target zz category finish} {
     puts $crec
 
     set rec [z39.targetInfo getExplain 1]
-
     set trec [z39.targetInfo getExplain 1 targetInfo]
     puts "--- targetInfo"
     puts $rec
@@ -271,14 +271,14 @@ proc explain-refresh {target finish} {
 # Procedure explain-check
 #   Checks target for explain database.
 #   Evals "$finish $target" on finish.
-proc explain-check {target finish} {
+proc explain-check {target finish base} {
     global profile
     
     set refresh 0
     set time [clock seconds]
     set etime $profile($target,timeLastExplain)
     if {[string length $etime]} {
-        # Check last explain. If 1 day since last explain do explain egain.
+        # Check last explain. If 1 day since last explain do explain again.
         # 1 day = 86400
         if {$time > [expr 0 + $etime]} {
 	    	set refresh 1
@@ -295,6 +295,7 @@ proc explain-check {target finish} {
     }
     if {$refresh} {
 		explain-refresh $target $finish
+#		get-attributeDetails $target $base
     } else {
 		eval $finish [list $target]
     }

@@ -98,6 +98,7 @@ set recordSyntax None
 set elementSetNames None
 set delayRequest {}
 set debugMode 0
+set queryAutoOld 0
 
 set queryTypes {Simple}
 set queryButtons { { {I 0} {I 1} {I 2} } }
@@ -108,6 +109,9 @@ wm minsize . 0 0
 
 set setOffset 0
 set setMax 0
+
+set syntaxList {None sep USMARC UNIMARC UKMARC DANMARC FINMARC NORMARC PICAMARC sep SUTRS sep GRS1}
+
 
 set font(bb,normal) {Helvetica 24}
 set font(bb,bold) {Helvetica 24 bold}
@@ -163,6 +167,8 @@ if {[file readable "${libdir}/.clientrc.tcl"]} {
 }
 
 source "bib-1.tcl"
+
+set queryAutoOld $queryAuto
 
 # Convert old format to new format...
 foreach target [array names profile] {
@@ -1080,7 +1086,7 @@ proc init-response {target base} {
         tkerror "Connection rejected by target: $u"
     } else {
 		z39 failback [list explain-crash $target $base]
-        explain-check $target [list ready-response $base]
+        explain-check $target [list ready-response $base] $base
     }
 }
 
@@ -1098,9 +1104,9 @@ proc explain-crash {target base} {
 
 # Procedure explain-check 
 # Stub function to check explain. May be overwritten later.
-proc explain-check {target response} {
-    eval $response [list $target]
-}
+#proc explain-check {target response} 
+#    eval $response [list $target]
+
 
 # Procedure ready-response
 # Called after a target has been initialized and, possibly, explained
@@ -1147,6 +1153,7 @@ proc ready-response-actions {target base} {
 	global profile queryAuto
 	get-attributeDetails $target $base
 	changeQueryButtons $target $base 
+	configureOptionsSyntax $target $base
 	if {[info exists profile($target,AttributeDetails,$base,Bib1Use)] && $queryAuto == 1} {
 		changeQueryButtons $target $base 
 		change-queryInfo $target $base
@@ -2072,7 +2079,16 @@ proc cascade-target-list {} {
 # query type information given by the globals $queryButtonsFind and
 # $queryInfoFind are affected by this operation.
 proc query-select {i} {
-    global queryButtonsFind queryInfoFind queryButtons queryInfo
+    global queryButtonsFind queryInfoFind queryButtons queryInfo queryAuto queryAutoOld hostid currentDb profile
+    
+    if {$queryAutoOld == 1 && $queryAuto == 0} {
+    	set queryAutoOld $queryAuto
+    	return
+    }
+    if {$queryAutoOld == 0 && $queryAuto == 1 && [info exists profile($hostid,AttributeDetails,$currentDb,Bib1Use)] == 0} {
+    	set queryAutoOld $queryAuto
+    	return
+    }
     set queryInfoFind [lindex $queryInfo $i]
     set queryButtonsFind [lindex $queryButtons $i]
     index-lines .lines 1 $queryButtonsFind $queryInfoFind activate-index
@@ -2157,7 +2173,7 @@ proc cascade-query-list {} {
     $w.clist delete 0 last
     foreach n $queryTypes {
     	if {$n == "Auto"} {
-    		$w.clist add check -label $n -variable queryAuto
+    		$w.clist add check -label $n -variable queryAuto -command [list query-select $i]
         } else {
         	$w.clist add command -label $n -command [list query-select $i]      
         }
@@ -2401,10 +2417,7 @@ proc query-add-index-action {queryNo} {
     lappend queryInfoTmp [list $newI {}]
     $w.top.index.list insert end $newI
     destroy .query-add-index
-    #destroy $w.top.lines
-    #frame $w.top.lines -relief ridge -border 2
     index-lines $w.top.lines 0 $queryButtonsTmp $queryInfoTmp activate-e-index
-    #pack $w.top.lines -side left -pady 6 -padx 6 -fill y
 }
 
 # Procedure query-add-line
@@ -3143,11 +3156,31 @@ proc search-fields {w buttondefs} {
 #base 		database name
 #Changes the Options|Syntax menu acording to the information obtained via explain.
 proc configureOptionsSyntax {target base} {
-	if {[info exists profile{$target,syntax,$base}]} {
-	#Dette kan ikke laves færdigt da Zebra ikke leverer nogle record syntax oplysninger endnu.
-	
+	global profile syntaxList
+	set activate 0
+	set i -1
+	if {[info exists profile($target,RecordSyntaxes,$base)]} {
+		foreach syntax $syntaxList {
+			incr i
+			if {$syntax == "sep"} {continue}
+			.top.options.m.syntax entryconfigure $i -variable 0
+			if {[lsearch $profile($target,RecordSyntaxes,$base) $syntax] != -1} {
+				configure-enable-e .top.options.m.syntax $i
+				if {$activate == 0} {
+					.top.options.m.syntax invoke $i
+					set activate 1
+				}
+			} else {
+				configure-disable-e .top.options.m.syntax $i
+			}
+		}
 	} else {
-		initOptionsSyntax
+		foreach syntax $syntaxList {
+			incr i
+			if {$syntax == "sep"} {continue}
+			configure-enable-e .top.options.m.syntax $i
+		}
+		.top.options.m.syntax invoke 0
 	}
 }
 
@@ -3262,26 +3295,16 @@ irmenu .top.options.m.wrap
 
 # Init: Definition of the Options|Syntax menu.
 proc initOptionsSyntax {} {
-	irmenu .top.options.m.syntax
-	.top.options.m.syntax add radiobutton -label None -value None -variable recordSyntax
-	.top.options.m.syntax add separator
-	.top.options.m.syntax add radiobutton -label USMARC \
-	        -value USMARC -variable recordSyntax
-	.top.options.m.syntax add radiobutton -label UNIMARC \
-	        -value UNIMARC -variable recordSyntax
-	.top.options.m.syntax add radiobutton -label UKMARC \
-	        -value UKMARC -variable recordSyntax
-	.top.options.m.syntax add radiobutton -label DANMARC \
-	        -value DANMARC -variable recordSyntax
-	.top.options.m.syntax add radiobutton -label FINMARC \
-	        -value FINMARC -variable recordSyntax
-	.top.options.m.syntax add radiobutton -label NORMARC \
-	        -value NORMARC -variable recordSyntax
-	.top.options.m.syntax add radiobutton -label PICAMARC -value PICAMARC -variable recordSyntax
-	.top.options.m.syntax add separator
-	.top.options.m.syntax add radiobutton -label SUTRS -value SUTRS -variable recordSyntax
-	.top.options.m.syntax add separator
-	.top.options.m.syntax add radiobutton -label GRS1 -value GRS1 -variable recordSyntax
+	global syntaxList 
+	set w .top.options.m.syntax
+	irmenu $w
+	foreach syntax $syntaxList {
+		if {$syntax == "sep"} {
+			$w add separator
+		} else {
+			$w add radiobutton -label $syntax -value $syntax -variable recordSyntax
+		}
+	}
 }
 initOptionsSyntax
 

@@ -6,17 +6,17 @@ set bib1(5) {Title series}
 set bib1(6) {Title uniform}
 set bib1(7) {ISBN}
 set bib1(8) {ISSN}
-set bib1(9) {LC card number}
+set bib1(9) {LC card no.}
 set bib1(10) {BNB card no.}
-set bib1(11) {BGF number}
-set bib1(12) {Local number}
+set bib1(11) {BGF no.}
+set bib1(12) {Local no.}
 set bib1(13) {Dewey classificat}
 set bib1(14) {UDC classification}
 set bib1(15) {Bliss classification}
-set bib1(16) {LC call number}
-set bib1(17) {NLM call number}
-set bib1(18) {NAL call number}
-set bib1(19) {MOS call number}
+set bib1(16) {LC call no.}
+set bib1(17) {NLM call no.}
+set bib1(18) {NAL call no.}
+set bib1(19) {MOS call no.}
 set bib1(20) {Local classification}
 set bib1(21) {Subject heading}
 set bib1(22) {Subject Rameau}
@@ -65,15 +65,15 @@ set bib1(1000) {Author-title}
 set bib1(1001) {Record type}
 set bib1(1002) {Name}
 set bib1(1003) {Author}
-set bib1(1004) {Author-name personal}
-set bib1(1005) {Author-name corporate}
-set bib1(1006) {Author-name conference}
+set bib1(1004) {Author, personal}
+set bib1(1005) {Author, corporate}
+set bib1(1006) {Author, conference}
 set bib1(1007) {Identifier--standard}
 set bib1(1008) {Subject--LC children's}
-set bib1(1009) {Subject name -- personal}
+set bib1(1009) {Subject name--personal}
 set bib1(1010) {Body of text}
 set bib1(1011) {Date/time added to db}
-set bib1(1012) {Date/time last modified}
+set bib1(1012) {Date/time last mod.}
 set bib1(1013) {Authority/format id}
 set bib1(1014) {Concept-text}
 set bib1(1015) {Concept-reference}
@@ -88,9 +88,9 @@ set bib1(1023) {Indexed-by}
 set bib1(1024) {Map-scale}
 set bib1(1025) {Music-key}
 set bib1(1026) {Related-periodical}
-set bib1(1027) {Report-number}
-set bib1(1028) {Stock-number}
-set bib1(1030) {Thematic-number}
+set bib1(1027) {Report-no.}
+set bib1(1028) {Stock-no.}
+set bib1(1030) {Thematic-no.}
 set bib1(1031) {Material-type}
 set bib1(1032) {Doc-id}
 set bib1(1033) {Host-item}
