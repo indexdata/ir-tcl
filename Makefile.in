@@ -2,7 +2,7 @@
 # (c) Index Data 1995
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.18 1995-09-20 11:37:00 adam Exp $
+# $Id: Makefile.in,v 1.19 1995-10-12 14:46:52 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -90,8 +90,16 @@ install: ir-tcl
 		echo "#! $(BINDIR)/ir-tk -f" >head.bak; \
 		cat head.bak client.tcl| sed "s,^set libdir LIBDIR,set libdir $(IRTCLDIR)," >client.bak; \
 		$(INSTALL_PROGRAM) client.bak $(BINDIR)/irclient; \
-		echo "Installing clientrc.tcl" ; \
-		$(INSTALL_DATA) clientrc.tcl $(IRTCLDIR); \
+		if [ -f $(IRTCLDIR)/clientrc.tcl ]; then \
+			echo "clientrc.tcl already exists"; \
+			echo "Installing clientrc.tcl.n"; \
+			cp clientrc.tcl clientrc.tcl.n; \
+			$(INSTALL_DATA) clientrc.tcl.n $(IRTCLDIR); \
+			rm clientrc.tcl.n; \
+		else \
+			echo "Installing clientrc.tcl"; \
+			$(INSTALL_DATA) clientrc.tcl $(IRTCLDIR); \
+		fi; \
 		echo "Installing LICENSE" ; \
 		$(INSTALL_DATA) LICENSE $(IRTCLDIR); \
 		echo "Installing display format scripts"; \

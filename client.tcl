@@ -4,7 +4,11 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.69  1995-09-21 13:42:54  adam
+# Revision 1.70  1995-10-12 14:46:52  adam
+# Better record popup windows. Next/prev buttons in popup record windows.
+# The record position in the raw format is much more visible.
+#
+# Revision 1.69  1995/09/21  13:42:54  adam
 # Bug fixes.
 #
 # Revision 1.68  1995/09/21  13:11:49  adam
@@ -305,7 +309,6 @@ set setNo 0
 set setNoLast 0
 set cancelFlag 0
 set scanEnable 0
-set fullMarcSeq 0
 set displayFormat 1
 set popupMarcdf 0
 set textWrap word
@@ -690,6 +693,7 @@ proc about-origin-logo {n} {
 proc about-origin {} {
     set w .about-origin-w
     global libdir
+    global tk_version
     
     if {[winfo exists $w]} {
         destroy $w
@@ -717,8 +721,10 @@ proc about-origin {} {
     label $w.top.p.ii -text "Implementation id: $i"
     catch {set i [z39 implementationVersion]}
     label $w.top.p.iv -text "Implementation version: $i"
+    set i $tk_version
+    label $w.top.p.tk -text "Tk version: $i"
 
-    pack $w.top.p.in $w.top.p.ii $w.top.p.iv -side top -anchor nw
+    pack $w.top.p.in $w.top.p.ii $w.top.p.iv $w.top.p.tk -side top -anchor nw
 
     about-origin-logo 1
     bottom-buttons $w [list {Close} [list destroy $w] \
@@ -726,25 +732,21 @@ proc about-origin {} {
 }
 
 proc popup-marc {sno no b df} {
-    global fullMarcSeq
     global displayFormats
     global popupMarcdf
 
     if {[z39.$sno type $no] != "DB"} {
         return
     }
-    if {$b} {
-        set w .full-marc-$fullMarcSeq
-        incr fullMarcSeq
-        set df $popupMarcdf
-    } else {
-        set w .full-marc
-        set df $popupMarcdf
+    if {$b == -1} {
+        set b 0
+        while {[winfo exists .full-marc$b]} {
+            incr b
+        }
     }
-    if {[winfo exists $w]} {
-        set new 0
-    } else {
-
+    set df $popupMarcdf
+    set w .full-marc$b
+    if {![winfo exists $w]} {
         toplevelG $w
 
         wm minsize $w 0 0
@@ -768,47 +770,52 @@ proc popup-marc {sno no b df} {
             $w.top.record tag configure marc-id -foreground black
         }
         $w.top.record tag configure marc-data -foreground black
-        set new 1
+        $w.top.record tag configure marc-head \
+                -font -Adobe-Times-Medium-R-Normal-*-180-* \
+                -background black -foreground white
+
+        pack $w.top.s -side right -fill y
+        pack $w.top.record -expand yes -fill both
+        
+        bottom-buttons $w [list \
+                {Close} [list destroy $w] \
+                {Prev} {} \
+                {Next} {} \
+                {Duplicate} {}] 0
+        menubutton $w.bot.formats -text "Format" -menu $w.bot.formats.m \
+                -relief raised
+        menu $w.bot.formats.m
+        pack $w.bot.formats -expand yes -ipadx 2 -ipady 2 \
+                -padx 3 -pady 3 -side left
+    } else {
+        $w.bot.formats.m delete 0 last
+    }
+    set i 0
+    foreach f $displayFormats {
+        $w.bot.formats.m add radiobutton -label $f \
+                -variable popupMarcdf -value $i \
+                -command [list popup-marc $sno $no $b 0]
+        incr i
     }
     $w.top.record delete 0.0 end
     set recordType [z39.$sno recordType $no]
     wm title $w "$recordType record #$no"
 
-    if {$new} {
-        bind $w.top.record <Return> {destroy .full-marc}
-        
-        pack $w.top.s -side right -fill y
-        pack $w.top.record -expand yes -fill both
-        
-        if {$b} {
-            bottom-buttons $w [list \
-                {Close} [list destroy $w]] 0
-        } else {
-            bottom-buttons $w [list \
-                    {Close} [list destroy $w] \
-                    {Duplicate} [list popup-marc $sno $no 1 0]] 0
-            menubutton $w.bot.formats -text "Format" -menu $w.bot.formats.m
-            menu $w.bot.formats.m
-            set i 0
-            foreach f $displayFormats {
-                $w.bot.formats.m add radiobutton -label $f \
-                        -variable popupMarcdf -value $i \
-                        -command [list display-$f $sno $no $w.top.record 0]
-                incr i
-            }
-            pack $w.bot.formats -expand yes -ipadx 2 -ipady 2 \
-                    -padx 3 -pady 3 -side left
-        }
+    $w.bot.2 configure -command \
+            [list popup-marc $sno [expr $no-1] $b $df]
+    $w.bot.4 configure -command \
+            [list popup-marc $sno [expr $no+1] $b $df]
+    if {$no == 1} {
+        $w.bot.2 configure -state disabled
     } else {
-        set i 0
-        $w.bot.formats.m delete 0 last
-        foreach f $displayFormats {
-            $w.bot.formats.m add radiobutton -label $f \
-                    -variable popupMarcdf -value $i \
-                    -command [list display-$f $sno $no $w.top.record 0]
-            incr i
-        }
+        $w.bot.2 configure -state normal
     }
+    if {[z39.$sno type [expr $no+1]] != "DB"} {
+        $w.bot.4 configure -state disabled
+    } else {
+        $w.bot.4 configure -state normal
+    }
+    $w.bot.6 configure -command [list popup-marc $sno $no -1 0]
     set ffunc [lindex $displayFormats $df]
     set ffunc "display-$ffunc"
 
@@ -1488,10 +1495,6 @@ proc present-more {number} {
 
 proc init-title-lines {} {
     .data.record delete 0.0 end
-}
-
-proc title-press {y setno} {
-    show-full-marc $setno [expr 1 + [.data.list nearest $y]] 0
 }
 
 proc add-title-lines {setno no offset} {
@@ -3098,6 +3101,9 @@ if {! $monoFlag} {
     .data.record tag configure marc-id -foreground black
 }
 .data.record tag configure marc-data -foreground black
+.data.record tag configure marc-head \
+        -font -Adobe-Times-Medium-R-Normal-*-180-* \
+        -foreground white -background black
 
 button .bot.logo -bitmap @${libdir}/bitmaps/book1 -command cancel-operation
 if {[tk4]} {
@@ -3122,9 +3128,6 @@ pack .bot.a.status .bot.a.set .bot.a.message \
 
 if {[catch {ir z39}]} {
     set e [info sharedlibextension]
-    if {$e == {}} {
-        set e .dll
-    }
     puts -nonewline "Loading irtcl$e ..."
     load irtcl$e irtcl
     ir z39
