@@ -1,9 +1,13 @@
 /*
  * IR toolkit for tcl/tk
  * (c) Index Data 1995
+ * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.h,v $
- * Revision 1.4  1995-03-17 18:26:18  adam
+ * Revision 1.5  1995-03-20 08:53:27  adam
+ * Event loop in tclmain.c rewritten. New method searchStatus.
+ *
+ * Revision 1.4  1995/03/17  18:26:18  adam
  * Non-blocking i/o used now. Database names popup as cascade items.
  *
  * Revision 1.3  1995/03/17  07:50:28  adam

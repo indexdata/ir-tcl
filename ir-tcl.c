@@ -1,9 +1,13 @@
 /*
  * IR toolkit for tcl/tk
  * (c) Index Data 1995
+ * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.13  1995-03-17 18:26:17  adam
+ * Revision 1.14  1995-03-20 08:53:22  adam
+ * Event loop in tclmain.c rewritten. New method searchStatus.
+ *
+ * Revision 1.13  1995/03/17  18:26:17  adam
  * Non-blocking i/o used now. Database names popup as cascade items.
  *
  * Revision 1.12  1995/03/17  15:45:00  adam
@@ -116,6 +120,7 @@ typedef struct IRRecordList_ {
 
 typedef struct IRSetObj_ {
     IRObj *parent;
+    int searchStatus;
     int resultCount;
     int start;
     int number;
@@ -598,8 +603,9 @@ static int do_databaseNames (void *obj, Tcl_Interp *interp,
 
     if (argc < 3)
     {
-        interp->result = "wrong # args";
-        return TCL_ERROR;
+        for (i=0; i<p->num_databaseNames; i++)
+            Tcl_AppendElement (interp, p->databaseNames[i]);
+        return TCL_OK;
     }
     if (p->databaseNames)
     {
@@ -656,7 +662,7 @@ static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
     { 0, "init",                    do_init_request },
     { 0, "disconnect",              do_disconnect },
     { 0, "callback",                do_callback },
-    { 0, "databaseNames",           do_databaseNames},
+    { 1, "databaseNames",           do_databaseNames},
     { 1, "query",                   do_query },
     { 0, NULL, NULL}
     };
@@ -853,6 +859,18 @@ static int do_resultCount (void *o, Tcl_Interp *interp,
     IRSetObj *obj = o;
 
     sprintf (interp->result, "%d", obj->resultCount);
+    return TCL_OK;
+}
+
+/*
+ * do_searchStatus: Get search status (after search response)
+ */
+static int do_searchStatus (void *o, Tcl_Interp *interp,
+		            int argc, char **argv)
+{
+    IRSetObj *obj = o;
+
+    sprintf (interp->result, "%d", obj->searchStatus);
     return TCL_OK;
 }
 
@@ -1196,6 +1214,7 @@ static int ir_set_obj_method (ClientData clientData, Tcl_Interp *interp,
 {
     static IRMethod tab[] = {
     { 0, "search",                  do_search },
+    { 0, "searchStatus",            do_searchStatus },
     { 0, "resultCount",             do_resultCount },
     { 0, "numberOfRecordsReturned", do_numberOfRecordsReturned },
     { 0, "present",                 do_present },
@@ -1258,12 +1277,14 @@ static void ir_searchResponse (void *o, Z_SearchResponse *searchrs)
     IRSetObj *obj = p->child;
 
     if (obj)
+    {
+        obj->searchStatus = searchrs->searchStatus ? 1 : 0;
         obj->resultCount = *searchrs->resultCount;
-    if (searchrs->searchStatus)
-        printf("Search was a success.\n");
+        printf ("Search response %d, %d hits\n", 
+                 obj->searchStatus, obj->resultCount);
+    }
     else
-        printf("Search was a bloomin' failure.\n");
-    printf("Number of hits: %d\n", *searchrs->resultCount);
+        printf ("Search response, no object!\n");
 }
 
 static void ir_initResponse (void *obj, Z_InitResponse *initrs)
