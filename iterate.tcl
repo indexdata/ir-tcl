@@ -1,6 +1,11 @@
-# $Id: iterate.tcl,v 1.2 1995-05-26 11:44:10 adam Exp $
+# $Id: iterate.tcl,v 1.3 1995-06-26 10:26:16 adam Exp $
 #
 # Small test script which searches for science ...
+proc connect-response {} {
+    z callback {init-response}
+    ir-set z.1 z
+    z init
+}
 proc init-response {} {
     global count
 
@@ -24,7 +29,11 @@ proc search-response {} {
         do-search
     }
     z callback {present-response}
-    z.1 present 1 $hits
+    if {$hits < 10} {
+        z.1 present 1 $hits
+    } else {
+        z.1 present 1 10
+    }
 }
 
 proc present-response {} {
@@ -32,9 +41,7 @@ proc present-response {} {
 }
 
 ir z
-z databaseNames DEM
+z databaseNames dummy
+z callback {connect-response}
 z connect localhost:9999
-z callback {init-response}
-ir-set z.1 z
-z init
 
