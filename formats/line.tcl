@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: line.tcl,v $
-# Revision 1.2  1995-06-13 14:39:06  adam
+# Revision 1.3  1995-06-16 12:29:00  adam
+# Use insertWithTags on diagnostic errors.
+#
+# Revision 1.2  1995/06/13  14:39:06  adam
 # Fix: if {$var != ""} doesn't work if var is a large numerical!
 # Highlight when line format is used.
 #
@@ -39,7 +42,7 @@ proc display-line {sno no w hflag} {
         if {$add != {}} {
             set add " :${add}"
         }
-        $w insert end "Error ${err}${add}\n"
+        insertWithTags $w "Error ${err}${add}\n" marc-data
     } elseif {$type == ""} {
         return
     }
