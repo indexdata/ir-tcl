@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.33  1996-07-03 13:31:13  adam
+ * Revision 1.34  1996-08-16 15:07:47  adam
+ * First work on Explain.
+ *
+ * Revision 1.33  1996/07/03  13:31:13  adam
  * The xmalloc/xfree functions from YAZ are used to manage memory.
  *
  * Revision 1.32  1996/03/20  13:54:05  adam
@@ -379,6 +382,9 @@ void ir_tcl_grs_mk (Z_GenericRecord *r, IrTcl_GRS_Record **grs_record);
 void ir_tcl_grs_del (IrTcl_GRS_Record **grs_record);
 int ir_tcl_get_grs (Tcl_Interp *interp, IrTcl_GRS_Record *grs_record, 
                      int argc, char **argv);
+
+int ir_tcl_get_explain (Tcl_Interp *interp, Z_ExplainRecord *rec,
+                        int argc, char **argv);
 
 int ir_tcl_method (Tcl_Interp *interp, int argc, char **argv,
                    IrTcl_Methods *tab, int *ret);

@@ -1,11 +1,14 @@
 /*
  * IR toolkit for tcl/tk
- * (c) Index Data 1995
+ * (c) Index Data 1995-1996
  * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: grs.c,v $
- * Revision 1.8  1996-07-03 13:31:10  adam
+ * Revision 1.9  1996-08-16 15:07:44  adam
+ * First work on Explain.
+ *
+ * Revision 1.8  1996/07/03  13:31:10  adam
  * The xmalloc/xfree functions from YAZ are used to manage memory.
  *
  * Revision 1.7  1996/06/05  09:26:20  adam

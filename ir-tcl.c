@@ -1,11 +1,14 @@
 /*
  * IR toolkit for tcl/tk
- * (c) Index Data 1995
+ * (c) Index Data 1995-1996
  * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.92  1996-08-09 15:33:07  adam
+ * Revision 1.93  1996-08-16 15:07:45  adam
+ * First work on Explain.
+ *
+ * Revision 1.92  1996/08/09  15:33:07  adam
  * Modified the code to use tk4.1/tcl7.5 patch level 1. The time-driven
  * polling is no longer activated on Windows since asynchrounous I/O works
  * better.
@@ -382,6 +385,7 @@ static void delete_IR_record (IrTcl_RecordList *rl)
             break;
         }
         xfree (rl->u.dbrec.buf);
+        rl->u.dbrec.buf = NULL;
         break;
     case Z_NamePlusRecord_surrogateDiagnostic:
         ir_deleteDiags (&rl->u.surrogateDiagnostics.list,
@@ -2427,7 +2431,7 @@ static int do_getSutrs (void *o, Tcl_Interp *interp, int argc, char **argv)
 
 
 /*
- * do_getGrs: Get a GRS1 Record
+ * do_getGrs: Get a GRS-1 Record
  */
 static int do_getGrs (void *o, Tcl_Interp *interp, int argc, char **argv)
 {
@@ -2460,6 +2464,54 @@ static int do_getGrs (void *o, Tcl_Interp *interp, int argc, char **argv)
     return ir_tcl_get_grs (interp, rl->u.dbrec.u.grs1, argc, argv);
 }
 
+
+/*
+ * do_getExplain: Get an Explain Record
+ */
+static int do_getExplain (void *o, Tcl_Interp *interp, int argc, char **argv)
+{
+    IrTcl_SetObj *obj = o;
+    IrTcl_Obj *p = obj->parent;
+    void *rr;
+    Z_ext_typeent *etype;
+    int offset;
+    IrTcl_RecordList *rl;
+
+    if (argc <= 0)
+        return TCL_OK;
+    if (argc < 3)
+    {
+        sprintf (interp->result, "wrong # args");
+        return TCL_ERROR;
+    }
+    if (Tcl_GetInt (interp, argv[2], &offset)==TCL_ERROR)
+        return TCL_ERROR;
+    rl = find_IR_record (obj, offset);
+    if (!rl)
+    {
+        Tcl_AppendResult (interp, "No record at #", argv[2], NULL);
+        return TCL_ERROR;
+    }
+    if (rl->which != Z_NamePlusRecord_databaseRecord)
+    {
+        Tcl_AppendResult (interp, "No DB record at #", argv[2], NULL);
+        return TCL_ERROR;
+    }
+    if (rl->u.dbrec.type != VAL_EXPLAIN)
+        return TCL_OK;
+
+    if (!(etype = z_ext_getentbyref (VAL_EXPLAIN)))
+        return TCL_OK;
+
+    odr_setbuf (p->odr_in, rl->u.dbrec.buf, rl->u.dbrec.size, 0);
+    if (!(*etype->fun)(p->odr_in, &rr, 0))
+        return TCL_OK;
+    
+    if (etype->what != Z_External_explainRecord)
+        return TCL_OK;
+
+    return ir_tcl_get_explain (interp, rr, argc, argv);
+}
 
 /*
  * do_responseStatus: Return response status (present or search)
@@ -2637,6 +2689,7 @@ static IrTcl_Method ir_set_method_tab[] = {
     { "getMarc",                 do_getMarc, NULL},
     { "getSutrs",                do_getSutrs, NULL},
     { "getGrs",                  do_getGrs, NULL},
+    { "getExplain",              do_getExplain, NULL},
     { "recordType",              do_recordType, NULL},
     { "recordElements",          do_recordElements, NULL},
     { "diag",                    do_diag, NULL},
@@ -3215,7 +3268,7 @@ static void ir_deleteDiags (IrTcl_Diagnostic **dst_list, int *dst_num)
 }
 
 static void ir_handleDiags (IrTcl_Diagnostic **dst_list, int *dst_num,
-                    Z_DiagRec **list, int num)
+                            Z_DiagRec **list, int num)
 {
     int i;
     char *addinfo;
@@ -3244,7 +3297,86 @@ static void ir_handleDiags (IrTcl_Diagnostic **dst_list, int *dst_num,
     }
 }
 
-static void ir_handleRecords (void *o, Z_Records *zrs, IrTcl_SetObj *setobj,
+static void ir_handleDBRecord (IrTcl_Obj *p, IrTcl_RecordList *rl,
+                               Z_External *oe)
+{
+    struct oident *ident;
+    Z_ext_typeent *etype;
+                
+    rl->u.dbrec.size = oe->u.octet_aligned->len;
+    rl->u.dbrec.buf = NULL;
+    
+    if ((ident = oid_getentbyoid (oe->direct_reference)))
+        rl->u.dbrec.type = ident->value;
+    else
+        rl->u.dbrec.type = VAL_USMARC;
+
+    if (ident && (oe->which == Z_External_single ||
+                  oe->which == Z_External_octet)
+        && (etype = z_ext_getentbyref (ident->value)))
+    {
+        void *rr;
+        
+        odr_setbuf (p->odr_in, (char*) oe->u.octet_aligned->buf,
+                    oe->u.octet_aligned->len, 0);
+        if (!(*etype->fun)(p->odr_in, &rr, 0))
+            return;
+        switch (etype->what)
+        {
+        case Z_External_sutrs:
+            logf (LOG_LOG, "Z_External_sutrs");
+            oe->u.sutrs = rr;
+            if ((rl->u.dbrec.buf = ir_tcl_malloc (oe->u.sutrs->len+1)))
+            {
+                memcpy (rl->u.dbrec.buf, oe->u.sutrs->buf,
+                        oe->u.sutrs->len);
+                rl->u.dbrec.buf[oe->u.sutrs->len] = '\0';
+            }
+            rl->u.dbrec.size = oe->u.sutrs->len;
+            break;
+        case Z_External_grs1:
+            logf (LOG_LOG, "Z_External_grs1");
+            oe->u.grs1 = rr;
+            ir_tcl_grs_mk (oe->u.grs1, &rl->u.dbrec.u.grs1);
+            break;
+        case Z_External_explainRecord:
+            logf (LOG_LOG, "Z_External_explainRecord");
+            if ((rl->u.dbrec.buf = ir_tcl_malloc (rl->u.dbrec.size)))
+            {
+                memcpy (rl->u.dbrec.buf, oe->u.octet_aligned->buf,
+                        rl->u.dbrec.size);
+            }
+            break;
+        }
+    }
+    else
+    {
+        if (oe->which == Z_External_octet && rl->u.dbrec.size > 0)
+        {
+            char *buf = (char*) oe->u.octet_aligned->buf;
+            if ((rl->u.dbrec.buf = ir_tcl_malloc (rl->u.dbrec.size)))
+                memcpy (rl->u.dbrec.buf, buf, rl->u.dbrec.size);
+        }
+        else if (rl->u.dbrec.type == VAL_SUTRS && 
+                 oe->which == Z_External_sutrs)
+        {
+            if ((rl->u.dbrec.buf = ir_tcl_malloc (oe->u.sutrs->len+1)))
+            {
+                memcpy (rl->u.dbrec.buf, oe->u.sutrs->buf,
+                        oe->u.sutrs->len);
+                rl->u.dbrec.buf[oe->u.sutrs->len] = '\0';
+            }
+            rl->u.dbrec.size = oe->u.sutrs->len;
+        }
+        else if (rl->u.dbrec.type == VAL_GRS1 && 
+                 oe->which == Z_External_grs1)
+        {
+            ir_tcl_grs_mk (oe->u.grs1, &rl->u.dbrec.u.grs1);
+        }
+    }
+}
+
+static void ir_handleZRecords (void *o, Z_Records *zrs, IrTcl_SetObj *setobj,
                               const char *elements)
 {
     IrTcl_Obj *p = o;
@@ -3262,64 +3394,21 @@ static void ir_handleRecords (void *o, Z_Records *zrs, IrTcl_SetObj *setobj,
         setobj->numberOfRecordsReturned = 
             zrs->u.databaseOrSurDiagnostics->num_records;
         logf (LOG_DEBUG, "Got %d records", setobj->numberOfRecordsReturned);
-        for (offset = 0; offset<setobj->numberOfRecordsReturned; offset++)
+        for (offset = 0; offset < setobj->numberOfRecordsReturned; offset++)
         {
-            rl = new_IR_record (setobj, setobj->start + offset,
-                                zrs->u.databaseOrSurDiagnostics->
-                                records[offset]->which,
+            Z_NamePlusRecord *znpr = zrs->u.databaseOrSurDiagnostics->
+                records[offset];
+            
+            rl = new_IR_record (setobj, setobj->start + offset, znpr->which,
                                 elements);
             if (rl->which == Z_NamePlusRecord_surrogateDiagnostic)
-            {
                 ir_handleDiags (&rl->u.surrogateDiagnostics.list,
                                 &rl->u.surrogateDiagnostics.num,
-                                &zrs->u.databaseOrSurDiagnostics->
-                                records[offset]->u.surrogateDiagnostic,
+                                &znpr->u.surrogateDiagnostic,
                                 1);
-            } 
             else
-            {
-                Z_DatabaseRecord *zr; 
-                Z_External *oe;
-                struct oident *ident;
-                
-                zr = zrs->u.databaseOrSurDiagnostics->records[offset]
-                    ->u.databaseRecord;
-                oe = (Z_External*) zr;
-                rl->u.dbrec.size = zr->u.octet_aligned->len;
-
-                if ((ident = oid_getentbyoid (oe->direct_reference)))
-                    rl->u.dbrec.type = ident->value;
-                else
-                    rl->u.dbrec.type = VAL_USMARC;
-
-                if (oe->which == ODR_EXTERNAL_octet && rl->u.dbrec.size > 0)
-                {
-                    char *buf = (char*) zr->u.octet_aligned->buf;
-                    if ((rl->u.dbrec.buf = ir_tcl_malloc (rl->u.dbrec.size)))
-                        memcpy (rl->u.dbrec.buf, buf, rl->u.dbrec.size);
-                }
-                else if (rl->u.dbrec.type == VAL_SUTRS && 
-                         oe->which == Z_External_sutrs)
-                {
-                    odr_setbuf (p->odr_in, (char*) oe->u.single_ASN1_type->buf,
-                                oe->u.single_ASN1_type->len, 0);
-                    if ((rl->u.dbrec.buf = ir_tcl_malloc (oe->u.sutrs->len+1)))
-                    {
-                        memcpy (rl->u.dbrec.buf, oe->u.sutrs->buf,
-                                oe->u.sutrs->len);
-                        rl->u.dbrec.buf[oe->u.sutrs->len] = '\0';
-                    }
-                    rl->u.dbrec.size = oe->u.sutrs->len;
-                }
-                else if (rl->u.dbrec.type == VAL_GRS1 && 
-                         oe->which == Z_External_grs1)
-                {
-                    ir_tcl_grs_mk (oe->u.grs1, &rl->u.dbrec.u.grs1);
-                    rl->u.dbrec.buf = NULL;
-                }
-                else
-                    rl->u.dbrec.buf = NULL;
-            }
+                ir_handleDBRecord (p, rl,
+                                   (Z_External*) (znpr->u.databaseRecord));
         }
     }
     else if (zrs->which == Z_Records_multipleNSD)
@@ -3371,7 +3460,7 @@ static void ir_searchResponse (void *o, Z_SearchResponse *searchrs,
             es = setobj->set_inher.smallSetElementSetNames;
         else 
             es = setobj->set_inher.mediumSetElementSetNames;
-        ir_handleRecords (o, zrs, setobj, es);
+        ir_handleZRecords (o, zrs, setobj, es);
     }
     else
         setobj->recordFlag = 0;
@@ -3393,7 +3482,7 @@ static void ir_presentResponse (void *o, Z_PresentResponse *presrs,
     get_referenceId (&setobj->set_inher.referenceId, presrs->referenceId);
     setobj->nextResultSetPosition = *presrs->nextResultSetPosition;
     if (zrs)
-        ir_handleRecords (o, zrs, setobj, setobj->set_inher.elementSetNames);
+        ir_handleZRecords (o, zrs, setobj, setobj->set_inher.elementSetNames);
     else
     {
         setobj->recordFlag = 0;
