@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.110  1998-10-20 15:15:31  adam
+ * Revision 1.111  1999-02-11 11:30:09  adam
+ * Updated for WIN32.
+ *
+ * Revision 1.110  1998/10/20 15:15:31  adam
  * Changed scan response handler.
  *
  * Revision 1.109  1998/10/13 21:23:26  adam
@@ -391,7 +394,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#ifdef WINDOWS
+#ifdef WIN32
 
 #else
 #include <unistd.h>

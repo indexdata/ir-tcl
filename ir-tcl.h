@@ -24,7 +24,10 @@
  * OF THIS SOFTWARE.
  *
  * $Log: ir-tcl.h,v $
- * Revision 1.16  1997-04-13 18:57:28  adam
+ * Revision 1.17  1999-02-11 11:30:11  adam
+ * Updated for WIN32.
+ *
+ * Revision 1.16  1997/04/13 18:57:28  adam
  * Better error reporting and aligned with Tcl/Tk style.
  * Rework of notifier code with Tcl_File handles.
  *
@@ -78,7 +81,7 @@
 #ifndef IR_TCL_H
 #define IR_TCL_H
 
-#ifndef WINDOWS
+#ifndef WIN32
 int Irtcl_Init (Tcl_Interp *interp);
 #endif
 

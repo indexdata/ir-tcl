@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: select.c,v $
- * Revision 1.5  1997-09-09 10:19:55  adam
+ * Revision 1.6  1999-02-11 11:30:13  adam
+ * Updated for WIN32.
+ *
+ * Revision 1.5  1997/09/09 10:19:55  adam
  * New MSV5.0 port with fewer warnings.
  *
  * Revision 1.4  1997/08/28 20:20:48  adam
@@ -151,7 +154,7 @@ void ir_tcl_select_set (void (*f)(ClientData clientData, int r, int w, int e),
         *sp = ir_tcl_malloc (sizeof(**sp));
         (*sp)->next = NULL;
         (*sp)->fd = fd;
-#if WINDOWS
+#if WIN32
         (*sp)->tcl_File = Tcl_GetFile ((ClientData) fd, TCL_WIN_SOCKET);
 #else
         (*sp)->tcl_File = Tcl_GetFile ((ClientData) fd, TCL_UNIX_FD);

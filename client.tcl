@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.106  1998-06-10 13:22:47  adam
+# Revision 1.107  1999-02-11 11:30:08  adam
+# Updated for WIN32.
+#
+# Revision 1.106  1998/06/10 13:22:47  adam
 # Minor changes.
 #
 # Revision 1.105  1998/06/10 13:00:45  adam
@@ -817,8 +820,8 @@ if {[catch {set g $windowGeometry(.)}]} {
 # to a default value or to the value in windowGeometry(.)
 toplevelG .init
 place-force .init .
-message .init.top -text "IrTcl" -relief raised -border 1 -font $font(bb,normal)
-text .init.msg -width 30 -height 4
+message .init.top -aspect 500 -text "IrTcl" -relief raised -border 1 -font $font(bb,normal)
+text .init.msg -width 40 -height 4
 pack .init.top -side top -fill x -expand yes
 pack .init.msg -side bottom -fill both -expand yes
 wm iconify .

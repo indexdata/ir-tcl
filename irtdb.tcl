@@ -23,7 +23,7 @@ set profile(BIBSYS,smallSetUpperBound) 0
 set profile(BIBSYS,targetInfoName) {}
 set profile(BIBSYS,timeDefine) 878567355
 set profile(BIBSYS,timeLastExplain) {}
-set profile(BIBSYS,timeLastInit) 887288330
+set profile(BIBSYS,timeLastInit) 918732216
 set profile(BIBSYS,welcomeMessage) {}
 set profile(BIBSYS,windowNumber) 3
 set {profile(Bell Laboratories Library Network,authentication)} {}
@@ -192,7 +192,7 @@ set profile(LOC,targetMaxResultSize) {}
 set profile(LOC,targetMaxTerms) {}
 set profile(LOC,timeDefine) 878567355
 set profile(LOC,timeLastExplain) {}
-set profile(LOC,timeLastInit) 897485131
+set profile(LOC,timeLastInit) 918732361
 set profile(LOC,welcomeMessage) {}
 set profile(LOC,windowNumber) 12
 set {profile(OCLC FirstSearch,authentication)} {}
