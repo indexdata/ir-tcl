@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.31  1995-06-06 16:31:09  adam
+# Revision 1.32  1995-06-07 09:16:37  adam
+# New presentation format.
+#
+# Revision 1.31  1995/06/06  16:31:09  adam
 # Bug fix: target names couldn't contain blanks.
 # Bug fix: scan.
 #
@@ -113,6 +116,7 @@ set setNo 0
 set cancelFlag 0
 set searchEnable 0
 set fullMarcSeq 0
+set displayFormat nice
 
 set queryTypes {Simple}
 set queryButtons { { {I 0} {I 1} {I 2} } }
@@ -305,8 +309,136 @@ proc about-origin {} {
     bottom-buttons $w [list {Close} [list destroy $w]] 1
 }
 
+proc display-raw {sno no w} {
+    $w delete 0.0 end
+    set r [z39.$sno getMarc $no list * * *]
+    foreach line $r {
+        set tag [lindex $line 0]
+        set indicator [lindex $line 1]
+        set fields [lindex $line 2]
+        
+        if {$indicator != ""} {
+            insertWithTags $w "$tag $indicator" marc-tag
+        } else {
+            insertWithTags $w "$tag    " marc-tag
+        }
+        foreach field $fields {
+            set id [lindex $field 0]
+            set data [lindex $field 1]
+            if {$id != ""} {
+                insertWithTags $w " $id " marc-id
+            }
+            set start [$w index insert]
+            insertWithTags $w $data {}
+        }
+        $w insert end "\n"
+    }
+}
+
+proc display-nice {sno no w} {
+    $w delete 0.0 end
+    set i [z39.$sno getMarc $no field 245 * a]
+    if {$i != ""} {
+        set i [lindex $i 0]
+        insertWithTags $w "Title:      " marc-tag
+        insertWithTags $w $i marc-data
+        set i [z39.$sno getMarc $no field 245 * b]
+        if {$i != ""} {
+            insertWithTags $w [lindex $i 0] marc-data
+        }
+        $w insert end "\n"
+    }
+    set i [z39.$sno getMarc $no field 700 * a]
+    if {$i == ""} {
+        set i [z39.$sno getMarc $no field 100 * a]
+    }
+    if {$i != ""} {
+        if {[llength $i] > 1} {
+            insertWithTags $w "Authors:    " marc-tag
+        } else {
+            insertWithTags $w "Author:     " marc-tag
+        }
+        foreach x $i {
+            insertWithTags $w $x marc-data
+        }
+        $w insert end "\n"
+    }
+    set i [z39.$sno getMarc $no field 110 * *]
+    if {$i != ""} {
+        insertWithTags $w "Co-Author:  " marc-tag
+        foreach x $i {
+            insertWithTags $w $x marc-data
+        }
+        $w insert end "\n"
+    }
+
+    set i [z39.$sno getMarc $no field 650 * *]
+    if {$i != ""} {
+        set n 0
+        insertWithTags $w "Keywords:   " marc-tag
+        foreach x $i {
+            if {$n > 0} {
+                $w insert end ", "
+            }
+            insertWithTags $w $x marc-data
+            incr n
+        }
+        $w insert end "\n"
+    }
+    set i [concat [z39.$sno getMarc $no field 260 * a] \
+            [z39.$sno getMarc $no field 260 * b]]
+    if {$i != ""} {
+        insertWithTags $w "Publisher:  " marc-tag
+        foreach x $i {
+            insertWithTags $w $x marc-data
+        }
+        $w insert end "\n"
+    }
+    set i [z39.$sno getMarc $no field 020 * a]
+    if {$i != ""} {
+        insertWithTags $w "ISBN:       " marc-tag
+        foreach x $i {
+            insertWithTags $w $x marc-data
+        }
+        $w insert end "\n"
+    }
+    set i [z39.$sno getMarc $no field 022 * a]
+    if {$i != ""} {
+        insertWithTags $w "ISSN:       " marc-tag
+        foreach x $i {
+            insertWithTags $w $x marc-data
+        }
+        $w insert end "\n"
+    }
+    set i [z39.$sno getMarc $no field 030 * a]
+    if {$i != ""} {
+        insertWithTags $w "CODEN:      " marc-tag
+        foreach x $i {
+            insertWithTags $w $x marc-data
+        }
+        $w insert end "\n"
+    }
+    set i [z39.$sno getMarc $no field 015 * a]
+    if {$i != ""} {
+        insertWithTags $w "Ctl number: " marc-tag
+        foreach x $i {
+            insertWithTags $w $x marc-data
+        }
+        $w insert end "\n"
+    }
+    set i [z39.$sno getMarc $no field 010 * a]
+    if {$i != ""} {
+        insertWithTags $w "LC number:  " marc-tag
+        foreach x $i {
+            insertWithTags $w $x marc-data
+        }
+        $w insert end "\n"
+    }
+}
+
 proc show-full-marc {sno no b} {
     global fullMarcSeq
+    global displayFormat
 
     if {[z39.$sno type $no] != "DB"} {
         return
@@ -318,7 +450,6 @@ proc show-full-marc {sno no b} {
         set w .full-marc
     }
     if {[winfo exists $w]} {
-        $w.top.record delete 0.0 end
         set new 0
     } else {
 
@@ -338,42 +469,28 @@ proc show-full-marc {sno no b} {
 
         set new 1
     }
-    set r [z39.$sno getMarc $no list * * *]
-
     $w.top.record tag configure marc-tag -foreground blue
     $w.top.record tag configure marc-data -foreground black
     $w.top.record tag configure marc-id -foreground red
 
-    foreach line $r {
-        set tag [lindex $line 0]
-        set indicator [lindex $line 1]
-        set fields [lindex $line 2]
-
-        if {$indicator != ""} {
-            insertWithTags $w.top.record "$tag $indicator" marc-tag
-        } else {
-            insertWithTags $w.top.record "$tag    " marc-tag
-        }
-        foreach field $fields {
-            set id [lindex $field 0]
-            set data [lindex $field 1]
-            if {$id != ""} {
-                insertWithTags $w.top.record " $id " marc-id
-            }
-            set start [$w.top.record index insert]
-            insertWithTags $w.top.record $data {}
-        }
-        $w.top.record insert end "\n"
+    if {$displayFormat == "nice"} {
+        display-nice $sno $no $w.top.record
+    } else {
+        display-raw $sno $no $w.top.record
     }
     if {$new} {
-        bind $w <Return> {destroy .full-marc}
+        bind $w.top.record <Return> {destroy .full-marc}
         
         pack $w.top.s -side right -fill y
         pack $w.top.record -expand yes -fill both
 
         bottom-buttons $w [list \
                 {Close} [list destroy $w] \
+                {Raw} [list display-raw $sno $no $w.top.record] \
                 {Duplicate} [list show-full-marc $sno $no 1]] 0
+    } else {
+        $w.bot.2 configure -command [list display-raw $sno $no $w.top.record]
+        $w.bot.4 configure -command [list show-full-marc $sno $no 1]
     }
 }
 
@@ -500,8 +617,6 @@ proc load-set-action {} {
     set fname [.load-set.top.filename.entry get]
     destroy .load-set
     if {$fname != ""} {
-        init-title-lines
-
         show-status {Loading} 1 {}
         z39.$setNo loadFile $fname
 
@@ -901,9 +1016,11 @@ proc title-press {y setno} {
 
 proc add-title-lines {setno no offset} {
     if {$offset == 1} {
+        .bot.a.set configure -text $setno
         .data.list delete 0 end
     }
     bind .data.list <Double-Button-1> [list title-press %y $setno]
+    bind .data.list <Button-2> [list title-press %y $setno]
     for {set i 0} {$i < $no} {incr i} {
         set o [expr $i + $offset]
         set type [z39.$setno type $o]
@@ -1900,7 +2017,7 @@ message .bot.a.target -text "" -aspect 1000 -border 1
 
 label .bot.a.status -text "Not connected" -width 15 -relief \
         sunken -anchor w -border 1
-label .bot.a.set -textvariable setNo -width 5 -relief \
+label .bot.a.set -text "" -width 5 -relief \
         sunken -anchor w -border 1
 label .bot.a.message -text "" -width 15 -relief \
         sunken -anchor w -border 1
