@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.105  1998-06-10 13:00:45  adam
+# Revision 1.106  1998-06-10 13:22:47  adam
+# Minor changes.
+#
+# Revision 1.105  1998/06/10 13:00:45  adam
 # Added ir-version command.
 #
 # Revision 1.104  1998/02/12 13:32:41  adam
@@ -4157,9 +4160,9 @@ set logLevel all
 if {[catch {ir-version}]} {
     set e [info sharedlibextension]
     .init.msg insert end "Loading irtcl$e.\n"
-    load ${libdir}/irtcl$e irtcl
+    catch {load ${libdir}/irtcl$e irtcl}
     if {[catch {ir-version}]} {
-	load irtcl$e irtcl
+	catch {load irtcl$e irtcl}
     }
 }
 
