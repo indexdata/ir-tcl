@@ -2,7 +2,7 @@
  * IR toolkit for tcl/tk
  * (c) Index Data 1995
  *
- * $Id: ir-tcl.c,v 1.1 1995-03-06 17:05:34 adam Exp $
+ * $Id: ir-tcl.c,v 1.1.1.1 1995-03-06 17:05:35 adam Exp $
  */
 
 #include <stdlib.h>
