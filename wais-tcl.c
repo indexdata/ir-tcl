@@ -5,7 +5,10 @@
  * Wais extension to IrTcl
  *
  * $Log: wais-tcl.c,v $
- * Revision 1.4  1996-03-11 17:39:48  adam
+ * Revision 1.5  1996-03-15 14:40:23  adam
+ * Bug fix: do_responseStatus called Tcl_AppendElement when interp was 0.
+ *
+ * Revision 1.4  1996/03/11  17:39:48  adam
  * 40 documents are retrieved by default (maxDocs=40).
  *
  * Revision 1.3  1996/03/08  16:46:44  adam
@@ -927,6 +930,7 @@ static int do_responseStatus (void *o, Tcl_Interp *interp,
     {
         free (obj->diag);
         free (obj->addinfo);
+        return TCL_OK;
     }
     if (obj->diag)
     {
