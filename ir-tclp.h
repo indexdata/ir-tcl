@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.5  1995-05-29 08:44:25  adam
+ * Revision 1.6  1995-05-31 08:36:40  adam
+ * Bug fix in client.tcl: didn't save options on clientrc.tcl.
+ * New method: referenceId. More work on scan.
+ *
+ * Revision 1.5  1995/05/29  08:44:25  adam
  * Work on delete of objects.
  *
  * Revision 1.4  1995/05/26  11:44:10  adam
@@ -59,6 +63,7 @@ typedef struct {
 
     char       *queryType;
     int         replaceIndicator;
+    char       *referenceId;
 
     int         smallSetUpperBound;
     int         largeSetLowerBound;

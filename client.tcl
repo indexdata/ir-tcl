@@ -1,6 +1,10 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.23  1995-05-29 10:33:41  adam
+# Revision 1.24  1995-05-31 08:36:24  adam
+# Bug fix in client.tcl: didn't save options on clientrc.tcl.
+# New method: referenceId. More work on scan.
+#
+# Revision 1.23  1995/05/29  10:33:41  adam
 # README and rename of startup script.
 #
 # Revision 1.22  1995/05/26  11:44:09  adam
@@ -477,7 +481,7 @@ proc scan-request {} {
 
     set target $hostid
 
-    ir-scan z39.scan
+    ir-scan z39.scan z39
 
     z39 callback {scan-response}
     if {![winfo exists $w]} {
@@ -998,7 +1002,7 @@ proc save-settings {} {
     global queryButtons
     global queryInfo
 
-    set f [open "~/.tk-c" w]
+    set f [open "clientrc.tcl" w]
     puts $f "# Setup file"
     puts $f "set hotTargets \{ $hotTargets \}"
 

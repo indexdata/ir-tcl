@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.34  1995-05-29 10:33:42  adam
+ * Revision 1.35  1995-05-31 08:36:33  adam
+ * Bug fix in client.tcl: didn't save options on clientrc.tcl.
+ * New method: referenceId. More work on scan.
+ *
+ * Revision 1.34  1995/05/29  10:33:42  adam
  * README and rename of startup script.
  *
  * Revision 1.33  1995/05/29  09:15:11  quinn
@@ -241,37 +245,6 @@ static int mk_nonSurrogateDiagnostics (Tcl_Interp *interp,
 }
 
 /*
- * get_parent_info: Returns information about parent object.
- */
-static int get_parent_info (Tcl_Interp *interp, const char *name,
-			    Tcl_CmdInfo *parent_info,
-			    const char **suffix)
-{
-    char parent_name[128];
-    const char *csep = strrchr (name, '.');
-    int pos;
-
-    if (!csep)
-    {
-        interp->result = "missing .";
-        return TCL_ERROR;
-    }
-    if (suffix)
-        *suffix = csep+1;
-    pos = csep-name;
-    if (pos > 127)
-        pos = 127;
-    memcpy (parent_name, name, pos);
-    parent_name[pos] = '\0';
-    if (!Tcl_GetCommandInfo (interp, parent_name, parent_info))
-    {
-        interp->result = "No parent";
-        return TCL_ERROR;
-    }
-    return TCL_OK;
-}
-
-/*
  * ir_method: Search for method in table and invoke method handler
  */
 int ir_method (Tcl_Interp *interp, int argc, char **argv, IRMethods *tab)
@@ -396,6 +369,18 @@ void *ir_malloc (Tcl_Interp *interp, size_t size)
     return p;
 }
 
+static void set_referenceId (ODR o, Z_ReferenceId **dst, const char *src)
+{
+    if (!src || !*src)
+        *dst = NULL;
+    else
+    {
+        *dst = odr_malloc (o, sizeof(**dst));
+	(*dst)->size = (*dst)->len = strlen(src);
+	(*dst)->buf = odr_malloc (o, (*dst)->len);
+	memcpy ((*dst)->buf, src, (*dst)->len);
+    }
+}
 /* ------------------------------------------------------- */
 
 /*
@@ -418,7 +403,7 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
     }
     odr_reset (p->odr_out);
 
-    req.referenceId = 0;
+    set_referenceId (p->odr_out, &req.referenceId, p->set_inher.referenceId);
     req.options = &p->options;
     req.protocolVersion = &p->protocolVersion;
     req.preferredMessageSize = &p->preferredMessageSize;
@@ -615,8 +600,7 @@ static int do_implementationName (void *obj, Tcl_Interp *interp,
             == TCL_ERROR)
             return TCL_ERROR;
     }
-    Tcl_AppendResult (interp, p->implementationName,
-                      (char*) NULL);
+    Tcl_AppendResult (interp, p->implementationName, (char*) NULL);
     return TCL_OK;
 }
 
@@ -657,8 +641,7 @@ static int do_targetImplementationName (void *obj, Tcl_Interp *interp,
     }
     else if (argc == -1)
         return ir_strdel (interp, &p->targetImplementationName);
-    Tcl_AppendResult (interp, p->targetImplementationName,
-                      (char*) NULL);
+    Tcl_AppendResult (interp, p->targetImplementationName, (char*) NULL);
     return TCL_OK;
 }
 
@@ -1125,6 +1108,27 @@ static int do_mediumSetPresentNumber (void *o, Tcl_Interp *interp,
     return get_set_int (&p->mediumSetPresentNumber, interp, argc, argv);
 }
 
+/*
+ * do_referenceId: Set/Get referenceId
+ */
+static int do_referenceId (void *obj, Tcl_Interp *interp,
+		           int argc, char **argv)
+{
+    IRSetCObj *p = obj;
+
+    if (argc == 0)
+        p->referenceId = NULL;
+    else if (argc == -1)
+        return ir_strdel (interp, &p->referenceId);
+    if (argc == 3)
+    {
+        free (p->referenceId);
+        if (ir_strdup (interp, &p->referenceId, argv[2]) == TCL_ERROR)
+            return TCL_ERROR;
+    }
+    Tcl_AppendResult (interp, p->referenceId, NULL);
+    return TCL_OK;
+}
 
 static IRMethod ir_method_tab[] = {
 { 1, "comstack",                    do_comstack },
@@ -1157,6 +1161,7 @@ static IRMethod ir_set_c_method_tab[] = {
 { 0, "smallSetUpperBound",          do_smallSetUpperBound},
 { 0, "largeSetLowerBound",          do_largeSetLowerBound},
 { 0, "mediumSetPresentNumber",      do_mediumSetPresentNumber},
+{ 0, "referenceId",                 do_referenceId },
 { 0, NULL, NULL}
 };
 
@@ -1289,7 +1294,7 @@ static int do_search (void *o, Tcl_Interp *interp,
         interp->result = "wrong # args";
         return TCL_ERROR;
     }
-    if (!p->set_inher.num_databaseNames)
+    if (!obj->set_inher.num_databaseNames)
     {
         interp->result = "no databaseNames";
         return TCL_ERROR;
@@ -1307,23 +1312,24 @@ static int do_search (void *o, Tcl_Interp *interp,
     bib1.class = CLASS_ATTSET;
     bib1.value = VAL_BIB1;
 
-    req.referenceId = 0;
-    req.smallSetUpperBound = &p->set_inher.smallSetUpperBound;
-    req.largeSetLowerBound = &p->set_inher.largeSetLowerBound;
-    req.mediumSetPresentNumber = &p->set_inher.mediumSetPresentNumber;
-    req.replaceIndicator = &p->set_inher.replaceIndicator;
+    set_referenceId (p->odr_out, &req.referenceId, obj->set_inher.referenceId);
+
+    req.smallSetUpperBound = &obj->set_inher.smallSetUpperBound;
+    req.largeSetLowerBound = &obj->set_inher.largeSetLowerBound;
+    req.mediumSetPresentNumber = &obj->set_inher.mediumSetPresentNumber;
+    req.replaceIndicator = &obj->set_inher.replaceIndicator;
     req.resultSetName = obj->setName ? obj->setName : "Default";
     logf (LOG_DEBUG, "Search, resultSetName %s", req.resultSetName);
-    req.num_databaseNames = p->set_inher.num_databaseNames;
-    req.databaseNames = p->set_inher.databaseNames;
-    for (r=0; r < p->set_inher.num_databaseNames; r++)
-        logf (LOG_DEBUG, " Database %s", p->set_inher.databaseNames[r]);
+    req.num_databaseNames = obj->set_inher.num_databaseNames;
+    req.databaseNames = obj->set_inher.databaseNames;
+    for (r=0; r < obj->set_inher.num_databaseNames; r++)
+        logf (LOG_DEBUG, " Database %s", obj->set_inher.databaseNames[r]);
     req.smallSetElementSetNames = 0;
     req.mediumSetElementSetNames = 0;
     req.preferredRecordSyntax = 0;
     req.query = &query;
 
-    if (!strcmp (p->set_inher.queryType, "rpn"))
+    if (!strcmp (obj->set_inher.queryType, "rpn"))
     {
         Z_RPNQuery *RPNquery;
 
@@ -1339,7 +1345,7 @@ static int do_search (void *o, Tcl_Interp *interp,
         logf (LOG_DEBUG, "RPN");
     }
 #if CCL2RPN
-    else if (!strcmp (p->set_inher.queryType, "cclrpn"))
+    else if (!strcmp (obj->set_inher.queryType, "cclrpn"))
     {
         int error;
         int pos;
@@ -1361,7 +1367,7 @@ static int do_search (void *o, Tcl_Interp *interp,
         logf (LOG_DEBUG, "CCLRPN");
     }
 #endif
-    else if (!strcmp (p->set_inher.queryType, "ccl"))
+    else if (!strcmp (obj->set_inher.queryType, "ccl"))
     {
         query.which = Z_Query_type_2;
         query.u.type_2 = &ccl_query;
@@ -1673,8 +1679,8 @@ static int do_present (void *o, Tcl_Interp *interp,
 
     apdu.which = Z_APDU_presentRequest;
     apdu.u.presentRequest = &req;
-    req.referenceId = 0;
-    /* sprintf(setstring, "%d", setnumber); */
+
+    set_referenceId (p->odr_out, &req.referenceId, obj->set_inher.referenceId);
 
     req.resultSetId = obj->setName ? obj->setName : "Default";
     
@@ -1855,6 +1861,10 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
         if (ir_strdup (interp, &dst->queryType, src->queryType)
             == TCL_ERROR)
             return TCL_ERROR;
+
+        if (ir_strdup (interp, &dst->referenceId, src->referenceId)
+            == TCL_ERROR)
+            return TCL_ERROR;
         
         dst->smallSetUpperBound = src->smallSetUpperBound;
         dst->largeSetLowerBound = src->largeSetLowerBound;
@@ -1919,7 +1929,7 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
 
     apdu.which = Z_APDU_scanRequest;
     apdu.u.scanRequest = &req;
-    req.referenceId = NULL;
+    set_referenceId (p->odr_out, &req.referenceId, p->set_inher.referenceId);
     req.num_databaseNames = p->set_inher.num_databaseNames;
     req.databaseNames = p->set_inher.databaseNames;
     req.attributeSet = oid_getoidbyent (&bib1);
@@ -2135,7 +2145,7 @@ static IRMethod ir_scan_method_tab[] = {
 static int ir_scan_obj_method (ClientData clientData, Tcl_Interp *interp,
                                int argc, char **argv)
 {
-    IRMethods tabs[3];
+    IRMethods tabs[2];
 
     if (argc < 2)
     {
@@ -2154,7 +2164,15 @@ static int ir_scan_obj_method (ClientData clientData, Tcl_Interp *interp,
  */
 static void ir_scan_obj_delete (ClientData clientData)
 {
-    free ( (void*) clientData);
+    IRMethods tabs[2];
+    IRScanObj *obj = clientData;
+
+    tabs[0].tab = ir_scan_method_tab;
+    tabs[0].obj = obj;
+    tabs[1].tab = NULL;
+
+    ir_method (NULL, -1, NULL, tabs);
+    free (obj);
 }
 
 /* 
@@ -2165,17 +2183,22 @@ static int ir_scan_obj_mk (ClientData clientData, Tcl_Interp *interp,
 {
     Tcl_CmdInfo parent_info;
     IRScanObj *obj;
-    IRMethods tabs[3];
+    IRMethods tabs[2];
 
-    if (argc != 2)
+    if (argc != 3)
     {
         interp->result = "wrong # args";
         return TCL_ERROR;
     }
-    if (get_parent_info (interp, argv[1], &parent_info, NULL) == TCL_ERROR)
-        return TCL_ERROR;
+    if (!Tcl_GetCommandInfo (interp, argv[2], &parent_info))
+    {
+        interp->result = "No parent";
+	return TCL_ERROR;
+    }
     if (!(obj = ir_malloc (interp, sizeof(*obj))))
         return TCL_ERROR;
+
+    obj->parent = (IRObj *) parent_info.clientData;
 
     tabs[0].tab = ir_scan_method_tab;
     tabs[0].obj = obj;
@@ -2183,16 +2206,6 @@ static int ir_scan_obj_mk (ClientData clientData, Tcl_Interp *interp,
 
     if (ir_method (interp, 0, NULL, tabs) == TCL_ERROR)
         return TCL_ERROR;
-#if 0
-    obj->stepSize = 0;
-    obj->numberOfTermsRequested = 20;
-    obj->preferredPositionInResponse = 1;
-
-    obj->entries = NULL;
-    obj->nonSurrogateDiagnostics = NULL;
-#endif
-
-    obj->parent = (IRObj *) parent_info.clientData;
     Tcl_CreateCommand (interp, argv[1], ir_scan_obj_method,
                        (ClientData) obj, ir_scan_obj_delete);
     return TCL_OK;
