@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.75  1995-10-17 14:18:05  adam
+# Revision 1.76  1995-10-18 15:15:20  adam
+# Fixed bug.
+#
+# Revision 1.75  1995/10/17  14:18:05  adam
 # Minor changes in presentation formats.
 #
 # Revision 1.74  1995/10/17  12:18:57  adam
@@ -1717,6 +1720,8 @@ proc protocol-setup-action {target w} {
     for {set i 0} {$i < $len} {incr i} {
         lappend b [$w.top.databases.list get $i]
     }
+    set wno [lindex $profile($target) 12]
+
     set profile($target) [list [$w.top.description.entry get] \
             [$w.top.host.entry get] \
             [$w.top.port.entry get] \
