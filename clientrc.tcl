@@ -1,7 +1,7 @@
 # Setup file
 set {profile(CNIDR)} {CNIDR Kudzu.cnidr.org 5556 {} 16384 8192 tcpip {Book ERIC} 1 {} {} z39v2 1}
 set {profile(Penn)} {{Penn State's Library} 128.118.88.200 210 {} 16384 8192 tcpip CATALOG 1 {} {} z39v2 2}
-set {profile(A new server)} {{A completely new server} dtbsun.dtv.dk 9999 {} 16384 8192 tcpip dummy {} {} {} z39v2 20}
+set {profile(A new server)} {{A completely new server} dtbsun.dtv.dk 9999 {} 16384 8192 tcpip {aaa aaaa} {} {} {} z39v2 20}
 set {profile(ztest)} {{test server} localhost 9999 {} 16384 4096 tcpip dummy 1 {} {} z39v2 3}
 set {profile(Nsrtest)} {{NSR in house.} localhost 4500 {} 16384 8192 mosi x 1 {} {} sr 4}
 set {profile(Default)} {{} {} {210} {} 16384 8192 tcpip {} {} {} {} {} 22}

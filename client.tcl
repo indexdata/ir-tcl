@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.40  1995-06-14 13:37:17  adam
+# Revision 1.41  1995-06-14 15:07:59  adam
+# Bug fix in cascade-target-list. Uses yaz-version.h.
+#
+# Revision 1.40  1995/06/14  13:37:17  adam
 # Setting recordType implemented.
 # Setting implementationVersion implemented.
 # Settings implementationId / implementationName edited.
@@ -801,12 +804,6 @@ proc search-request {} {
     show-status {Search} 1 0
 }
 
-proc scan-focus {w} {
-    set oldFocus [focus]
-    bind $w <Leave> [list focus $oldFocus]
-    focus $w.top.entry
-}
-
 proc scan-request {} {
     set w .scan-window
 
@@ -859,7 +856,6 @@ proc scan-request {} {
         bind $w.top.list <Down> [list scan-down $attr]
     }
     wm title $w "Scan $title"
-#    bind $w.top <Any-Enter> [list scan-focus $w]
         
     z39 callback [list scan-response $attr 0 35]
     z39.scan numberOfTermsRequested 5
@@ -1248,7 +1244,8 @@ proc define-target-dialog {} {
 proc protocol-setup-delete {target} {
     global profile
 
-    set a [alert "Are you you want to delete the target definition $target ?"]
+    set a [alert "Are you sure you want to delete the target \
+definition $target ?"]
     if {$a} {
         set wno [lindex $profile($target) 12]
         set w .setup-${wno}
@@ -1347,10 +1344,17 @@ proc delete-database {target} {
 
     set wno [lindex $profile($target) 12]
     set w .setup-${wno}
-
-    foreach i [lsort -decreasing \
-            [$w.top.databases.list curselection]] {
-        $w.top.databases.list delete $i
+    set l {}
+    foreach i [$w.top.databases.list curselection] {
+        set b [$w.top.databases.list get $i]
+        set l "$l $b"
+    }
+    set a [alert "Are you sure you want to remove the database(s)${l}?"]
+    if {$a} {
+        foreach i [lsort -decreasing \
+                [$w.top.databases.list curselection]] {
+            $w.top.databases.list delete $i
+        }
     }
 }
 
@@ -1541,7 +1545,7 @@ proc cascade-target-list {} {
     .top.target.m.clist delete 0 last
     foreach n [array names profile] {
         if {$n != "Default"} {
-            set nl [string tolower $n]
+            set nl [lindex $profile($n) 12]
             if {[llength [lindex $profile($n) 7]] > 1} {
                 .top.target.m.clist add cascade -label $n \
                         -menu .top.target.m.clist.$nl
@@ -2307,7 +2311,7 @@ proc query-setup {queryNo} {
     foreach x $queryInfoTmp {
         $w.top.index.list insert end [lindex $x 0]
     }
-    # Ok-cancel
+    # Bottom
     bottom-buttons $w [list \
             {Ok} [list query-setup-action $queryNo] \
             {Add index} [list query-add-index $queryNo] \
@@ -2597,11 +2601,7 @@ pack .bot.a.target -side top -anchor nw -padx 2 -pady 2
 pack .bot.a.status .bot.a.set .bot.a.message \
         -side left -padx 2 -pady 2
 
-#bind . <Any-Enter> {focus .lines.0.e}
-
 ir z39
 
-#.top.options.m.formats invoke $displayFormat
-    
 show-logo 1
 

@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.8  1995-06-14 13:37:18  adam
+ * Revision 1.9  1995-06-14 15:08:01  adam
+ * Bug fix in cascade-target-list. Uses yaz-version.h.
+ *
+ * Revision 1.8  1995/06/14  13:37:18  adam
  * Setting recordType implemented.
  * Setting implementationVersion implemented.
  * Settings implementationId / implementationName edited.
@@ -55,6 +58,7 @@
 #include <xmosi.h>
 #endif
 
+#include <yaz-version.h>
 #include <odr.h>
 #include <proto.h>
 #include <oid.h>
