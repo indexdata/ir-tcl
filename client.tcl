@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.35  1995-06-12 15:17:31  adam
+# Revision 1.36  1995-06-13 07:42:14  adam
+# Bindings removed from text widgets.
+#
+# Revision 1.35  1995/06/12  15:17:31  adam
 # Text widget used in main window (instead of listbox) to support
 # better presentation formats.
 #
@@ -158,6 +161,25 @@ proc set-display-format {f} {
         return
     }
     add-title-lines 0 10000 1
+}
+
+proc readonlyText {w} {
+    set w Text
+    bind $w <1> {}
+    bind $w <Double-1> {}
+    bind $w <Triple-1> {}
+    bind $w <B1-Motion> {}
+    bind $w <Shift-1> {}
+    bind $w <Shift-B1-Motion> {}
+    bind $w <2> {}
+    bind $w <B2-Motion> {}
+    bind $w <Any-KeyPress> {}
+    bind $w <Return> {}
+    bind $w <BackSpace> {}
+    bind $w <Delete> {}
+    bind $w <Control-h> {}
+    bind $w <Control-d> {}
+    bind $w <Control-v> {}
 }
 
 proc destroyG {w} {
@@ -1553,6 +1575,35 @@ proc listbutton {button no names} {
     }
 }
 
+proc listbuttonv-action {button var names i} {
+    global $var
+
+    set $var $i
+    $button configure -text [lindex $names $i]
+}
+
+proc listbuttonv {button var names} {
+    global $var
+
+    set n "-"
+    eval "set val $$var"
+    set l [llength $names]
+    for {set i 1} {$i < $l} {incr i 2} {
+        if {$val == [lindex $names $i]} {
+            incr i -1
+            set n [lindex $names $i]
+            break
+        }
+    }
+    menubutton $button -text $n -width 10 -menu ${button}.m \
+            -relief raised -border 1
+    menu ${button}.m
+    for {set i 0} {$i < $l} {incr i 2} {
+        ${button}.m add command -label [lindex $names $i] \
+                -command [list listbuttonv-action $button $var $names $i]
+    }
+}
+
 proc query-add-index-action {queryNo} {
     set w .setup-query-$queryNo
 
@@ -1664,13 +1715,16 @@ proc query-setup {queryNo} {
     global queryInfo
     global queryButtonsTmp
     global queryInfoTmp
+    
+    global relationTmpValue
+    global structureTmpValue
+    global truncationTmpValue
+    global completenessTmpValue
+    global positionTmpValue
 
     set queryName [lindex $queryTypes $queryNo]
     set queryInfoTmp [lindex $queryInfo $queryNo]
     set queryButtonsTmp [lindex $queryButtons $queryNo]
-
-    #set queryButtons { {I 0 I 1 I 2} }
-    #set queryInfo { { {Title ti} {Author au} {Subject sh} } }
 
     toplevel $w
 
@@ -1694,6 +1748,7 @@ proc query-setup {queryNo} {
     pack $w.top.lines -side left -pady 6 -padx 6 -fill y
 
     # Use Attributes
+
     pack $w.top.use -side left -pady 6 -padx 6 -fill y
 
     label $w.top.use.label -text "Use"
@@ -1711,60 +1766,64 @@ proc query-setup {queryNo} {
     foreach u {{Personal name} {Corporate name}} {
         $w.top.use.list insert end $u
     }
-    # Relation Attributes
-    pack $w.top.relation -pady 6 -padx 6 -side top
 
+    # Relation Attributes
+
+    pack $w.top.relation -pady 6 -padx 6 -side top
     label $w.top.relation.label -text "Relation" -width 18
     
-    listbutton $w.top.relation.b 0\
-            {{None} {Less than} {Greater than or equal} \
-            {Equal} {Greater than or equal} {Greater than} {Not equal} \
-            {Phonetic} \
-            {Stem} {Relevance} {AlwaysMatches}}
+    set relationTmpValue 0
+    listbuttonv $w.top.relation.b relationTmpValue\
+            {{None} 0 {Less than} 1 {Greater than or equal} 2 {Equal} 3 \
+            {Greater than or equal} 4 {Greater than} 5 {Not equal} 6 \
+            {Phonetic} 100 {Stem} 101 {Relevance} 102 {AlwaysMatches} 103}
     
     pack $w.top.relation.label $w.top.relation.b -fill x 
 
     # Position Attributes
-    pack $w.top.position -pady 6 -padx 6 -side top
 
+    pack $w.top.position -pady 6 -padx 6 -side top
     label $w.top.position.label -text "Position" -width 18
 
-    listbutton $w.top.position.b 0 {{None} {First in field} {First in subfield}
-    {Any position in field}}
+    set positionTmpValue 0
+    listbuttonv $w.top.position.b positionTmpValue {{None} 0 \
+            {First in field} 1 {First in subfield} 2 {Any position in field} 3}
     
     pack $w.top.position.label $w.top.position.b -fill x
 
     # Structure Attributes
 
     pack $w.top.structure -pady 6 -padx 6 -side top
-    
     label $w.top.structure.label -text "Structure" -width 18
 
-    listbutton $w.top.structure.b 0 {{None} {Phrase} {Word} {Key} {Year}
-    {Date (norm)} {Word list} {Date (un-norm)} {Name (norm)} {Date (un-norm)}
-    {Structure} {urx} {free-form} {doc-text} {local-number} {string}
-    {numeric string}}
+    set structureTmpValue 0
+    listbuttonv $w.top.structure.b structureTmpValue {{None} 0 {Phrase} 1 \
+            {Word} 2 {Key} 3 {Year} 4 {Date (norm)} 5 {Word list}  6 \
+            {Date (un-norm)} 100 {Name (norm)} 101 {Date (un-norm)} 102 \
+            {Structure} 103 {urx} 104 {free-form} 105 {doc-text} 106 \
+            {local-number} 107 {string} 108 {numeric string} 109}
 
     pack $w.top.structure.label $w.top.structure.b -fill x
 
     # Truncation Attributes
 
     pack $w.top.truncation -pady 6 -padx 6 -side top
-    
     label $w.top.truncation.label -text "Truncation" -width 18
 
-    listbutton $w.top.truncation.b 0 {{Auto} {Right} {Left} {Left and right} \
-            {No truncation} {Process #} {Re-1} {Re-2}}
+    set truncationTmpValue 0
+    listbuttonv $w.top.truncation.b truncationTmpValue {{Auto} 0 {Right} 1 \
+            {Left} 2 {Left and right} 3 {No truncation} 100 \
+            {Process #} 101 {Re-1} 102 {Re-2} 103}
     pack $w.top.truncation.label $w.top.truncation.b -fill x
 
     # Completeness Attributes
 
     pack $w.top.completeness -pady 6 -padx 6 -side top
-    
-    label $w.top.completeness.label -text "Truncation" -width 18
+    label $w.top.completeness.label -text "Completeness" -width 18
 
-    listbutton $w.top.completeness.b 0 {{None} {Incomplete subfield} \
-            {Complete subfield} {Complete field}}
+    set completenessTmpValue 0
+    listbuttonv $w.top.completeness.b completenessTmpValue {{None} 0 \
+            {Incomplete subfield} 1 {Complete subfield} 2 {Complete field} 3}
     pack $w.top.completeness.label $w.top.completeness.b -fill x
 
     # Ok-cancel
@@ -2004,6 +2063,7 @@ text .data.record -height 2 -width 20 -wrap none \
 scrollbar .data.scroll -command [list .data.record yview]
 pack .data.scroll -side right -fill y
 pack .data.record -expand yes -fill both
+readonlyText .data.record
 
 if {[tk colormodel .] == "color"} {
     .data.record tag configure marc-tag -foreground blue
