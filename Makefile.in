@@ -2,7 +2,7 @@
 # (c) Index Data 1995
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.24 1996-01-11 11:43:00 adam Exp $
+# $Id: Makefile.in,v 1.25 1996-01-11 11:52:08 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -134,7 +134,6 @@ distribution:
 	fi
 	mkdir tmp; cd tmp; cvs export -f -D now ir-tcl
 	cp configure tmp/ir-tcl
-	cd tmp/ir-tcl/doc; make all
 	cd tmp; mv ir-tcl ir-tcl-$(VERSION)
 	cd tmp; tar zcf ../ir-tcl-$(VERSION).tar.gz ir-tcl-$(VERSION)
 	cd tmp; mv ir-tcl-$(VERSION) ir-tcl
