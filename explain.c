@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: explain.c,v $
- * Revision 1.12  2003-02-18 10:28:00  adam
+ * Revision 1.13  2003-02-18 10:31:38  adam
+ * Minor change
+ *
+ * Revision 1.12  2003/02/18 10:28:00  adam
  * Fix for new schema definition
  *
  * Revision 1.11  1998/05/20 12:24:41  adam
@@ -1597,7 +1600,7 @@ static int ir_Specification (IrExpArg *iea,
 {
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-#if YAZ_VERSIONL >= 0x010903
+#if YAZ_VERSIONL >= 0x010903L
     if (p->which == Z_Schema_oid)
        ir_oid (iea, p->schema.oid, "schema", argi);
 #else
