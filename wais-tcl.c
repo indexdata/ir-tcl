@@ -5,7 +5,10 @@
  * Wais extension to IrTcl
  *
  * $Log: wais-tcl.c,v $
- * Revision 1.1  1996-02-29 15:28:08  adam
+ * Revision 1.2  1996-03-07 12:43:44  adam
+ * Better error handling. WAIS target closed before failback is invoked.
+ *
+ * Revision 1.1  1996/02/29  15:28:08  adam
  * First version of Wais extension to IrTcl.
  *
  */
@@ -78,7 +81,7 @@ static void wais_select_write (ClientData clientData)
     switch (p->irtcl_obj->state)
     {
     case IR_TCL_R_Connecting:
-	logf(LOG_DEBUG, "Connect handler");
+	logf(LOG_DEBUG, "write wais: connect");
         r = cs_rcvconnect (p->wais_link);
         if (r == 1)
             return;
@@ -86,32 +89,27 @@ static void wais_select_write (ClientData clientData)
         if (r < 0)
         {
             logf (LOG_DEBUG, "cs_rcvconnect error");
-            if (p->irtcl_obj->failback)
-            {
-                p->irtcl_obj->failInfo = IR_TCL_FAIL_CONNECT;
-                ir_tcl_eval (p->interp, p->irtcl_obj->failback);
-            }
             do_disconnect (p, NULL, 2, NULL);
+            p->irtcl_obj->failInfo = IR_TCL_FAIL_CONNECT;
+            if (p->irtcl_obj->failback)
+                ir_tcl_eval (p->interp, p->irtcl_obj->failback);
             return;
         }
         ir_tcl_select_set (wais_select_notify, cs_fileno(p->wais_link),
                            clientData, 1, 0, 0);
         if (p->irtcl_obj->callback)
-        {
-            logf (LOG_DEBUG, "Invoking connect callback");
             ir_tcl_eval (p->interp, p->irtcl_obj->callback);
-        }
         break;
     case IR_TCL_R_Writing:
         if ((r=cs_put (p->wais_link, p->buf_out, p->len_out)) < 0)
         {
             logf (LOG_DEBUG, "cs_put write fail");
+            do_disconnect (p, NULL, 2, NULL);
             if (p->irtcl_obj->failback)
             {
                 p->irtcl_obj->failInfo = IR_TCL_FAIL_WRITE;
                 ir_tcl_eval (p->interp, p->irtcl_obj->failback);
             }
-            do_disconnect (p, NULL, 2, NULL);
         }
         else if (r == 0)            /* remove select bit */
         {
@@ -170,9 +168,21 @@ static void wais_delete_record (WaisTcl_Record *rec)
 {
     freeAny (rec->documentID);
     free (rec->headline);
-    if (rec->documentText)
-        free (rec->documentText);
+    free (rec->documentText);
     free (rec);
+}
+
+static void wais_delete_records (WaisSetTcl_Obj *p)
+{
+    WaisTcl_Records *recs, *recs1;
+
+    for (recs = p->records; recs; recs = recs1)
+    {
+        recs1 = recs->next;
+        wais_delete_record (recs->record);
+        free (recs);
+    }
+    p->records = NULL;
 }
 
 static void wais_add_record_brief (WaisSetTcl_Obj *p,
@@ -232,11 +242,9 @@ static void wais_add_record_full (WaisSetTcl_Obj *p,
     logf (LOG_DEBUG, "Adding text record: \n%.20s", rec->documentText);
 }
 
-static void wais_handle_search_response (WaisSetTcl_Obj *p, char *buf)
+static void wais_handle_search_response (WaisSetTcl_Obj *p,
+                                         SearchResponseAPDU *responseAPDU)
 {
-    SearchResponseAPDU *responseAPDU = NULL;
-
-    readSearchResponseAPDU (&responseAPDU, buf);
     if (responseAPDU->DatabaseDiagnosticRecords)
     {
         WAISSearchResponse *ddr = responseAPDU->DatabaseDiagnosticRecords;
@@ -279,11 +287,13 @@ static void wais_handle_search_response (WaisSetTcl_Obj *p, char *buf)
         if (ddr->DocHeaders)
         {
             int i;
-            logf (LOG_DEBUG, "Got doc header entries");
+            logf (LOG_DEBUG, "Adding doc header entries");
             for (i = 0; ddr->DocHeaders[i]; i++)
             {
                 WAISDocumentHeader *head = ddr->DocHeaders[i];
-                
+
+                logf (LOG_DEBUG, "%4d -->%.*s<--", i+1,
+                      head->DocumentID->size, head->DocumentID->bytes);
                 wais_add_record_brief (p, i+1, head->DocumentID,
                                        head->Score, head->DocumentLength,
                                        head->Lines, head->Headline);
@@ -293,11 +303,16 @@ static void wais_handle_search_response (WaisSetTcl_Obj *p, char *buf)
         if (ddr->Text)
         {
             int i;
-            logf (LOG_DEBUG, "Got text entries");
+            logf (LOG_DEBUG, "Adding text entries");
             for (i = 0; ddr->Text[i]; i++)
+            {
+                logf (LOG_DEBUG, " -->%.*s<--",
+                      ddr->Text[i]->DocumentID->size,
+                      ddr->Text[i]->DocumentID->bytes);
                 wais_add_record_full (p,
                                       ddr->Text[i]->DocumentID,
                                       ddr->Text[i]->DocumentText);
+            }
         }
         freeWAISSearchResponse (ddr);
     }
@@ -311,6 +326,7 @@ static void wais_handle_search_response (WaisSetTcl_Obj *p, char *buf)
 
 static void wais_select_read (ClientData clientData)
 {
+    SearchResponseAPDU *searchRAPDU;
     ClientData objectClientData;
     WaisTcl_Obj *p = clientData;
     char *pdup;
@@ -322,19 +338,17 @@ static void wais_select_read (ClientData clientData)
         /* signal one more use of ir object - callbacks must not
            release the ir memory (p pointer) */
         p->irtcl_obj->state = IR_TCL_R_Reading;
-        ++(p->ref_count);
 
         /* read incoming APDU */
         if ((r=cs_get (p->wais_link, &p->irtcl_obj->buf_in,
                        &p->irtcl_obj->len_in)) <= 0)
         {
+            p->ref_count = 2;
             logf (LOG_DEBUG, "cs_get failed, code %d", r);
             do_disconnect (p, NULL, 2, NULL);
+            p->irtcl_obj->failInfo = IR_TCL_FAIL_READ;
             if (p->irtcl_obj->failback)
-            {
-                p->irtcl_obj->failInfo = IR_TCL_FAIL_READ;
                 ir_tcl_eval (p->interp, p->irtcl_obj->failback);
-            }
             /* release wais object now if callback deleted it */
             wais_obj_delete (p);
             return;
@@ -342,12 +356,12 @@ static void wais_select_read (ClientData clientData)
         if (r == 1)
 	{
 	    logf(LOG_DEBUG, "PDU Fraction read");
-            --(p->ref_count);
             return ;
 	}
         logf (LOG_DEBUG, "cs_get ok, total size %d", r);
         /* got complete APDU. Now decode */
 
+        p->ref_count = 2;
         /* determine set/ir object corresponding to response */
         objectClientData = 0;
         if (p->object)
@@ -363,23 +377,36 @@ static void wais_select_read (ClientData clientData)
         switch (peekPDUType (pdup))
         {
         case initResponseAPDU:
+            p->irtcl_obj->eventType = "init";
             logf (LOG_DEBUG, "Got Wais Init response");
             break;
         case searchResponseAPDU:
+            p->irtcl_obj->eventType = "search";
             logf (LOG_DEBUG, "Got Wais Search response");
+            
+            readSearchResponseAPDU (&searchRAPDU, pdup);
+            if (!searchRAPDU)
+            {
+                logf (LOG_WARN, "Couldn't decode Wais search APDU",
+                      peekPDUType (pdup));
+                p->irtcl_obj->failInfo = IR_TCL_FAIL_IN_APDU;
+                do_disconnect (p, NULL, 2, NULL);
+                if (p->irtcl_obj->failback)
+                    ir_tcl_eval (p->interp, p->irtcl_obj->failback);
+                wais_obj_delete (p);
+                return ;
+            }
             if (objectClientData)
-                wais_handle_search_response (objectClientData,
-                                             pdup);
+                wais_handle_search_response (objectClientData, searchRAPDU);
             break;
         default:
-            logf (LOG_WARN, "Received unknown WAIS APDU type %d",
+            logf (LOG_WARN, "Received unknown Wais APDU type %d",
                   peekPDUType (pdup));
             do_disconnect (p, NULL, 2, NULL);
+            p->irtcl_obj->failInfo = IR_TCL_FAIL_UNKNOWN_APDU;
             if (p->irtcl_obj->failback)
-            {
-                p->irtcl_obj->failInfo = IR_TCL_FAIL_UNKNOWN_APDU;
                 ir_tcl_eval (p->interp, p->irtcl_obj->failback);
-            }
+            wais_obj_delete (p);
             return ;
         }
         p->irtcl_obj->state = IR_TCL_R_Idle;
@@ -403,7 +430,8 @@ static void wais_select_notify (ClientData clientData, int r, int w, int e)
         wais_select_read (clientData);
 }
 
-static int wais_send_apdu (WaisTcl_Obj *p, const char *msg, const char *object)
+static int wais_send_apdu (Tcl_Interp *interp, WaisTcl_Obj *p,
+                           const char *msg, const char *object)
 {
     int r;
 
@@ -414,7 +442,21 @@ static int wais_send_apdu (WaisTcl_Obj *p, const char *msg, const char *object)
     }
     r = cs_put (p->wais_link, p->buf_out, p->len_out);
     if (r < 0)
-        return TCL_ERROR;
+    {
+        p->irtcl_obj->state = IR_TCL_R_Idle;
+        p->irtcl_obj->failInfo = IR_TCL_FAIL_WRITE;
+        do_disconnect (p, NULL, 2, NULL);
+        if (p->irtcl_obj->failback)
+        {
+            ir_tcl_eval (p->interp, p->irtcl_obj->failback);
+            return TCL_OK;
+        }
+        else
+        {
+            interp->result = "Write failed when sending Wais PDU";
+            return TCL_ERROR;
+        }
+    }
     ir_tcl_strdup (NULL, &p->object, object);
     if (r == 1)
     {
@@ -535,6 +577,7 @@ static int do_init (void *obj, Tcl_Interp *interp, int argc, char **argv)
         return TCL_ERROR;
     }
     p->irtcl_obj->initResult = 1;
+    p->irtcl_obj->eventType = "init";
     if (p->irtcl_obj->callback)
         ir_tcl_eval (p->interp, p->irtcl_obj->callback);
     return TCL_OK;
@@ -726,7 +769,8 @@ static int do_present (void *o, Tcl_Interp *interp, int argc, char **argv)
             interp->result = "present request out of range";
             return TCL_ERROR;
         }
-        docObjs[i] = makeDocObjUsingLines (rec->documentID, "TEXT", 0, 60000);
+        docObjs[i] = makeDocObjUsingLines (rec->documentID, "TEXT", 0,
+                                           rec->lines);
     }
     docObjs[i] = NULL;
     waisQuery = makeWAISTextQuery (docObjs);
@@ -756,7 +800,7 @@ static int do_present (void *o, Tcl_Interp *interp, int argc, char **argv)
     freeSearchAPDU (waisSearch);
     if (!retp)
     {
-        interp->result = "Couldn't encode WAIS text search APDU";
+        interp->result = "Couldn't encode Wais text search APDU";
         return TCL_ERROR;
     }
     writeWAISPacketHeader (p->buf_out, (long) (p->len_out), (long) 'z', "wais",
@@ -765,7 +809,7 @@ static int do_present (void *o, Tcl_Interp *interp, int argc, char **argv)
                            (long) HEADER_VERSION);
 
     p->len_out += HEADER_LENGTH;
-    return wais_send_apdu (p, "search", argv[0]);
+    return wais_send_apdu (interp, p, "search", argv[0]);
 }
 
 static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
@@ -776,13 +820,25 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
     SearchAPDU *waisSearch;
     char *retp;
     long left;
+    DocObj **docObjs = NULL;
 
     if (argc <= 0)
         return TCL_OK;
-    if (argc != 3)
+    if (argc < 3 || argc > 4)
     {
         interp->result = "wrong # args";
         return TCL_ERROR;
+    }
+    if (argc == 4)
+    {
+        docObjs = ir_tcl_malloc (2 * sizeof(*docObjs));
+
+        docObjs[0] = ir_tcl_malloc (sizeof(**docObjs));
+        docObjs[0]->DocumentID = stringToAny (argv[3]);
+        docObjs[0]->Type = NULL;
+        docObjs[0]->ChunkCode = (long) CT_document;
+
+        docObjs[1] = NULL;
     }
     if (!obj->irtcl_set_obj->set_inher.num_databaseNames)
     {
@@ -799,7 +855,7 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
     obj->irtcl_set_obj->searchStatus = 0;
     waisQuery = 
         makeWAISSearch (argv[2],         /* seed words */
-                        0,               /* doc ptrs */
+                        docObjs,         /* doc ptrs */
                         0,               /* text list */
                         1L,              /* date factor */
                         0L,              /* begin date range */
@@ -815,7 +871,8 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
                         obj->irtcl_set_obj->
                         setName,                      /* result set name */
                         obj->irtcl_set_obj->set_inher.databaseNames,
-                        QT_RelevanceFeedbackQuery,    /* query type */
+                        QT_RelevanceFeedbackQuery,
+                                                     /* query type */
                         NULL,                         /* element name */
                         NULL,                         /* reference ID */
                         waisQuery);
@@ -826,9 +883,14 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
 
     CSTFreeWAISSearch (waisQuery);
     freeSearchAPDU (waisSearch);
+    if (docObjs)
+    {
+        CSTFreeDocObj (docObjs[0]);
+        free (docObjs);
+    }
     if (!retp)
     {
-        interp->result = "Couldn't encode WAIS search APDU";
+        interp->result = "Couldn't encode Wais search APDU";
         return TCL_ERROR;
     }
     writeWAISPacketHeader (p->buf_out, (long) (p->len_out), (long) 'z', "wais",
@@ -837,7 +899,7 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
                            (long) HEADER_VERSION);
 
     p->len_out += HEADER_LENGTH;
-    return wais_send_apdu (p, "search", argv[0]);
+    return wais_send_apdu (interp, p, "search", argv[0]);
 }
 
 /*
@@ -905,9 +967,7 @@ static int do_type (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     else if (argc == -1)
     {
-/*
-        delete_IR_records (obj);
-*/
+        wais_delete_records (obj);
         return TCL_OK;
     }
     if (argc != 3)
@@ -965,7 +1025,7 @@ static int do_getWAIS (void *o, Tcl_Interp *interp, int argc, char **argv)
     WaisSetTcl_Obj *obj = o;
     int offset;
     WaisTcl_Record *rec;
-    char prbuf[256];
+    char prbuf[1024];
 
     if (argc <= 0)
     {
@@ -973,7 +1033,10 @@ static int do_getWAIS (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     if (argc != 4)
     {
-        sprintf (interp->result, "wrong # args");
+        sprintf (interp->result, "wrong # args: should be"
+                 " \"assoc getWAIS pos field\"\n"
+                 " field is one of:\n"
+                 " score headline documentLength text lines documentID");
         return TCL_ERROR;
     }
     if (Tcl_GetInt (interp, argv[2], &offset)==TCL_ERROR)
@@ -1002,6 +1065,17 @@ static int do_getWAIS (void *o, Tcl_Interp *interp, int argc, char **argv)
     else if (!strcmp (argv[3], "lines"))
     {
         sprintf (prbuf, "%ld", (long) rec->lines);
+        Tcl_AppendElement (interp, prbuf);
+    }
+    else if (!strcmp (argv[3], "documentID"))
+    {
+        if (rec->documentID->size >= sizeof(prbuf))
+        {
+            interp->result = "bad documentID";
+            return TCL_ERROR;
+        }
+        memcpy (prbuf, rec->documentID->bytes, rec->documentID->size);
+        prbuf[rec->documentID->size] = '\0';
         Tcl_AppendElement (interp, prbuf);
     }
     return TCL_OK;
@@ -1055,10 +1129,7 @@ int wais_set_obj_init (ClientData clientData, Tcl_Interp *interp,
     
     assert (parentData);
     if (argc != 3)
-    {
-        interp->result = "wrong # args";
         return TCL_ERROR;
-    }
     obj = ir_tcl_malloc (sizeof(*obj));
     obj->parent = (WaisTcl_Obj *) parentData;
     logf (LOG_DEBUG, "parent = %p", obj->parent);
@@ -1122,7 +1193,8 @@ static int wais_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
 
     if (argc != 3)
     {
-        interp->result = "wrong # args";
+        interp->result = "wrong # args: should be"
+            " \"wais-set set assoc?\"";
         return TCL_ERROR;
     }
     parent_info.clientData = 0;
@@ -1141,15 +1213,78 @@ static int wais_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
 }
 
 
+/*
+ * do_htmlToken
+ */
+int do_htmlToken (ClientData clientData, Tcl_Interp *interp,
+                  int argc, char **argv)
+{
+    const char *src;
+    char *tmp_buf = NULL;
+    int tmp_size = 0;
+    int r;
+    
+    if (argc != 4)
+    {
+        interp->result = "wrong # args: should be"
+            " \"htmlToken var list command\"";
+        return TCL_ERROR;
+    }
+    src = argv[2];
+    while (*src)
+    {
+        const char *src1;
+
+        if (*src == ' ' || *src == '\t' || *src == '\n' ||
+            *src == '\r' || *src == '\f')
+        {
+            src++;
+            continue;
+        }
+        src1 = src + 1;
+        if (*src == '<')
+        {
+            while (*src1 != '>' && *src1 != '\n' ** src1)
+                src1++;
+            if (*src1 == '>')
+                src1++;
+        }
+        else
+        {
+            while (*src1 != '<' && *src1)
+                src1++;
+        }
+        if (src1 - src >= tmp_size)
+        {
+            free (tmp_buf);
+            tmp_size = src1 - src + 256;
+            tmp_buf = ir_tcl_malloc (tmp_size);
+        }
+        memcpy (tmp_buf, src, src1 - src);
+        tmp_buf[src1-src] = '\0';
+        Tcl_SetVar (interp, argv[1], tmp_buf, 0);
+        r = Tcl_Eval (interp, argv[3]);
+        if (r != TCL_OK && r != TCL_CONTINUE)
+            break;
+        src = src1;
+    }
+    if (r == TCL_CONTINUE)
+        r = TCL_OK;
+    free (tmp_buf);
+    return r;
+}
+
 /* --- R E G I S T R A T I O N ---------------------------------------- */
 /*
  * Waistcl_init: Registration of TCL commands.
  */
 int Waistcl_Init (Tcl_Interp *interp)
 {
-    Tcl_CreateCommand (interp, "wais", wais_obj_mk, (ClientData) NULL,
+    Tcl_CreateCommand (interp,  "wais", wais_obj_mk, (ClientData) NULL,
                        (Tcl_CmdDeleteProc *) NULL);
-    Tcl_CreateCommand (interp, "wais-set", wais_set_obj_mk,
+    Tcl_CreateCommand (interp,  "wais-set", wais_set_obj_mk,
+                       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
+    Tcl_CreateCommand (interp, "htmlToken", do_htmlToken,
                        (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
     return TCL_OK;
 }
