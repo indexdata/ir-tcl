@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.79  1996-02-23 13:41:38  adam
+ * Revision 1.80  1996-02-23 17:31:39  adam
+ * More functions made available to the wais tcl extension.
+ *
+ * Revision 1.79  1996/02/23  13:41:38  adam
  * Work on public access to simple ir class system.
  *
  * Revision 1.78  1996/02/21  10:16:08  adam
@@ -359,9 +362,9 @@ static IrTcl_RecordList *new_IR_record (IrTcl_SetObj *setobj,
 }
 
 /* 
- * IrTcl_eval
+ * ir_tcl_eval
  */
-int IrTcl_eval (Tcl_Interp *interp, const char *command)
+int ir_tcl_eval (Tcl_Interp *interp, const char *command)
 {
     char *tmp = ir_tcl_malloc (strlen(command)+1);
     int r;
@@ -1084,7 +1087,7 @@ static int do_connect (void *obj, Tcl_Interp *interp,
         {
             p->state = IR_TCL_R_Idle;
             if (p->callback)
-                IrTcl_eval (p->interp, p->callback);
+                ir_tcl_eval (p->interp, p->callback);
         }
     }
     else
@@ -1704,13 +1707,13 @@ static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
 
     if (argc < 2)
         return TCL_ERROR;
-
+    
     tab[0].tab = ir_method_tab;
     tab[0].obj = p;
     tab[1].tab = ir_set_c_method_tab;
     tab[1].obj = &p->set_inher;
     tab[2].tab = NULL;
-
+    
     return ir_tcl_method (interp, argc, argv, tab);
 }
 
@@ -3426,14 +3429,14 @@ static void ir_select_read (ClientData clientData)
             if (p->failback)
             {
                 p->failInfo = IR_TCL_FAIL_CONNECT;
-                IrTcl_eval (p->interp, p->failback);
+                ir_tcl_eval (p->interp, p->failback);
             }
             do_disconnect (p, NULL, 2, NULL);
             return;
         }
         p->state = IR_TCL_R_Idle;
         if (p->callback)
-            IrTcl_eval (p->interp, p->callback);
+            ir_tcl_eval (p->interp, p->callback);
         if (p->cs_link && p->request_queue && p->state == IR_TCL_R_Idle)
             ir_tcl_send_q (p, p->request_queue, "x");
         return;
@@ -3458,7 +3461,7 @@ static void ir_select_read (ClientData clientData)
             if (p->failback)
             {
                 p->failInfo = IR_TCL_FAIL_READ;
-                IrTcl_eval (p->interp, p->failback);
+                ir_tcl_eval (p->interp, p->failback);
             }
             /* release ir object now if callback deleted it */
             ir_obj_delete (p);
@@ -3483,7 +3486,7 @@ static void ir_select_read (ClientData clientData)
             {
                 p->failInfo = IR_TCL_FAIL_IN_APDU;
                 p->apduOffset = odr_offset (p->odr_in);
-                IrTcl_eval (p->interp, p->failback);
+                ir_tcl_eval (p->interp, p->failback);
             }
             /* release ir object now if failback deleted it */
             ir_obj_delete (p);
@@ -3537,7 +3540,7 @@ static void ir_select_read (ClientData clientData)
                 if (p->failback)
                 {
                     p->failInfo = IR_TCL_FAIL_UNKNOWN_APDU;
-                    IrTcl_eval (p->interp, p->failback);
+                    ir_tcl_eval (p->interp, p->failback);
                 }
                 return;
             }
@@ -3546,9 +3549,9 @@ static void ir_select_read (ClientData clientData)
         p->state = IR_TCL_R_Idle;
        
         if (apdu_call)
-            IrTcl_eval (p->interp, apdu_call);
+            ir_tcl_eval (p->interp, apdu_call);
         else if (rq->callback)
-            IrTcl_eval (p->interp, rq->callback);
+            ir_tcl_eval (p->interp, rq->callback);
         free (rq->buf_out);
         free (rq->callback);
         free (rq->object_name);
@@ -3593,7 +3596,7 @@ static void ir_select_write (ClientData clientData)
             if (p->failback)
             {
                 p->failInfo = IR_TCL_FAIL_CONNECT;
-                IrTcl_eval (p->interp, p->failback);
+                ir_tcl_eval (p->interp, p->failback);
             }
             do_disconnect (p, NULL, 2, NULL);
             return;
@@ -3604,7 +3607,7 @@ static void ir_select_write (ClientData clientData)
         ir_select_remove_write (cs_fileno (p->cs_link), p);
 #endif
         if (p->callback)
-            IrTcl_eval (p->interp, p->callback);
+            ir_tcl_eval (p->interp, p->callback);
         return;
     }
     rq = p->request_queue;
@@ -3617,7 +3620,7 @@ static void ir_select_write (ClientData clientData)
         if (p->failback)
         {
             p->failInfo = IR_TCL_FAIL_WRITE;
-            IrTcl_eval (p->interp, p->failback);
+            ir_tcl_eval (p->interp, p->failback);
         }
         free (rq->buf_out);
         rq->buf_out = NULL;

@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.27  1996-02-23 13:41:41  adam
+ * Revision 1.28  1996-02-23 17:31:41  adam
+ * More functions made available to the wais tcl extension.
+ *
+ * Revision 1.27  1996/02/23  13:41:41  adam
  * Work on public access to simple ir class system.
  *
  * Revision 1.26  1996/02/21  10:16:20  adam
@@ -373,6 +376,8 @@ void ir_select_add (int fd, void *obj);
 void ir_select_add_write (int fd, void *obj);
 void ir_select_remove (int fd, void *obj);
 void ir_select_remove_write (int fd, void *obj);
+
+int ir_tcl_eval (Tcl_Interp *interp, const char *command);
 
 #define IR_TCL_FAIL_CONNECT      1
 #define IR_TCL_FAIL_READ         2

@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: tclmain.c,v $
- * Revision 1.17  1996-02-21 10:16:21  adam
+ * Revision 1.18  1996-02-23 17:31:42  adam
+ * More functions made available to the wais tcl extension.
+ *
+ * Revision 1.17  1996/02/21  10:16:21  adam
  * Simplified select handling. Only one function ir_tcl_select_set has
  * to be externally defined.
  *
@@ -92,6 +95,10 @@ int Tcl_AppInit (Tcl_Interp *interp)
         return TCL_ERROR;
     if (Irtcl_Init(interp) == TCL_ERROR)
         return TCL_ERROR;
+#if USE_WAIS
+    if (Waistcl_Init(interp) == TCL_ERROR)
+        return TCL_ERROR;
+#endif
     return TCL_OK;
 }
 
