@@ -1,8 +1,8 @@
 # IRTCL makefile for MS NMAKE 
-# $Id: makefile,v 1.2 2001-12-03 00:31:06 adam Exp $
+# $Id: makefile,v 1.3 2003-01-30 13:27:07 adam Exp $
 #
 # Log at the end of the file
-VERSION=1.4
+VERSION=1.4.1
  
 ###########################################################
 ############### Parameters 
@@ -22,8 +22,8 @@ all: dirs irtcl
 ROOTDIR=..   # The home of IRTCL
 
 # TCL include files, libraries, etc.
-TCLINCL="c:\program files\tcl\include"
-TCLLIB="c:\program files\tcl\lib\tcl82.lib"
+TCLINCL="c:\tcl\include"
+TCLLIB="c:\tcl\lib\tcl83.lib"
 
 # YAZ include files, libraries, etc.
 YAZDIR=$(ROOTDIR)\..\YAZ
@@ -164,14 +164,37 @@ ALL_OBJS=$(IRTCL_OBJS)
 	@$(CPP) $(COPT) $<
 
 ###########################################################
+############### Resources
+###########################################################
+
+### The RC compiler (resource files)
+RSC=rc.exe
+COMMON_RC_OPTIONS= /l 0x406 /i"$(ROOTDIR)" 
+DEBUG_RC_OPTIONS=/d "_DEBUG"
+RELEASE_RC_OPTIONS=/d "NDEBUG"
+
+RES=$(OBJDIR)\irtcl.res
+RC=$(WINDIR)\irtcl.rc
+
+!if $(DEBUG)
+RSOPT=/d_DEBUG
+!else
+RSOPT=/d_NDEBUG
+!endif
+
+$(RES): $(RC)
+	$(RSC) $(RSOPT) /fo"$(RES)" $(RC) 
+
+###########################################################
 ############### Linking
 ###########################################################
 
-$(IRTCLDLL) : "$(BINDIR)" $(IRTCL_OBJS) 
+$(IRTCLDLL) : "$(BINDIR)" $(IRTCL_OBJS) $(RES)
 	@echo Linking irtcl DLL $(IRTCLDLL)
 	$(LINK) $(IRTCL_LINK_OPTIONS) @<<
 		/nologo
 		$(IRTCL_OBJS) 
+		$(RES)
 		/out:$(IRTCLDLL) 
 		$(YAZLIB)
 		$(TCLLIB)
@@ -213,7 +236,11 @@ $(ALL_OBJS): makefile
 ###########################################################
 #
 # $Log: makefile,v $
-# Revision 1.2  2001-12-03 00:31:06  adam
+# Revision 1.3  2003-01-30 13:27:07  adam
+# Changed version to 1.4.1. Added WIN32 version resource.
+# IrTcl ignores unexpected PDU's, rather than die.
+#
+# Revision 1.2  2001/12/03 00:31:06  adam
 # Towards 1.4. Configure updates.
 #
 # Revision 1.1  1999/09/10 10:02:29  adam

@@ -1,10 +1,14 @@
 /*
  * IR toolkit for tcl/tk
- * (c) Index Data 1995-2002
+ * (c) Index Data 1995-2003
  * See the file LICENSE for details.
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.120  2002-03-20 14:48:54  adam
+ * Revision 1.121  2003-01-30 13:27:07  adam
+ * Changed version to 1.4.1. Added WIN32 version resource.
+ * IrTcl ignores unexpected PDU's, rather than die.
+ *
+ * Revision 1.120  2002/03/20 14:48:54  adam
  * implemented USR.1 SearchResult-1
  *
  * Revision 1.119  2001/12/03 00:31:06  adam
@@ -4399,6 +4403,7 @@ static void ir_select_read (ClientData clientData)
     char *object_name;
     Tcl_CmdInfo cmd_info;
     const char *apdu_call;
+    int round = 0;
 
     logf(LOG_DEBUG, "Read handler fd=%d", cs_fileno(p->cs_link));
     if (p->state == IR_TCL_R_Connecting)
@@ -4437,6 +4442,8 @@ static void ir_select_read (ClientData clientData)
     {
         p->state = IR_TCL_R_Reading;
 
+	  round++;
+	  yaz_log(LOG_DEBUG, "round %d", round);
         /* read incoming APDU */
         if ((r=cs_get (p->cs_link, &p->buf_in, &p->len_in)) == 1)
         {
@@ -4481,10 +4488,12 @@ static void ir_select_read (ClientData clientData)
         }
         /* handle APDU and invoke callback */
         rq = p->request_queue;
-        if (!rq)
-        {
-            logf (LOG_FATAL, "Internal error. No queue entry");
-            exit (1);
+	  if (!rq)
+	  {
+		/* no corresponding request. Skip it. */
+		logf(LOG_DEBUG, "no corresponding request. Skipping it");
+            p->state = IR_TCL_R_Idle;
+		return;
         }
         object_name = rq->object_name;
         logf (LOG_DEBUG, "Object %s", object_name);

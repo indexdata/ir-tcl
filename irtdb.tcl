@@ -559,7 +559,7 @@ set profile(indexdata,smallSetUpperBound) 0
 set profile(indexdata,targetInfoName) Zebra
 set profile(indexdata,timeDefine) 944954185
 set profile(indexdata,timeLastExplain) 1007339347
-set profile(indexdata,timeLastInit) 971253620
+set profile(indexdata,timeLastInit) 1043924972
 set profile(indexdata,welcomeMessage) {}
 set profile(indexdata,windowNumber) 20
 set profile(localhost,authentication) {}

@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.50 2002-09-13 20:23:56 adam Exp $
+$Id: CHANGELOG,v 1.51 2003-01-30 13:27:07 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -154,3 +154,5 @@ $Id: CHANGELOG,v 1.50 2002-09-13 20:23:56 adam Exp $
          SearchResponse)
 
 09/13/02 Debian package.
+
+01/30/03 IrTcl ignores multiple "unexpected" response PDU's.
