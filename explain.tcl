@@ -6,7 +6,10 @@
 # Explain Driver
 #
 # $Log: explain.tcl,v $
-# Revision 1.3  1998-02-12 13:32:42  adam
+# Revision 1.4  1998-04-02 14:32:00  adam
+# Minor changes to EXPLAIN driver.
+#
+# Revision 1.3  1998/02/12 13:32:42  adam
 # Updated configuration system.
 #
 
@@ -19,7 +22,7 @@ proc explain-search-request {target zz category finish response fresponse} {
     ir-set $zz z39
     $zz databaseNames IR-Explain-1
     $zz preferredRecordSyntax explain
-    $zz search "@attrset exp1 @attr 1=1 $category"
+    $zz search "@attrset exp1 @attr 1=1 @attr 2=3 @attr 3=3 @attr 4=3 $category"
 }
 
 # Procedure explain-search-response
@@ -83,10 +86,10 @@ proc explain-present-response {target zz category finish response fresponse} {
 
 # Procedure explain-check-0
 #  Phase 0: CategoryList
-proc explain-check-0 {target finish} {
+proc explain-check-0 {target zz category finish} {
     show-status Explaining 1 0
     show-message CategoryList
-    explain-search-request $target z39.categoryList TargetInfo $finish \
+    explain-search-request $target z39.categoryList CategoryList $finish \
             explain-check-5 explain-check-fail
 }
 
@@ -172,7 +175,7 @@ proc explain-check-ok {target zz category finish} {
 
 # Procedure explain-refresh
 proc explain-refresh {target finish} {
-    explain-check-0 $target $finish
+    explain-check-0 $target {} {} $finish
 }
 
 # Procedure explain-check

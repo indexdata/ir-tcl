@@ -49,10 +49,10 @@ set {profile(Bell Laboratories Library Network,recentNews)} {}
 set {profile(Bell Laboratories Library Network,smallSetUpperBound)} 0
 set {profile(Bell Laboratories Library Network,targetInfoName)} {Lucent Technologies Research Server}
 set {profile(Bell Laboratories Library Network,timeDefine)} 878567355
-set {profile(Bell Laboratories Library Network,timeLastExplain)} 887288368
-set {profile(Bell Laboratories Library Network,timeLastInit)} 887288368
+set {profile(Bell Laboratories Library Network,timeLastExplain)} 891519770
+set {profile(Bell Laboratories Library Network,timeLastInit)} 891519770
 set {profile(Bell Laboratories Library Network,welcomeMessage)} {Salutations - this is Lucent Technologies experimental Z39.50 server. No guarentees, but free and unlimited access!}
-set {profile(Bell Laboratories Library Network,windowNumber)} 11
+set {profile(Bell Laboratories Library Network,windowNumber)} 13
 set {profile(Bibliothèque Nationale du Québec,authentication)} {}
 set {profile(Bibliothèque Nationale du Québec,comstack)} tcpip
 set {profile(Bibliothèque Nationale du Québec,databases)} IRIS
@@ -82,19 +82,20 @@ set {profile(Bibliothèque Nationale du Québec,welcomeMessage)} {}
 set {profile(Bibliothèque Nationale du Québec,windowNumber)} 5
 set profile(DanBib,authentication) {}
 set profile(DanBib,comstack) tcpip
-set profile(DanBib,databases) DANBIBV2
+set profile(DanBib,databases) {danbibv2 SAMBOK LIBR BIBSYS IR-Explain-1}
 set profile(DanBib,description) {Danish Union Catalogue}
+set profile(DanBib,descripton) {This server allows access to various scandinavian OPAC's}
 set profile(DanBib,host) ir.dbc.bib.dk
 set profile(DanBib,idAuthentication) {}
 set profile(DanBib,largeSetLowerBound) 2
-set profile(DanBib,maxResultSets) {}
-set profile(DanBib,maxResultSize) {}
-set profile(DanBib,maxTerms) {}
+set profile(DanBib,maxResultSets) 90
+set profile(DanBib,maxResultSize) 100000
+set profile(DanBib,maxTerms) 15
 set profile(DanBib,maximumRecordSize) 50000
 set profile(DanBib,mediumSetPresentNumber) 0
-set profile(DanBib,multipleDatabases) 0
+set profile(DanBib,multipleDatabases) 1
 set profile(DanBib,namedResultSets) 1
-set profile(DanBib,port) 210
+set profile(DanBib,port) 1701
 set profile(DanBib,preferredMessageSize) 30000
 set profile(DanBib,presentChunk) 4
 set profile(DanBib,protocol) Z39
@@ -102,11 +103,11 @@ set profile(DanBib,queryCCL) 0
 set profile(DanBib,queryRPN) 1
 set profile(DanBib,recentNews) {}
 set profile(DanBib,smallSetUpperBound) 0
-set profile(DanBib,targetInfoName) {}
+set profile(DanBib,targetInfoName) Kalmar
 set profile(DanBib,timeDefine) 878567355
-set profile(DanBib,timeLastExplain) {}
-set profile(DanBib,timeLastInit) 888495120
-set profile(DanBib,welcomeMessage) {}
+set profile(DanBib,timeLastExplain) 891503248
+set profile(DanBib,timeLastInit) 891503248
+set profile(DanBib,welcomeMessage) {Welcome to DBC virtual target service}
 set profile(DanBib,windowNumber) 2
 set profile(Default,authentication) {}
 set profile(Default,comstack) tcpip
@@ -133,7 +134,7 @@ set profile(Default,timeDefine) {}
 set profile(Default,timeLastExplain) {}
 set profile(Default,timeLastInit) {}
 set profile(Default,welcomeMessage) {}
-set profile(Default,windowNumber) 15
+set profile(Default,windowNumber) 17
 set profile(LOC,authentication) {}
 set profile(LOC,comstack) tcpip
 set profile(LOC,databases) {BOOKS NAMES AUTH MAPS MUSIC BIB SERIALS SUBJECTS}
@@ -162,9 +163,9 @@ set profile(LOC,targetMaxResultSize) {}
 set profile(LOC,targetMaxTerms) {}
 set profile(LOC,timeDefine) 878567355
 set profile(LOC,timeLastExplain) {}
-set profile(LOC,timeLastInit) 887289405
+set profile(LOC,timeLastInit) 891519824
 set profile(LOC,welcomeMessage) {}
-set profile(LOC,windowNumber) 8
+set profile(LOC,windowNumber) 9
 set {profile(OCLC FirstSearch,authentication)} {}
 set {profile(OCLC FirstSearch,comstack)} tcpip
 set {profile(OCLC FirstSearch,databases)} {AGRICOLA MEDLINE}
@@ -195,7 +196,7 @@ set {profile(OCLC FirstSearch,timeDefine)} {}
 set {profile(OCLC FirstSearch,timeLastExplain)} {}
 set {profile(OCLC FirstSearch,timeLastInit)} 886167890
 set {profile(OCLC FirstSearch,welcomeMessage)} {}
-set {profile(OCLC FirstSearch,windowNumber)} 10
+set {profile(OCLC FirstSearch,windowNumber)} 12
 set profile(Penn,authentication) {}
 set profile(Penn,comstack) tcpip
 set profile(Penn,databases) CATALOG
@@ -226,7 +227,7 @@ set profile(Penn,timeDefine) 878567355
 set profile(Penn,timeLastExplain) {}
 set profile(Penn,timeLastInit) 887289434
 set profile(Penn,welcomeMessage) {}
-set profile(Penn,windowNumber) 14
+set profile(Penn,windowNumber) 16
 set profile(arcatarget,authentication) {}
 set profile(arcatarget,comstack) tcpip
 set profile(arcatarget,databases) {IEI-books IR-Explain-1}
@@ -283,9 +284,37 @@ set profile(author,smallSetUpperBound) 0
 set profile(author,targetInfoName) {}
 set profile(author,timeDefine) 878567355
 set profile(author,timeLastExplain) {}
-set profile(author,timeLastInit) 887288138
+set profile(author,timeLastInit) 891519833
 set profile(author,welcomeMessage) {}
-set profile(author,windowNumber) 13
+set profile(author,windowNumber) 15
+set profile(bagel9999,authentication) {}
+set profile(bagel9999,comstack) tcpip
+set profile(bagel9999,databases) Default
+set profile(bagel9999,description) {}
+set profile(bagel9999,host) bagel
+set profile(bagel9999,idAuthentication) {}
+set profile(bagel9999,largeSetLowerBound) 2
+set profile(bagel9999,maxResultSets) {}
+set profile(bagel9999,maxResultSize) {}
+set profile(bagel9999,maxTerms) {}
+set profile(bagel9999,maximumRecordSize) 50000
+set profile(bagel9999,mediumSetPresentNumber) 0
+set profile(bagel9999,multipleDatabases) 0
+set profile(bagel9999,namedResultSets) 1
+set profile(bagel9999,port) 9999
+set profile(bagel9999,preferredMessageSize) 30000
+set profile(bagel9999,presentChunk) 4
+set profile(bagel9999,protocol) Z39
+set profile(bagel9999,queryCCL) 0
+set profile(bagel9999,queryRPN) 1
+set profile(bagel9999,recentNews) {}
+set profile(bagel9999,smallSetUpperBound) 0
+set profile(bagel9999,targetInfoName) {}
+set profile(bagel9999,timeDefine) {}
+set profile(bagel9999,timeLastExplain) {}
+set profile(bagel9999,timeLastInit) 891524781
+set profile(bagel9999,welcomeMessage) {}
+set profile(bagel9999,windowNumber) 7
 set profile(dranet,authentication) {}
 set profile(dranet,comstack) tcpip
 set profile(dranet,databases) drewdb
@@ -370,7 +399,35 @@ set profile(madison,timeDefine) 878567355
 set profile(madison,timeLastExplain) {}
 set profile(madison,timeLastInit) 887289602
 set profile(madison,welcomeMessage) {}
-set profile(madison,windowNumber) 7
+set profile(madison,windowNumber) 8
+set profile(zno,authentication) {}
+set profile(zno,comstack) tcpip
+set profile(zno,databases) Default
+set profile(zno,description) {}
+set profile(zno,host) sino.dtv.dk
+set profile(zno,idAuthentication) {}
+set profile(zno,largeSetLowerBound) 2
+set profile(zno,maxResultSets) {}
+set profile(zno,maxResultSize) {}
+set profile(zno,maxTerms) {}
+set profile(zno,maximumRecordSize) 50000
+set profile(zno,mediumSetPresentNumber) 0
+set profile(zno,multipleDatabases) 0
+set profile(zno,namedResultSets) 1
+set profile(zno,port) 9999
+set profile(zno,preferredMessageSize) 30000
+set profile(zno,presentChunk) 4
+set profile(zno,protocol) Z39
+set profile(zno,queryCCL) 0
+set profile(zno,queryRPN) 1
+set profile(zno,recentNews) {}
+set profile(zno,smallSetUpperBound) 0
+set profile(zno,targetInfoName) {}
+set profile(zno,timeDefine) {}
+set profile(zno,timeLastExplain) {}
+set profile(zno,timeLastInit) 891526929
+set profile(zno,welcomeMessage) {}
+set profile(zno,windowNumber) 10
 set profile(ztest9999,authentication) {}
 set profile(ztest9999,comstack) tcpip
 set profile(ztest9999,databases) Z_TDBS.ztdb_z_tdb_name
@@ -378,27 +435,27 @@ set profile(ztest9999,description) {YAZ server on localhost}
 set profile(ztest9999,descripton) Z_TDBS.ztdb_description
 set profile(ztest9999,host) localhost
 set profile(ztest9999,largeSetLowerBound) 2
-set profile(ztest9999,maxResultSets) 0
-set profile(ztest9999,maxResultSize) 0
-set profile(ztest9999,maxTerms) 0
+set profile(ztest9999,maxResultSets) {}
+set profile(ztest9999,maxResultSize) {}
+set profile(ztest9999,maxTerms) {}
 set profile(ztest9999,maximumRecordSize) 50000
 set profile(ztest9999,mediumSetPresentNumber) 0
-set profile(ztest9999,multipleDatabases) 0
-set profile(ztest9999,namedResultSets) 0
+set profile(ztest9999,multipleDatabases) {}
+set profile(ztest9999,namedResultSets) {}
 set profile(ztest9999,port) 9999
 set profile(ztest9999,preferredMessageSize) 30000
 set profile(ztest9999,presentChunk) 4
 set profile(ztest9999,protocol) Z39
 set profile(ztest9999,queryCCL) 0
 set profile(ztest9999,queryRPN) 1
-set profile(ztest9999,recentNews) {strings { language {text Z_TDBS.ztdb_news} } }
+set profile(ztest9999,recentNews) {}
 set profile(ztest9999,smallSetUpperBound) 0
-set profile(ztest9999,targetInfoName) Z_TDBS.ztdb_z_tdb_name
+set profile(ztest9999,targetInfoName) {}
 set profile(ztest9999,timeDefine) 878567355
-set profile(ztest9999,timeLastExplain) 886683092
-set profile(ztest9999,timeLastInit) 886683092
-set profile(ztest9999,welcomeMessage) Z_TDBS.ztdb_welcome_message
-set profile(ztest9999,windowNumber) 9
+set profile(ztest9999,timeLastExplain) 891523679
+set profile(ztest9999,timeLastInit) 891523679
+set profile(ztest9999,welcomeMessage) {}
+set profile(ztest9999,windowNumber) 11
 set queryTypes {Simple phrase}
 set queryButtons {{{I 3} {I 0} {I 0}} {{I 0} {I 1} {I 0}}}
 set queryInfo {{{Title {1=4}} {Author {1=1}} {Subject {1=21}} {Any {1=1016}} {Query 1=1016 2=102} {Title-rank 1=4 2=102} {Date/time 1=1012} {Title-regular 1=4 2=3 4=2 5=102} {Ranked 1=1016 2=102 3=3 4=1 6=1}} {{Title 1=4 4=1 6=2} {Author 1=1003 4=1 6=2} {ISBN 1=7} {ISSN 1=8} {Year 1=30 4=4 6=2} {Any {}}}}

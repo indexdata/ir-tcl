@@ -6,7 +6,10 @@
 # Configuration Driver
 #
 # $Log: setup.tcl,v $
-# Revision 1.4  1998-02-12 13:32:42  adam
+# Revision 1.5  1998-04-02 14:32:01  adam
+# Minor changes to EXPLAIN driver.
+#
+# Revision 1.4  1998/02/12 13:32:42  adam
 # Updated configuration system.
 #
 # Revision 1.3  1998/01/30 13:30:50  adam
@@ -411,7 +414,6 @@ proc target-setup-db-remove {target wp} {
         target-setup-dblist-update $target $wp
         if {![llength $profileS($target,databases)]} {
             unset profileS($target,databases)
-            puts removed
         }
     }
 }
