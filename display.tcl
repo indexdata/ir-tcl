@@ -1,4 +1,4 @@
-# $Id: display.tcl,v 1.3 1997-04-13 19:00:42 adam Exp $
+# $Id: display.tcl,v 1.4 1998-05-20 12:27:42 adam Exp $
 #
 # Record display
 proc display {zset no} {
@@ -22,6 +22,11 @@ proc display {zset no} {
     }
     if {$rtype == "GRS-1"} {
         set r [$zset getGrs $no]
+        puts $r
+        return
+    }
+    if {$rtype == "Explain"} {
+        set r [$zset getExplain $no]
         puts $r
         return
     }

@@ -6,7 +6,10 @@
 # Explain Driver
 #
 # $Log: explain.tcl,v $
-# Revision 1.4  1998-04-02 14:32:00  adam
+# Revision 1.5  1998-05-20 12:27:43  adam
+# Better Explain support.
+#
+# Revision 1.4  1998/04/02 14:32:00  adam
 # Minor changes to EXPLAIN driver.
 #
 # Revision 1.3  1998/02/12 13:32:42  adam
@@ -99,9 +102,6 @@ proc explain-check-5 {target zz category finish} {
     show-status Explaining 1 0
     show-message TargetInfo
 
-    if {![catch {set rec [z39.categoryList getExplain $no databaseInfo]}]} {
-	dputs $rec
-    }
     explain-search-request $target z39.targetInfo TargetInfo $finish \
             explain-check-10 explain-check-fail
 }
@@ -111,8 +111,17 @@ proc explain-check-5 {target zz category finish} {
 proc explain-check-10 {target zz category finish} {
     show-status Explaining 1 0
     show-message DatabaseInfo
-    explain-search-request $target z39.databaseInfo DatabaseInfo $finish \
-            explain-check-ok explain-check-fail
+    explain-search-request $target z39.databaseInfo DatabaseInfo \
+	$finish explain-check-15 explain-check-fail
+}
+
+# Procedure explain-check-15
+#  AttributeDetails
+proc explain-check-15 {target zz category finish} {
+    show-status Explaining 1 0
+    show-message AttributeDetails
+    explain-search-request $target z39.attributeDetails AttributeDetails \
+	$finish explain-check-ok explain-check-ok
 }
 
 # Proedure explain-check-fail
@@ -121,25 +130,55 @@ proc explain-check-fail {target zz category finish} {
     eval $finish [list $target]
 }
 
+proc prettyDump {x} {
+    foreach y $x {
+	prettyDumpR $y 0
+    }
+}
+
+proc prettyDumpR {x ind} {
+    for {set i 0} {$i < $ind} {incr i} {
+	puts -nonewline " "
+    }
+    set i 0
+    foreach y $x {
+	if {$i == 0} {
+	    if {![string compare $y text]} {
+		puts $x
+		return
+	    }
+	    puts $y
+	} else {
+	    prettyDumpR $y [expr $ind + 2]
+	}
+	incr i
+    }
+}
 
 # Procedure explain-check-ok
 proc explain-check-ok {target zz category finish} {
     global profile settingsChanged
 
-    set trec [z39.categoryList getExplain 1 categoryList]
+    puts ""
+    puts ""
+    puts ""
+    puts ""
+    set crec [z39.categoryList getExplain 1 categoryList]
     puts "--- categoryList"
-    puts $trec
+    puts $crec
+
+    set rec [z39.targetInfo getExplain 1]
 
     set trec [z39.targetInfo getExplain 1 targetInfo]
     puts "--- targetInfo"
-    puts $trec
+    puts $rec
 
     set no 1
     while {1} {
         if {[catch {set rec \
                 [z39.databaseInfo getExplain $no databaseInfo]}]} break
         puts "--- databaseInfo $no"
-        puts $rec
+	puts $rec
 
         lappend dbRecs $rec
         set db [lindex [lindex $rec 1] 1]
@@ -151,7 +190,16 @@ proc explain-check-ok {target zz category finish} {
         set profile($target,databases) $dbList
     }
     cascade-target-list
-    
+
+
+    set no 1
+    while {1} {
+        if {[catch {set rec \
+                [z39.attributeDetails getExplain $no attributeDetails]}]} break
+        puts "--- attributeDetails $no"
+	puts $rec
+        incr no
+    }
     set data [lindex [lindex [lindex [lindex [lindex $trec 12] 1] 1] 1] 1]
     if {[string length $data]} {
         set profile($target,descripton) $data

@@ -1,13 +1,17 @@
-# $Id: shell.tcl,v 1.4 1998-01-30 13:30:50 adam Exp $
+# $Id: shell.tcl,v 1.5 1998-05-20 12:27:45 adam Exp $
 #
-source display.tcl
 
-if {[catch {ir z}]} {
+if {[catch {ir-log-init all irtcl shell.log}]} {
     set e [info sharedlibextension]
     puts "Loading irtcl$e ..."
     load ./irtcl$e irtcl
-    ir z
+    ir-log-init all irtcl shell.log
 }
+
+source display.tcl
+
+ir z
+
 set pref(base) Default
 set pref(format) usmarc
 
@@ -95,7 +99,8 @@ proc common-response {z from} {
         }
     DBOSD {
             puts "DBOSD"
-            for {set i $from} {$i < [$z nextResultSetPosition]} {incr i} {
+            set to [expr $from + [$z numberOfRecordsReturned]]
+            for {set i $from} {$i < $to} {incr i} {
                 if {[$z type $i] == ""} {
                     break
                 }
@@ -106,12 +111,24 @@ proc common-response {z from} {
     }
 }
 
-proc show {from number} {
+proc show {{from 1} {number 1}} {
     global ok pref
 
     set ok 0
     z callback "common-response z.1 $from"
     z.1 present $from $number
+    vwait ok
+    return {}
+}
+
+proc explain {query} {
+    global ok pref
+
+    set ok 0
+    z.1 databaseNames IR-Explain-1
+    z.1 preferredRecordSyntax explain
+    z callback {find-response z.1}
+    z.1 search "@attrset exp1 @attr 1=1 @attr 2=3 @attr 3=3 @attr 4=3 $query"
     vwait ok
     return {}
 }
