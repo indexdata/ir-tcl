@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.88  1996-01-23 15:24:09  adam
+# Revision 1.89  1996-03-05 09:16:04  adam
+# Sets tearoff to off on several menus.
+#
+# Revision 1.88  1996/01/23  15:24:09  adam
 # Wrore more comments.
 #
 # Revision 1.87  1996/01/22  17:13:34  adam
@@ -515,9 +518,8 @@ proc apduDump {} {
         
         top-down-window $w
         
-        text $w.top.t -width 60 -height 12 -wrap word -relief flat \
-                -borderwidth 0 \
-                -yscrollcommand [list $w.top.s set]
+        text $w.top.t -font fixed -width 60 -height 12 -wrap word \
+		-relief flat -borderwidth 0 -yscrollcommand [list $w.top.s set]
         scrollbar $w.top.s -command [list $w.top.t yview]
         
         pack $w.top.s -side right -fill y
@@ -848,7 +850,7 @@ proc popup-license {} {
     top-down-window $w
 
     text $w.top.t -width 80 -height 10 -wrap word -relief flat -borderwidth 0 \
-        -yscrollcommand [list $w.top.s set]
+        -font fixed -yscrollcommand [list $w.top.s set]
     scrollbar $w.top.s -command [list $w.top.t yview]
     
     pack $w.top.s -side right -fill y
@@ -995,8 +997,8 @@ proc popup-marc {sno no b df} {
         pack  $w.top -side top -fill both -expand yes
         pack  $w.bot -fill both
 
-        text $w.top.record -width 60 -height 5 -wrap word -relief flat -borderwidth 0 \
-                -yscrollcommand [list $w.top.s set]
+        text $w.top.record -width 60 -height 5 -wrap word -relief flat \
+                -borderwidth 0 -font fixed -yscrollcommand [list $w.top.s set]
         scrollbar $w.top.s -command [list $w.top.record yview]
 
         global monoFlag
@@ -2826,6 +2828,9 @@ proc listbuttonx {button no names handle user} {
         menubutton $button -text [lindex [lindex $names $no] 0] \
                 -width 10 -menu ${button}.m -relief raised -border 1
         menu ${button}.m
+        if {[tk4]} {
+            ${button}.m configure -tearoff off
+	}
     }
     set i 0
     foreach name $names {
@@ -2846,6 +2851,9 @@ proc listbutton {button no names} {
     menubutton $button -text [lindex $names $no] -width 10 -menu ${button}.m \
             -relief raised -border 1
     menu ${button}.m
+    if {[tk4]} {
+        ${button}.m configure -tearoff off
+    }
     foreach name $names {
         ${button}.m add command -label $name \
                 -command [list ${button} configure -text $name]
@@ -2892,6 +2900,9 @@ proc listbuttonv {button var names} {
     menubutton $button -text $n -menu ${button}.m \
             -relief raised -border 1
     menu ${button}.m
+    if {[tk4]} {
+        ${button}.m configure -tearoff off
+    }
     for {set i 0} {$i < $l} {incr i 2} {
         ${button}.m add command -label [lindex $names $i] \
                 -command [list listbuttonv-action $button $var $names $i]
@@ -3874,7 +3885,7 @@ pack .mid.search .mid.scan .mid.present .mid.clear -side left \
         -fill y -pady 1
 
 # Init: Define record area in main window.
-text .data.record -height 2 -width 20 -wrap none -borderwidth 0 -relief flat \
+text .data.record -font fixed -height 2 -width 20 -wrap none -borderwidth 0 -relief flat \
         -yscrollcommand [list .data.scroll set] -wrap $textWrap
 scrollbar .data.scroll -command [list .data.record yview]
 if {[tk4]} {
