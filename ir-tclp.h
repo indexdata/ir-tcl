@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.34  1996-08-16 15:07:47  adam
+ * Revision 1.35  1997-09-09 10:19:54  adam
+ * New MSV5.0 port with fewer warnings.
+ *
+ * Revision 1.34  1996/08/16 15:07:47  adam
  * First work on Explain.
  *
  * Revision 1.33  1996/07/03  13:31:13  adam
@@ -272,7 +275,7 @@ struct GRS_Record_entry {
         struct IrTcl_GRS_Record_ *sub;
         char *str;
         struct {
-            int len;
+            size_t len;
             char *buf;
         } octets;
         int num;
@@ -296,7 +299,10 @@ typedef struct IrTcl_RecordList_ {
             union {
                 IrTcl_GRS_Record *grs1;
             } u;
+	int type;
+#if 0
             enum oid_value type;
+#endif
         } dbrec;
         struct {
             int num;

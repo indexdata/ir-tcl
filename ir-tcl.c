@@ -1,11 +1,14 @@
 /*
  * IR toolkit for tcl/tk
- * (c) Index Data 1995-1996
+ * (c) Index Data 1995-1997
  * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.100  1997-05-01 15:04:05  adam
+ * Revision 1.101  1997-09-09 10:19:53  adam
+ * New MSV5.0 port with fewer warnings.
+ *
+ * Revision 1.100  1997/05/01 15:04:05  adam
  * Added ir-log command.
  *
  * Revision 1.99  1997/04/30 07:24:47  adam
@@ -1242,6 +1245,9 @@ void ir_tcl_disconnect (IrTcl_Obj *p)
 
         odr_reset (p->odr_in);
 
+#if TCL_MAJOR_VERSION == 8
+	cs_fileno(p->cs_link) = -1;
+#endif
         cs_close (p->cs_link);
         p->cs_link = NULL;
 
@@ -1832,7 +1838,7 @@ static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
                           int argc, char **argv)
 {
     IrTcl_Methods tab[3];
-    IrTcl_Obj *p = clientData;
+    IrTcl_Obj *p = (IrTcl_Obj *) clientData;
     int r;
 
     if (argc < 2)
@@ -1857,7 +1863,7 @@ static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
  */
 static void ir_obj_delete (ClientData clientData)
 {
-    IrTcl_Obj *obj = clientData;
+    IrTcl_Obj *obj = (IrTcl_Obj *) clientData;
     IrTcl_Methods tab[3];
 
     --(obj->ref_count);
@@ -1933,7 +1939,7 @@ int ir_obj_init (ClientData clientData, Tcl_Interp *interp,
         Tcl_AppendResult (interp, "Failed to initialize ", argv[1], NULL);
         return TCL_ERROR;
     }
-    *subData = obj;
+    *subData = (ClientData) obj;
     return TCL_OK;
 }
 
@@ -2517,7 +2523,7 @@ static int do_getSutrs (void *o, Tcl_Interp *interp, int argc, char **argv)
         Tcl_AppendResult (interp, "No DB record at #", argv[2], NULL);
         return TCL_ERROR;
     }
-    if (rl->u.dbrec.type != VAL_SUTRS)
+    if (!rl->u.dbrec.buf || rl->u.dbrec.type != VAL_SUTRS)
         return TCL_OK;
     Tcl_AppendElement (interp, rl->u.dbrec.buf);
     return TCL_OK;
@@ -2593,12 +2599,12 @@ static int do_getExplain (void *o, Tcl_Interp *interp, int argc, char **argv)
         Tcl_AppendResult (interp, "No DB record at #", argv[2], NULL);
         return TCL_ERROR;
     }
-    if (rl->u.dbrec.type != VAL_EXPLAIN)
+    if (!rl->u.dbrec.buf || rl->u.dbrec.type != VAL_EXPLAIN)
         return TCL_OK;
 
     if (!(etype = z_ext_getentbyref (VAL_EXPLAIN)))
         return TCL_OK;
-
+    assert (rl->u.dbrec.buf);
     odr_setbuf (p->odr_in, rl->u.dbrec.buf, rl->u.dbrec.size, 0);
     if (!(*etype->fun)(p->odr_in, &rr, 0))
         return TCL_OK;
@@ -2734,7 +2740,7 @@ static int do_present (void *o, Tcl_Interp *interp, int argc, char **argv)
 typedef struct {
     int encoding;
     int syntax;
-    int size;
+    size_t size;
 } IrTcl_FileRecordHead;
 
 /*
@@ -2919,7 +2925,7 @@ static int ir_set_obj_method (ClientData clientData, Tcl_Interp *interp,
                           int argc, char **argv)
 {
     IrTcl_Methods tabs[3];
-    IrTcl_SetObj *p = clientData;
+    IrTcl_SetObj *p = (IrTcl_SetObj *) clientData;
     int r;
 
     if (argc < 2)
@@ -2944,7 +2950,7 @@ static int ir_set_obj_method (ClientData clientData, Tcl_Interp *interp,
 static void ir_set_obj_delete (ClientData clientData)
 {
     IrTcl_Methods tabs[3];
-    IrTcl_SetObj *p = clientData;
+    IrTcl_SetObj *p = (IrTcl_SetObj *) clientData;
 
     logf (LOG_DEBUG, "ir set delete");
 
@@ -3044,7 +3050,7 @@ static int ir_set_obj_init (ClientData clientData, Tcl_Interp *interp,
     if (ir_tcl_method (interp, 0, NULL, tabs, NULL) == TCL_ERROR)
         return TCL_ERROR;
 
-    *subData = obj;
+    *subData = (ClientData) obj;
     return TCL_OK;
 }
 
@@ -3381,7 +3387,7 @@ static int ir_scan_obj_method (ClientData clientData, Tcl_Interp *interp,
 static void ir_scan_obj_delete (ClientData clientData)
 {
     IrTcl_Methods tabs[2];
-    IrTcl_ScanObj *obj = clientData;
+    IrTcl_ScanObj *obj = (IrTcl_ScanObj *) clientData;
 
     tabs[0].tab = ir_scan_method_tab;
     tabs[0].obj = obj;
@@ -3846,7 +3852,7 @@ static void ir_scanResponse (void *o, Z_ScanResponse *scanrs,
  */
 static void ir_select_read (ClientData clientData)
 {
-    IrTcl_Obj *p = clientData;
+    IrTcl_Obj *p = (IrTcl_Obj *) clientData;
     Z_APDU *apdu;
     int r;
     IrTcl_Request *rq;
@@ -3876,7 +3882,7 @@ static void ir_select_read (ClientData clientData)
                 p->failInfo = IR_TCL_FAIL_CONNECT;
                 ir_tcl_eval (p->interp, p->failback);
             }
-            ir_obj_delete (p);
+            ir_obj_delete ((ClientData) p);
             return;
         }
         if (p->callback)
@@ -3884,7 +3890,7 @@ static void ir_select_read (ClientData clientData)
         if (p->ref_count == 2 && p->cs_link && p->request_queue
             && p->state == IR_TCL_R_Idle)
             ir_tcl_send_q (p, p->request_queue, "x");
-        ir_obj_delete (p);
+        ir_obj_delete ((ClientData) p);
         return;
     }
     do
@@ -3903,7 +3909,6 @@ static void ir_select_read (ClientData clientData)
         if (r <= 0)
         {
             logf (LOG_DEBUG, "cs_get failed, code %d", r);
-            ir_select_remove (cs_fileno (p->cs_link), p);
             ir_tcl_disconnect (p);
             if (p->failback)
             {
@@ -3911,7 +3916,7 @@ static void ir_select_read (ClientData clientData)
                 ir_tcl_eval (p->interp, p->failback);
             }
             /* release ir object now if callback deleted it */
-            ir_obj_delete (p);
+            ir_obj_delete ((ClientData) p);
             return;
         }        
         /* got complete APDU. Now decode */
@@ -3931,7 +3936,7 @@ static void ir_select_read (ClientData clientData)
                 ir_tcl_eval (p->interp, p->failback);
             }
             /* release ir object now if failback deleted it */
-            ir_obj_delete (p);
+            ir_obj_delete ((ClientData) p);
             return;
         }
         /* handle APDU and invoke callback */
@@ -4000,10 +4005,10 @@ static void ir_select_read (ClientData clientData)
         odr_reset (p->odr_in);
         if (p->ref_count == 1)
         {
-            ir_obj_delete (p);
+            ir_obj_delete ((ClientData) p);
             return;
         }
-        ir_obj_delete (p);
+        ir_obj_delete ((ClientData) p);
     } while (p->cs_link && cs_more (p->cs_link));
     if (p->cs_link && p->request_queue && p->state == IR_TCL_R_Idle)
         ir_tcl_send_q (p, p->request_queue, "x");
@@ -4014,7 +4019,7 @@ static void ir_select_read (ClientData clientData)
  */
 static int ir_select_write (ClientData clientData)
 {
-    IrTcl_Obj *p = clientData;
+    IrTcl_Obj *p = (IrTcl_Obj *) clientData;
     int r;
     IrTcl_Request *rq;
 
@@ -4040,12 +4045,12 @@ static int ir_select_write (ClientData clientData)
                 p->failInfo = IR_TCL_FAIL_CONNECT;
                 ir_tcl_eval (p->interp, p->failback);
             }
-            ir_obj_delete (p);
+            ir_obj_delete ((ClientData) p);
             return 2;
         }
         if (p->callback)
             ir_tcl_eval (p->interp, p->callback);
-        ir_obj_delete (p);
+        ir_obj_delete ((ClientData) p);
         return 2;
     }
     rq = p->request_queue;
@@ -4064,7 +4069,7 @@ static int ir_select_write (ClientData clientData)
             p->failInfo = IR_TCL_FAIL_WRITE;
             ir_tcl_eval (p->interp, p->failback);
         }
-        ir_obj_delete (p);
+        ir_obj_delete ((ClientData) p);
     }
     else if (r == 0)            /* remove select bit */
     {

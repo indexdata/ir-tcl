@@ -1,11 +1,14 @@
 /*
  * IR toolkit for tcl/tk
- * (c) Index Data 1996
+ * (c) Index Data 1996-1997
  * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: explain.c,v $
- * Revision 1.7  1997-08-28 20:17:36  adam
+ * Revision 1.8  1997-09-09 10:19:51  adam
+ * New MSV5.0 port with fewer warnings.
+ *
+ * Revision 1.7  1997/08/28 20:17:36  adam
  * Fixed small bug.
  *
  * Revision 1.6  1997/05/14 06:57:14  adam
@@ -49,10 +52,13 @@ typedef struct {
     int (*handle)();
 } IrExpChoice;
 
+static Odr_null *ODR_NULLVALUE = "NULL";
+
 typedef char *Z_ElementSetName;
 typedef Odr_oid *Z_AttributeSetId;
 typedef char *Z_InternationalString;
 typedef char *Z_LanguageCode;
+
 
 static int ir_UnitType (IrExpArg *iea,
             Z_UnitType *p, const char *name, int argi);
@@ -512,7 +518,7 @@ static int ir_ElementDataTypePrimitive (IrExpArg *iea,
 
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_choice (iea, arm, p, ODR_NULLVAL, argi);
+    ir_choice (iea, arm, p, ODR_NULLVALUE, argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -673,7 +679,7 @@ static int ir_TermListElement (IrExpArg *iea,
     ir_InternationalString (iea, p->name, "name", argi);
     ir_HumanString (iea, p->title, "title", argi);
     if (p->searchCost)
-        ir_choice (iea, searchCostArm, p->searchCost, ODR_NULLVAL, argi);
+        ir_choice (iea, searchCostArm, p->searchCost, ODR_NULLVALUE, argi);
 
     ir_bool (iea, p->scanable, "scanable", argi);
     ir_sequence (ir_InternationalString, iea, p->broader,
@@ -723,7 +729,7 @@ static int ir_ExtendedServicesInfo (IrExpArg *iea,
     ir_bool (iea, p->available, "available", argi);
     ir_bool (iea, p->retentionSupported, "retentionSupported", argi);
 
-    ir_choice (iea, waitActionArm, p->waitAction, ODR_NULLVAL, argi);
+    ir_choice (iea, waitActionArm, p->waitAction, ODR_NULLVALUE, argi);
 
     ir_HumanString (iea, p->description, "description", argi);
     ir_External (iea, p->specificExplain, "specificExplain", argi);
@@ -926,7 +932,7 @@ static int ir_SortKeyDetails (IrExpArg *iea,
     ir_SortKeyDetailsSortType (iea, p->sortType, "sortType", argi);
    
     if (p->caseSensitivity) 
-        ir_choice (iea, sortArm, p->caseSensitivity, ODR_NULLVAL, argi); 
+        ir_choice (iea, sortArm, p->caseSensitivity, ODR_NULLVALUE, argi); 
 
     return ir_match_end (name, iea, argi);
 }
@@ -951,7 +957,7 @@ static int ir_ProcessingInformation (IrExpArg *iea,
     ir_CommonInfo (iea, p->commonInfo, "commonInfo", argi);
     ir_DatabaseName (iea, p->databaseName, "databaseName", argi);
 
-    ir_choice (iea, arm, p->processingContext, ODR_NULLVAL, argi);
+    ir_choice (iea, arm, p->processingContext, ODR_NULLVALUE, argi);
     ir_InternationalString (iea, p->name, "name", argi);
     ir_oid (iea, p->oid, "oid", argi);
     ir_HumanString (iea, p->description, "description", argi);
@@ -1162,7 +1168,7 @@ static int ir_IconObjectUnit (IrExpArg *iea,
         { NULL, 0, NULL }};
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_choice (iea, arm, &p->which, ODR_NULLVAL, argi);
+    ir_choice (iea, arm, &p->which, ODR_NULLVALUE, argi);
     ir_InternationalString (iea, p->bodyType, "bodyType", argi);
     ir_octet (iea, p->content, "content", argi);
     return ir_match_end (name, iea, argi);
@@ -1405,7 +1411,7 @@ static int ir_AccessRestrictionsUnit (IrExpArg *iea,
 
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_choice (iea, arm, p->accessType, ODR_NULLVAL, argi);
+    ir_choice (iea, arm, p->accessType, ODR_NULLVALUE, argi);
     ir_HumanString (iea, p->accessText, "accessText", argi);
     ir_sequence (ir_oid, iea, p->accessChallenges,
                  &p->num_accessChallenges, "accessChallenges", argi);

@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: select.c,v $
- * Revision 1.4  1997-08-28 20:20:48  adam
+ * Revision 1.5  1997-09-09 10:19:55  adam
+ * New MSV5.0 port with fewer warnings.
+ *
+ * Revision 1.4  1997/08/28 20:20:48  adam
  * Added support for Tk8.0/Tcl8.0. Since Tcl_File handlers are gone
  * we've moved to Tcl_Channel handlers instead.
  *
@@ -87,7 +90,8 @@ void ir_tcl_select_set (void (*f)(ClientData clientData, int r, int w, int e),
     (*sp)->f = f;
     (*sp)->clientData = clientData;
     Tcl_CreateChannelHandler ((*sp)->tcl_Channel, mask,
-                              ir_tcl_tk_select_proc, *sp);
+                              ir_tcl_tk_select_proc,
+			      (ClientData) *sp);
 }
 #endif
 

@@ -1,11 +1,14 @@
 /*
  * IR toolkit for tcl/tk
- * (c) Index Data 1995-1996
+ * (c) Index Data 1995-1997
  * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: grs.c,v $
- * Revision 1.9  1996-08-16 15:07:44  adam
+ * Revision 1.10  1997-09-09 10:19:52  adam
+ * New MSV5.0 port with fewer warnings.
+ *
+ * Revision 1.9  1996/08/16 15:07:44  adam
  * First work on Explain.
  *
  * Revision 1.8  1996/07/03  13:31:10  adam
@@ -203,7 +206,7 @@ static int ir_tcl_get_grs_r (Tcl_Interp *interp, IrTcl_GRS_Record *grs_record,
                     }
                     else
                     {
-                        int len = strlen(cp1+1);
+                        size_t len = strlen(cp1+1);
                         if (cp1[len] == ')')
                             len--;
                         if (len && strlen(e->tagVal.str) == len &&

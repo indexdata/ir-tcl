@@ -1,10 +1,13 @@
 # IR toolkit for tcl/tk
-# (c) Index Data 1995-1996
+# (c) Index Data 1995-1997
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.99  1997-04-13 19:00:37  adam
+# Revision 1.100  1997-09-09 10:19:50  adam
+# New MSV5.0 port with fewer warnings.
+#
+# Revision 1.99  1997/04/13 19:00:37  adam
 # Added support for Tcl8.0/Tk8.0.
 # New command ir-log-init to setup yaz logging facilities.
 #
@@ -488,10 +491,32 @@ wm minsize . 0 0
 set setOffset 0
 set setMax 0
 
+if {$tk_version == "3.6" || $tk_version == "4.0" || $tk_version == "4.1" ||
+    $tk_version == "4.2"} {
+    set font(bb,normal) -Adobe-Helvetica-Medium-R-Normal-*-240-*
+    set font(bb,bold) -Adobe-Helvetica-Bold-R-Normal-*-240-*
+    set font(b,normal) -Adobe-Helvetica-Medium-R-Normal-*-180-*
+    set font(b,bold) -Adobe-Helvetica-Bold-R-Normal-*-180-*
+    set font(n,normal) -Adobe-Helvetica-Medium-R-Normal-*-120-*
+    set font(n,bold) -Adobe-Helvetica-Bold-R-Normal-*-120-*
+    set font(s,bold) -Adobe-Helvetica-Bold-R-Normal-*-100-*
+    set font(ss,bold) -Adobe-Helvetica-Bold-R-Normal-*-80-*
+} else {
+    set font(bb,normal) {Helvetica 24}
+    set font(bb,bold) {Helvetica 24 bold}
+    set font(b,normal) {Helvetica 24}
+    set font(b,bold) {Helvetica 18 bold}
+    set font(n,normal) {Helvetica 12}
+    set font(n,bold) {Helvetica 12 bold}
+    set font(s,bold) {Helvetica 10 bold}
+    set font(ss,bold) {Helvetica 8 bold}
+}
+
 # Procedure tkerror {err}
 #   err   error message
 # Override the Tk error handler function.
 proc tkerror err {
+    global font
     set w .tkerrorw
 
     if {[winfo exists $w]} {
@@ -505,7 +530,7 @@ proc tkerror err {
 
     label $w.top.b -bitmap error
     message $w.top.t -aspect 300 -text "Error: $err" \
-            -font -Adobe-Helvetica-Bold-R-Normal-*-180-*
+            -font $font(b,bold)
     pack $w.top.b $w.top.t -side left -padx 10 -pady 10
 
     bottom-buttons $w [list {Close} [list destroy $w]] 1
@@ -961,7 +986,7 @@ proc popup-license {} {
 # as implementation-name, implementation-id, etc.
 proc about-target {} {
     set w .about-target-w
-    global hostid
+    global hostid font
 
     toplevel $w
 
@@ -975,8 +1000,7 @@ proc about-target {} {
     pack $w.top.a $w.top.p -side top -fill x
     
     label $w.top.a.about -text "About"
-    label $w.top.a.irtcl -text $hostid \
-            -font -Adobe-Helvetica-Bold-R-Normal-*-240-*
+    label $w.top.a.irtcl -text $hostid -font $font(bb,bold)
     pack $w.top.a.about $w.top.a.irtcl -side top
 
     set i [z39 targetImplementationName]
@@ -1014,8 +1038,7 @@ proc about-origin-logo {n} {
 # Display various information about origin (this client).
 proc about-origin {} {
     set w .about-origin-w
-    global libdir
-    global tk_version
+    global libdir font tk_version
     
     if {[winfo exists $w]} {
         destroy $w
@@ -1031,8 +1054,7 @@ proc about-origin {} {
 
     pack $w.top.a $w.top.p -side top -fill x
     
-    label $w.top.a.irtcl -text "IrTcl" \
-            -font -Adobe-Helvetica-Bold-R-Normal-*-240-*
+    label $w.top.a.irtcl -text "IrTcl" -font $font(bb,bold)
     label $w.top.a.logo -bitmap @${libdir}/bitmaps/book1 
     pack $w.top.a.irtcl $w.top.a.logo -side left -expand yes
 
@@ -1061,8 +1083,7 @@ proc about-origin {} {
 # Displays record in set $sno at position $no in window .full-marc$b.
 # The global variable $popupMarcdf holds the current format method.
 proc popup-marc {sno no b df} {
-    global displayFormats
-    global popupMarcdf
+    global font displayFormats popupMarcdf
 
     if {[z39.$sno type $no] != "DB"} {
         return
@@ -1099,18 +1120,14 @@ proc popup-marc {sno no b df} {
             $w.top.record tag configure marc-id -foreground black
         }
         $w.top.record tag configure marc-data -foreground black
-        $w.top.record tag configure marc-head \
-                -font -Adobe-Times-Medium-R-Normal-*-180-* \
+        $w.top.record tag configure marc-head -font $font(n,bold) \
                 -background black -foreground white
 
-        $w.top.record tag configure marc-pref \
-                -font -Adobe-Times-Medium-R-Normal-*-180-* \
+        $w.top.record tag configure marc-pref -font $font(n,normal) \
                 -foreground blue
-        $w.top.record tag configure marc-text \
-                -font -Adobe-Times-Medium-R-Normal-*-180-* \
+        $w.top.record tag configure marc-text -font $font(n,normal) \
                 -foreground black
-        $w.top.record tag configure marc-it \
-                -font -Adobe-Times-Medium-I-Normal-*-180-* \
+        $w.top.record tag configure marc-it -font $font(n,normal) \
                 -foreground black
 
         pack $w.top.s -side right -fill y
@@ -2922,7 +2939,7 @@ proc save-settings {} {
 proc alert {ask} {
     set w .alert
 
-    global alertAnswer
+    global alertAnswer font
 
     toplevel $w
     set oldFocus [focus]
@@ -2930,8 +2947,7 @@ proc alert {ask} {
     top-down-window $w
 
     label $w.top.warning -bitmap warning
-    message $w.top.message -text $ask -aspect 300 \
-            -font -Adobe-Times-Medium-R-Normal-*-180-*
+    message $w.top.message -text $ask -aspect 300 -font $font(b,normal)
 
     pack $w.top.warning $w.top.message -side left -pady 5 -padx 10 -expand yes
   
@@ -4071,19 +4087,15 @@ if {! $monoFlag} {
     .data.record tag configure marc-id -foreground black
 }
 .data.record tag configure marc-data -foreground black
-.data.record tag configure marc-head \
-        -font -Adobe-Times-Bold-R-Normal-*-140-* \
+.data.record tag configure marc-head -font $font(n,normal) \
         -foreground brown -relief raised -borderwidth 1
 .data.record tag configure marc-small-head -foreground brown
 .data.record tag configure marc-pref \
-        -font -Adobe-Times-Medium-R-Normal-*-140-* \
-        -foreground blue
+        -font $font(n,normal) -foreground blue
 .data.record tag configure marc-text \
-        -font -Adobe-Times-Medium-R-Normal-*-140-* \
-        -foreground black
+        -font $font(n,normal) -foreground black
 .data.record tag configure marc-it \
-        -font -Adobe-Times-Medium-I-Normal-*-140-* \
-        -foreground black
+        -font $font(n,normal) -foreground black
 
 # Init: Define logo.
 button .bot.logo -bitmap @${libdir}/bitmaps/book1 -command cancel-operation
@@ -4122,9 +4134,9 @@ if {[file exists ${libdir}/explain.tcl]} {
     source ${libdir}/explain.tcl
 }
 
-if {[file exists ${libdir}/setup.tcl]} {
-    source ${libdir}/setup.tcl
-}
+#if {[file exists ${libdir}/setup.tcl]} {
+#    source ${libdir}/setup.tcl
+#}
 
 # Init: Uncomment this line if you wan't to enable logging.
 ir-log-init all
