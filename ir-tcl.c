@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.113  1999-04-20 10:01:46  adam
+ * Revision 1.114  1999-05-17 20:37:41  adam
+ * Fixed problem with ASN code.
+ *
+ * Revision 1.113  1999/04/20 10:01:46  adam
  * Modified calls to ODR encoders/decoders (name argument).
  *
  * Revision 1.112  1999/03/22 06:51:34  adam
@@ -3043,7 +3046,7 @@ static int do_sort (void *o, Tcl_Interp *interp, int argc, char **argv)
 #ifdef ASN_COMPILED
     req->num_inputResultSetNames = 1;
     req->inputResultSetNames = (Z_InternationalString **)
-        odr_malloc (out, sizeof(*req->inputResultSetNames));
+        odr_malloc (p->odr_out, sizeof(*req->inputResultSetNames));
     req->inputResultSetNames[0] = obj->setName;
 #else
     req->inputResultSetNames =
