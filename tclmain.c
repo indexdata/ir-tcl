@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: tclmain.c,v $
- * Revision 1.15  1996-01-10 09:18:45  adam
+ * Revision 1.16  1996-02-05 17:58:05  adam
+ * Ported ir-tcl to use the beta releases of tcl7.5/tk4.1.
+ *
+ * Revision 1.15  1996/01/10  09:18:45  adam
  * PDU specific callbacks implemented: initRespnse, searchResponse,
  *  presentResponse and scanResponse.
  * Bug fix in the command line shell (tclmain.c) - discovered on OSF/1.
@@ -240,8 +243,14 @@ void tcl_mainloop (Tcl_Interp *interp, int interactive)
     }
 }
 
+#if IRTCL_GENERIC_FILES
+void ir_select_add (Tcl_File file, void *obj)
+{
+    int fd = (int) Tcl_GetFileInfo (file, NULL);
+#else
 void ir_select_add (int fd, void *obj)
 {
+#endif
     callback_table[fd].obj = obj;
     callback_table[fd].r_handle = ir_select_read;
     callback_table[fd].w_handle = NULL;
@@ -250,20 +259,38 @@ void ir_select_add (int fd, void *obj)
         max_fd = fd;
 }
 
+#if IRTCL_GENERIC_FILES
+void ir_select_add_write (Tcl_File file, void *obj)
+{
+    int fd = (int) Tcl_GetFileInfo (file, NULL);
+#else
 void ir_select_add_write (int fd, void *obj)
 {
+#endif
     callback_table[fd].w_handle = ir_select_write;
     if (fd > max_fd)
         max_fd = fd;
 }
 
+#if IRTCL_GENERIC_FILES
+void ir_select_remove_write (Tcl_File file, void *obj)
+{
+    int fd = (int) Tcl_GetFileInfo (file, NULL);
+#else
 void ir_select_remove_write (int fd, void *obj)
 {
+#endif
     callback_table[fd].w_handle = NULL;
 }
 
+#if IRTCL_GENERIC_FILES
+void ir_select_remove (Tcl_File file, void *obj)
+{
+    int fd = (int) Tcl_GetFileInfo (file, NULL);
+#else
 void ir_select_remove (int fd, void *obj)
 {
+#endif
     callback_table[fd].r_handle = NULL;
     callback_table[fd].w_handle = NULL;
     callback_table[fd].x_handle = NULL;

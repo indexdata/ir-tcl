@@ -24,7 +24,10 @@
  * OF THIS SOFTWARE.
  *
  * $Log: ir-tcl.h,v $
- * Revision 1.11  1995-09-21 13:11:52  adam
+ * Revision 1.12  1996-02-05 17:58:04  adam
+ * Ported ir-tcl to use the beta releases of tcl7.5/tk4.1.
+ *
+ * Revision 1.11  1995/09/21  13:11:52  adam
  * Support of dynamic loading.
  * Test script uses load command if necessary.
  *
@@ -60,12 +63,26 @@
 #ifndef IR_TCL_H
 #define IR_TCL_H
 
+#if TCL_MAJOR_VERSION > 7 || (TCL_MAJOR_VERSION == 7 && TCL_MINOR_VERSION >= 5)
+#define IRTCL_GENERIC_FILES 1
+#else
+#define IRTCL_GENERIC_FILES 0
+#endif
+
 int Irtcl_Init (Tcl_Interp *interp);
 
+#if IRTCL_GENERIC_FILES
+void ir_select_add          (Tcl_File file, void *obj);
+void ir_select_add_write    (Tcl_File file, void *obj);
+void ir_select_remove       (Tcl_File file, void *obj);
+void ir_select_remove_write (Tcl_File file, void *obj);
+#else
 void ir_select_add          (int fd, void *obj);
 void ir_select_add_write    (int fd, void *obj);
 void ir_select_remove       (int fd, void *obj);
 void ir_select_remove_write (int fd, void *obj);
+#endif
+
 void ir_select_read         (ClientData clientData);
 void ir_select_write        (ClientData clientData);
 

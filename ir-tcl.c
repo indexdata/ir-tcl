@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.73  1996-01-29 11:35:19  adam
+ * Revision 1.74  1996-02-05 17:58:03  adam
+ * Ported ir-tcl to use the beta releases of tcl7.5/tk4.1.
+ *
+ * Revision 1.73  1996/01/29  11:35:19  adam
  * Bug fix: cs_type member renamed to comstackType to avoid conflict with
  * cs_type macro defined by YAZ.
  *
@@ -262,11 +265,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#ifdef WINDOWS
 #include <time.h>
-#else
-#include <sys/time.h>
-#endif
 #include <assert.h>
 
 #define CS_BLOCK 0
@@ -1058,6 +1057,13 @@ static int do_connect (void *obj, Tcl_Interp *interp,
                               p->comstackType, NULL);
             return TCL_ERROR;
         }
+#if IRTCL_GENERIC_FILES
+#ifdef WINDOWS
+        p->csFile = Tcl_GetFile (cs_fileno(p->cs_link), TCL_WIN_SOCKET);
+#else
+        p->csFile = Tcl_GetFile (cs_fileno(p->cs_link), TCL_UNIX_FD);
+#endif
+#endif
         if ((r=cs_connect (p->cs_link, addr)) < 0)
         {
             interp->result = "connect fail";
@@ -1066,10 +1072,18 @@ static int do_connect (void *obj, Tcl_Interp *interp,
         }
 	logf(LOG_DEBUG, "cs_connect() returned %d", r);
         p->eventType = "connect";
+#if IRTCL_GENERIC_FILES
+        ir_select_add (p->csFile, p);
+#else
         ir_select_add (cs_fileno (p->cs_link), p);
+#endif
         if (r == 1)
         {
+#if IRTCL_GENERIC_FILES
+            ir_select_add_write (p->csFile, p);
+#else
             ir_select_add_write (cs_fileno (p->cs_link), p);
+#endif
             p->state = IR_TCL_R_Connecting;
         }
         else
@@ -1098,14 +1112,22 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
         p->eventType = NULL;
         p->hostname = NULL;
         p->cs_link = NULL;
+#if IRTCL_GENERIC_FILES
+        p->csFile = 0;
+#endif
         return TCL_OK;
     }
     if (p->hostname)
     {
         free (p->hostname);
         p->hostname = NULL;
+#if IRTCL_GENERIC_FILES
+        ir_select_remove_write (p->csFile, p);
+        ir_select_remove (p->csFile, p);
+#else
         ir_select_remove_write (cs_fileno (p->cs_link), p);
         ir_select_remove (cs_fileno (p->cs_link), p);
+#endif
 
         odr_reset (p->odr_in);
 
@@ -1113,6 +1135,10 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
 	logf(LOG_DEBUG, "Closing connection");
         cs_close (p->cs_link);
         p->cs_link = NULL;
+#if IRTCL_GENERIC_FILES
+        Tcl_FreeFile (p->csFile);
+        p->csFile = NULL;
+#endif
 
         ODR_MASK_ZERO (&p->options);
         ODR_MASK_SET (&p->options, 0);
@@ -3360,7 +3386,11 @@ void ir_select_read (ClientData clientData)
             return;
         }
         p->state = IR_TCL_R_Idle;
+#if IRTCL_GENERIC_FILES
+        ir_select_remove_write (p->csFile, p);
+#else
         ir_select_remove_write (cs_fileno (p->cs_link), p);
+#endif
         if (r < 0)
         {
             logf (LOG_DEBUG, "cs_rcvconnect error");
@@ -3390,7 +3420,11 @@ void ir_select_read (ClientData clientData)
         if ((r=cs_get (p->cs_link, &p->buf_in, &p->len_in)) <= 0)
         {
             logf (LOG_DEBUG, "cs_get failed, code %d", r);
+#if IRTCL_GENERIC_FILES
+            ir_select_remove (p->csFile, p);
+#else
             ir_select_remove (cs_fileno (p->cs_link), p);
+#endif
             do_disconnect (p, NULL, 2, NULL);
             if (p->failback)
             {
@@ -3522,7 +3556,11 @@ void ir_select_write (ClientData clientData)
         if (r < 0)
         {
             logf (LOG_DEBUG, "cs_rcvconnect error");
+#if IRTCL_GENERIC_FILES
+            ir_select_remove_write (p->csFile, p);
+#else
             ir_select_remove_write (cs_fileno (p->cs_link), p);
+#endif
             if (p->failback)
             {
                 p->failInfo = IR_TCL_FAIL_CONNECT;
@@ -3531,7 +3569,11 @@ void ir_select_write (ClientData clientData)
             do_disconnect (p, NULL, 2, NULL);
             return;
         }
+#if IRTCL_GENERIC_FILES
+        ir_select_remove_write (p->csFile, p);
+#else
         ir_select_remove_write (cs_fileno (p->cs_link), p);
+#endif
         if (p->callback)
             IrTcl_eval (p->interp, p->callback);
         return;
@@ -3556,7 +3598,11 @@ void ir_select_write (ClientData clientData)
     {
 	logf(LOG_DEBUG, "Write completed");
         p->state = IR_TCL_R_Waiting;
+#if IRTCL_GENERIC_FILES
+        ir_select_remove_write (p->csFile, p);
+#else
         ir_select_remove_write (cs_fileno (p->cs_link), p);
+#endif
         free (rq->buf_out);
         rq->buf_out = NULL;
     }

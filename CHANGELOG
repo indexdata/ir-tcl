@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.14 1996-01-29 11:35:17 adam Exp $
+$Id: CHANGELOG,v 1.15 1996-02-05 17:58:02 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -76,5 +76,8 @@ $Id: CHANGELOG,v 1.14 1996-01-29 11:35:17 adam Exp $
 
 29/01/96 Bug fix: cs_type member in ir-tclp.h renamed to comstackType to
          avoid conflict with cs_type macro defined by YAZ.
+
+05/02/96 Ported ir-tcl to Tcl7.5b1/tk4.1b1. Ir-tcl is now incompatible with
+         the alpha versions of tcl7.5/tk4.1.
 
 

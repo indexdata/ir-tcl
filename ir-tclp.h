@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.24  1996-01-29 11:35:27  adam
+ * Revision 1.25  1996-02-05 17:58:04  adam
+ * Ported ir-tcl to use the beta releases of tcl7.5/tk4.1.
+ *
+ * Revision 1.24  1996/01/29  11:35:27  adam
  * Bug fix: cs_type member renamed to comstackType to avoid conflict with
  * cs_type macro defined by YAZ.
  *
@@ -146,6 +149,9 @@ typedef struct {
     int         protocol_type;
     int         failInfo;
     COMSTACK    cs_link;
+#if IRTCL_GENERIC_FILES
+    Tcl_File    csFile;
+#endif
     
     int         state;
 
