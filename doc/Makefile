@@ -1,21 +1,17 @@
-# $Id: Makefile,v 1.3 1995-05-31 13:13:20 adam Exp $
+# $Id: Makefile,v 1.4 1995-10-27 11:16:53 adam Exp $
 all: ir-tcl.ps ir-tcl.txt ir-tcl.html
 
 ir-tcl.txt: ir-tcl.sgml
-	sgml-format -T nroff ir-tcl| qroff >ir-tcl.txt
+	sgml2txt ir-tcl.sgml
 
 ir-tcl.dvi: ir-tcl.sgml
-	sgml-format ir-tcl| qtex -d >ir-tcl.dvi
+	sgml2ps -d ir-tcl.sgml
 
 ir-tcl.ps: ir-tcl.sgml
-	sgml-format ir-tcl| qtex -x
-	mv out.ps ir-tcl.ps
+	sgml2ps ir-tcl.sgml
 
 ir-tcl.html: ir-tcl.sgml
-	sgml-format -T html ir-tcl | prehtml | fixref >tmp.html
-	sgml-format -T html ir-tcl | prehtml >>tmp.html
-	html2html ir-tcl <tmp.html >ir-tcl.html
-	rm tmp.html
+	sgml2html ir-tcl.sgml
 
 clean:
 	rm -f [0-9]* *.bak
