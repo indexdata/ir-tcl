@@ -4,7 +4,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.26  1995-04-18 16:11:51  adam
+ * Revision 1.27  1995-05-11 15:34:47  adam
+ * Scan request changed a bit. This version works with RLG.
+ *
+ * Revision 1.26  1995/04/18  16:11:51  adam
  * First version of graphical Scan. Some work on query-by-form.
  *
  * Revision 1.25  1995/04/17  09:37:17  adam
@@ -1023,6 +1026,8 @@ static int do_search (void *o, Tcl_Interp *interp,
             Tcl_AppendResult (interp, "CCL error: ", ccl_err_msg(error),NULL);
             return TCL_ERROR;
         }
+        ccl_pr_tree (rpn, stderr);
+        fprintf (stderr, "\n");
         query.which = Z_Query_type_1;
         assert((RPNquery = ccl_rpn_query(rpn)));
         RPNquery->attributeSetId = oid_getoidbyent (&p->bib1);
@@ -1500,7 +1505,8 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     Z_APDU apdu, *apdup = &apdu;
     IRScanObj *obj = o;
     IRObj *p = obj->parent;
-    int r;
+    int r, pos;
+    struct ccl_rpn_node *rpn;
 
     p->scan_child = o;
     if (argc != 3)
@@ -1525,6 +1531,7 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     req.databaseNames = p->databaseNames;
     req.attributeSet = oid_getoidbyent (&p->bib1);
 
+#if 0
     if (!(req.termListAndStartPoint =
           ir_malloc (interp, sizeof(*req.termListAndStartPoint))))
         return TCL_ERROR;
@@ -1543,6 +1550,18 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
         return TCL_ERROR;
     req.termListAndStartPoint->term->u.general->len = 
         req.termListAndStartPoint->term->u.general->size = strlen(argv[2]);
+#else
+    rpn = ccl_find_str(p->bibset, argv[2], &r, &pos);
+    if (r)
+    {
+        Tcl_AppendResult (interp, "CCL error: ", ccl_err_msg (r), NULL);
+        return TCL_ERROR;
+    }
+    ccl_pr_tree (rpn, stderr);
+    fprintf (stderr, "\n");
+    if (!(req.termListAndStartPoint = ccl_scan_query (rpn)))
+        return TCL_ERROR;
+#endif
     req.stepSize = &obj->stepSize;
     req.numberOfTermsRequested = &obj->numberOfTermsRequested;
     req.preferredPositionInResponse = &obj->preferredPositionInResponse;

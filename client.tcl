@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.20  1995-04-21 16:31:57  adam
+# Revision 1.21  1995-05-11 15:34:46  adam
+# Scan request changed a bit. This version works with RLG.
+#
+# Revision 1.20  1995/04/21  16:31:57  adam
 # New radiobutton: protocol (z39v2/SR).
 #
 # Revision 1.19  1995/04/18  16:11:50  adam
@@ -91,7 +94,8 @@ proc top-down-window {w} {
     frame $w.top -relief raised -border 1
     frame $w.bot -relief raised -border 1
     
-    pack  $w.top $w.bot -side top -fill both -expand yes
+    pack  $w.top -side top -fill both -expand yes
+    pack  $w.bot -fill both
 }
 
 proc top-down-ok-cancel {w ok-action g} {
@@ -480,7 +484,8 @@ proc scan-request {} {
 
         top-down-ok-cancelx $w [list {Close} [list destroy $w]] 0 
     }
-    z39.scan scan 0
+    z39.scan numberOfTermsRequested 100
+    z39.scan scan ti=0
     
     show-status {Scan} 1
 }
