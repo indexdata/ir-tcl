@@ -4,7 +4,10 @@
  * See the file LICENSE for details.
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.115  2000-09-13 12:18:49  adam
+ * Revision 1.116  2001-02-09 11:58:04  adam
+ * Updated for Tcl8.1 and higher where internal encoding is UTF-8.
+ *
+ * Revision 1.115  2000/09/13 12:18:49  adam
  * Logging utility patch (YAZ version 1.7).
  *
  * Revision 1.114  1999/05/17 20:37:41  adam
@@ -2032,7 +2035,11 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
     Odr_oct ccl_query;
     IrTcl_SetObj *obj = o;
     IrTcl_Obj *p;
-    int r;
+    int r, code;
+#if TCL_MAJOR_VERSION > 8 || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION > 0)
+    Tcl_DString ds;
+#endif
+    char *query_str;
 
     if (argc <= 0)
         return TCL_OK;
@@ -2045,16 +2052,23 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
                           NULL);
         return TCL_ERROR;
     }
-    logf (LOG_DEBUG, "search %s %s", *argv, argv[2]);
+#if TCL_MAJOR_VERSION > 8 || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION > 0)
+    query_str = Tcl_UtfToExternalDString(0, argv[2], -1, &ds);
+#else
+    query_str = argv[2];
+#endif
+    logf (LOG_DEBUG, "search %s %s", *argv, query_str);
     if (!obj->set_inher.num_databaseNames)
     {
         Tcl_AppendResult (interp, "no databaseNames", NULL);
-        return ir_tcl_error_exec (interp, argc, argv);
+        code = ir_tcl_error_exec (interp, argc, argv);
+	goto out;
     }
     if (!p->cs_link)
     {
         Tcl_AppendResult (interp, "not connected", NULL);
-        return ir_tcl_error_exec (interp, argc, argv);
+        code = ir_tcl_error_exec (interp, argc, argv);
+	goto out;
     }
     apdu = zget_APDU (p->odr_out, Z_APDU_searchRequest);
     req = apdu->u.searchRequest;
@@ -2119,11 +2133,12 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
     {
         Z_RPNQuery *RPNquery;
 
-        RPNquery = p_query_rpn (p->odr_out, p->protocol_type, argv[2]);
+        RPNquery = p_query_rpn (p->odr_out, p->protocol_type, query_str);
         if (!RPNquery)
         {
             Tcl_AppendResult (interp, "query syntax error", NULL);
-            return ir_tcl_error_exec (interp, argc, argv);
+            code = ir_tcl_error_exec (interp, argc, argv);
+	    goto out;
         }
         query.which = Z_Query_type_1;
         query.u.type_1 = RPNquery;
@@ -2141,18 +2156,19 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
         bib1.oclass = CLASS_ATTSET;
         bib1.value = VAL_BIB1;
 
-        rpn = ccl_find_str(p->bibset, argv[2], &error, &pos);
+        rpn = ccl_find_str(p->bibset, query_str, &error, &pos);
         if (error)
         {
             Tcl_AppendResult (interp, "ccl syntax error ", ccl_err_msg(error),
                               NULL);
-            return ir_tcl_error_exec (interp, argc, argv);
+            code = ir_tcl_error_exec (interp, argc, argv);
+	    goto out;
         }
 #if 0
         ccl_pr_tree (rpn, stderr);
         fprintf (stderr, "\n");
 #endif
-        assert((RPNquery = ccl_rpn_query(rpn)));
+        RPNquery = ccl_rpn_query(p->odr_out, rpn);
         RPNquery->attributeSetId = oid_getoidbyent (&bib1);
         query.which = Z_Query_type_1;
         query.u.type_1 = RPNquery;
@@ -2162,16 +2178,22 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
     {
         query.which = Z_Query_type_2;
         query.u.type_2 = &ccl_query;
-        ccl_query.buf = (unsigned char *) argv[2];
-        ccl_query.len = strlen (argv[2]);
+        ccl_query.buf = (unsigned char *) query_str;
+        ccl_query.len = strlen (query_str);
     }
     else
     {
         Tcl_AppendResult (interp, "invalid query method ",
                           obj->set_inher.queryType, NULL);
-        return ir_tcl_error_exec (interp, argc, argv);
+        code = ir_tcl_error_exec (interp, argc, argv);
+	goto out;
     }
-    return ir_tcl_send_APDU (interp, p, apdu, "search", *argv);
+    code = ir_tcl_send_APDU (interp, p, apdu, "search", *argv);
+ out:
+#if TCL_MAJOR_VERSION > 8 || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION > 0)
+    Tcl_DStringFree (&ds);
+#endif
+    return code;
 }
 
 /*
@@ -3379,10 +3401,16 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     Z_APDU *apdu;
     IrTcl_ScanObj *obj = o;
     IrTcl_Obj *p = obj->parent;
+    char *start_term;
+    int code;
 #if CCL2RPN
     oident bib1;
     struct ccl_rpn_node *rpn;
     int pos;
+    int r;
+#endif
+#if TCL_MAJOR_VERSION > 8 || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION > 0)
+    Tcl_DString ds;
 #endif
 
     if (argc <= 0)
@@ -3393,16 +3421,23 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
                           " scanQuery\"", NULL);
         return TCL_ERROR;
     }
-    logf (LOG_DEBUG, "scan %s %s", *argv, argv[2]);
+#if TCL_MAJOR_VERSION > 8 || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION > 0)
+    start_term = Tcl_UtfToExternalDString(0, argv[2], -1, &ds);
+#else
+    start_term = argv[2];
+#endif
+    logf (LOG_DEBUG, "scan %s %s", *argv, start_term);
     if (!p->set_inher.num_databaseNames)
     {
         Tcl_AppendResult (interp, "no databaseNames", NULL);
-        return ir_tcl_error_exec (interp, argc, argv);
+        code = ir_tcl_error_exec (interp, argc, argv);
+	goto out;
     }
     if (!p->cs_link)
     {
         Tcl_AppendResult (interp, "not connected", NULL);
-        return ir_tcl_error_exec (interp, argc, argv);
+        code = ir_tcl_error_exec (interp, argc, argv);
+	goto out;
     }
 
     apdu = zget_APDU (p->odr_out, Z_APDU_scanRequest);
@@ -3415,25 +3450,30 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
 #if !CCL2RPN
     if (!(req->termListAndStartPoint =
           p_query_scan (p->odr_out, p->protocol_type,
-                        &req->attributeSet, argv[2])))
+                        &req->attributeSet, start_term)))
     {
         Tcl_AppendResult (interp, "query syntax error", NULL);
-        return ir_tcl_error_exec (interp, argc, argv);
+	code = ir_tcl_error_exec (interp, argc, argv);
+	goto out;
     }
 #else
-    rpn = ccl_find_str(p->bibset, argv[2], &r, &pos);
+    rpn = ccl_find_str(p->bibset, start_term, &r, &pos);
     if (r)
     {
         Tcl_AppendResult (interp, "ccl syntax error ", ccl_err_msg(r), NULL);
-        return ir_tcl_error_exec (interp, argc, argv);
+        code = ir_tcl_error_exec (interp, argc, argv);
+	goto out;
     }
     bib1.proto = p->protocol_type;
     bib1.oclass = CLASS_ATTSET;
     bib1.value = VAL_BIB1;
 
     req->attributeSet = oid_getoidbyent (&bib1);
-    if (!(req->termListAndStartPoint = ccl_scan_query (rpn)))
-        return TCL_ERROR;
+    if (!(req->termListAndStartPoint = ccl_scan_query (p->odr_out, rpn)))
+    {
+        code = TCL_ERROR;
+	goto out;
+    }
 #endif
     req->stepSize = &obj->stepSize;
     req->numberOfTermsRequested = &obj->numberOfTermsRequested;
@@ -3444,7 +3484,12 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     logf (LOG_DEBUG, "preferredPositionInResponse=%d",
           *req->preferredPositionInResponse);
     
-    return ir_tcl_send_APDU (interp, p, apdu, "scan", *argv);
+    code = ir_tcl_send_APDU (interp, p, apdu, "scan", *argv);
+ out:
+#if TCL_MAJOR_VERSION > 8 || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION > 0)
+    Tcl_DStringFree (&ds);
+#endif
+    return code;
 }
 
 /*
