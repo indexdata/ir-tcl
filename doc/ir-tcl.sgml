@@ -1,14 +1,14 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.17 1996-01-19 16:22:49 adam Exp $
+  $Id: ir-tcl.sgml,v 1.18 1996-02-21 15:55:00 quinn Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference 
-<author><htmlurl url="http://www.index.dk/" name="Index Data">,
+<author><htmlurl url="http://www.indexdata.dk/" name="Index Data">,
 <tt><htmlurl url="mailto:info@index.ping.dk" name="info@index.ping.dk"></tt>
-<date>$Revision: 1.17 $
+<date>$Revision: 1.18 $
 <abstract>
 This document describes IrTcl -- an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
