@@ -18,6 +18,6 @@ set {profile(CLSI)} {CLSI inet-gw.clsi.uc.geac.com 210 {} 16384 8192 tcpip Cl 1 
 set {profile(Innovative)} {{Innovatives server: demo.iii.com} demo.iii.com 210 {} 16384 8192 tcpip DEFAULT 1 {} {} z39v2 12}
 set {profile(AULS)} {{Acadia university} auls.acadiau.ca 210 {} 16384 8192 tcpip AULS 1 {} {} z39v2 14}
 set {profile(dranet)} {dranet dranet.dra.com 210 {} 16384 16384 tcpip drewdb 1 {} {} z39v2 15}
-set queryTypes {Simple aaaaaaa}
-set queryButtons {{ {I 0} {I 1} {I 2} } {{I 0} {I 1}}}
-set queryInfo {{ {Title {1=4}} {Author {1=1}} {Subject {1=21}} {Any {1=1016}}} {{Title 1=4} {Year 1=30} {xxx 1=1034}}}
+set queryTypes {Simple aaaaaaa phrase}
+set queryButtons {{ {I 0} {I 1} {I 2} } {{I 0} {I 1}} {{I 0} {I 1} {I 0}}}
+set queryInfo {{ {Title {1=4}} {Author {1=1}} {Subject {1=21}} {Any {1=1016}}} {{Title 1=4} {Year 1=30} {xxx 1=1034}} {{Title 1=4 4=1 6=2} {Author 1=1003 4=1 6=2} {ISBN 1=7} {ISSN 1=8} {Year 1=30 4=4 6=2} {Any {}}}}

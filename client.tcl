@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.42  1995-06-16 12:28:13  adam
+# Revision 1.43  1995-06-16 14:41:05  adam
+# Scan line entries can be copied to a search entry.
+#
+# Revision 1.42  1995/06/16  12:28:13  adam
 # Implemented preferredRecordSyntax.
 # Minor changes in diagnostic handling.
 # Record list deleted when connection closes.
@@ -848,6 +851,14 @@ proc search-request {} {
     show-status {Searching} 1 0
 }
 
+proc scan-copy {y entry} {
+    set w .scan-window
+    set no [$w.top.list nearest $y]
+    puts "no=$no"
+    .lines.$entry.e delete 0 end
+    .lines.$entry.e insert 0 [string range [$w.top.list get $no] 8 end]
+}
+
 proc scan-request {} {
     set w .scan-window
 
@@ -899,6 +910,7 @@ proc scan-request {} {
         bind $w.top.list <Up> [list scan-up $attr]
         bind $w.top.list <Down> [list scan-down $attr]
     }
+    bind $w.top.list <Double-Button-1> [list scan-copy %y $curIndexEntry]
     wm title $w "Scan $title"
         
     z39 callback [list scan-response $attr 0 35]
@@ -2396,7 +2408,26 @@ proc index-query {} {
         if {$term != ""} {
             set attr [lrange [lindex $queryInfoFind [lindex $b 1]] 1 end]
 
+            set len [string length $term]
+            incr len -1
+            set left 0
+            set right 0
+            if {[string index $term $len] == "?"} {
+                set right 1
+                set term [string range $term 0 [expr $len - 1]]
+            }
+            if {[string index $term 0] == "?"} {
+                set left 1
+                set term [string range $term 1 end]
+            }
             set term "\{${term}\}"
+            if {$right && $left} {
+                set term "@attr 5=3 ${term}"
+            } elseif {$right} {
+                set term "@attr 5=1 ${term}"
+            } elseif {$left} {
+                set term "@attr 5=2 ${term}"
+            }
             foreach a $attr {
                 set term "@attr $a ${term}"
             }
