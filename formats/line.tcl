@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: line.tcl,v $
-# Revision 1.6  1995-06-29 12:34:20  adam
+# Revision 1.7  1995-09-20 11:37:06  adam
+# Work on GRS.
+#
+# Revision 1.6  1995/06/29  12:34:20  adam
 # IrTcl now works with both tk4.0b4/tcl7.4b4 and tk3.6/tcl7.3
 #
 # Revision 1.5  1995/06/22  13:16:28  adam
@@ -26,6 +29,24 @@
 # as popup windows.
 #
 #
+proc display-grs-line {w r i} {
+    foreach e $r {
+        for {set j 0} {$j < $i} {incr j} {
+            insertWithTags $w "  " {}
+        }
+        insertWithTags $w "([lindex $e 0]:[lindex $e 2])" marc-tag
+        if {[lindex $e 3] == "string"} {
+            insertWithTags $w [lindex $e 4] {}
+            insertWithTags $w "\n" {}
+        } elseif {[lindex $e 3] == "subtree"} {
+            insertWithTags $w "\n" {}
+            display-grs-line $w [lindex $e 4] [expr $i+1]
+        } else {
+            insertWithTags [lindex $e 4] {}
+            insertWithTags $w " ?\n" {}
+        }
+    }
+}
 
 proc display-line {sno no w hflag} {
     global monoFlag
@@ -53,6 +74,8 @@ proc display-line {sno no w hflag} {
         set rtype [z39.$sno recordType $no]
         if {$rtype == "SUTRS"} {
             insertWithTags $w [join [z39.$sno getSutrs $no]]
+        } elseif {$rtype == "GRS1"} {
+            display-grs-line $w [z39.$sno getGrs $no] 6
         } else {
             if {[catch {
                 set title [lindex [z39.$sno getMarc $no field 245 * a] 0]

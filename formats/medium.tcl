@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: medium.tcl,v $
-# Revision 1.5  1995-06-22 13:16:29  adam
+# Revision 1.6  1995-09-20 11:37:06  adam
+# Work on GRS.
+#
+# Revision 1.5  1995/06/22  13:16:29  adam
 # Feature: SUTRS. Setting getSutrs implemented.
 # Work on display formats.
 #
@@ -20,6 +23,24 @@
 # as popup windows.
 #
 #
+proc display-grs-medium {w r i} {
+    foreach e $r {
+        for {set j 0} {$j < $i} {incr j} {
+            insertWithTags $w "  " {}
+        }
+        insertWithTags $w "([lindex $e 0]:[lindex $e 2])" marc-tag
+        if {[lindex $e 3] == "string"} {
+            insertWithTags $w [lindex $e 4] {}
+            insertWithTags $w "\n" {}
+        } elseif {[lindex $e 3] == "subtree"} {
+            insertWithTags $w "\n" {}
+            display-grs-medium $w [lindex $e 4] [expr $i+1]
+        } else {
+            insertWithTags [lindex $e 4] {}
+            insertWithTags $w " ?\n" {}
+        }
+    }
+}
 
 proc display-medium {sno no w hflag} {
     if {$hflag} {
@@ -46,6 +67,10 @@ proc display-medium {sno no w hflag} {
         $w insert end "\n"
         return
     } 
+    if {$rtype == "GRS1"} {
+        display-grs-medium $w [z39.$sno getGrs $no] 0
+        return
+    }
     if {[catch {set i [z39.$sno getMarc $no field 245 * a]}]} {
         insertWithTags $w "Unknown record type: $rtype\n" marc-id
         return
