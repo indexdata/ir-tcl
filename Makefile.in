@@ -2,7 +2,7 @@
 # (c) Index Data 1995
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.20 1995-11-28 17:26:35 adam Exp $
+# $Id: Makefile.in,v 1.21 1995-12-22 09:10:03 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -39,10 +39,10 @@ TCLINCLUDE=@TCLINCLUDE@
 MOSILIB=@MOSILIB@
 
 # All YAZ libraries - including MOSI libraries.
-YAZLIB=$(YAZDIR)/lib/libyaz.a $(MOSILIB) $(YAZDIR)/lib/libutil.a
+YAZLIB=$(YAZDIR)/lib/libyaz.a $(MOSILIB)
 
 # All include paths
-INCLUDE=-I$(YAZDIR)/include $(XINCLUDE) -I$(MOSIDIR) $(TCLINCLUDE)
+INCLUDE=-I$(YAZDIR)/include $(XINCLUDE) $(TCLINCLUDE)
 
 # All command line options except CFLAGS
 DEFS=-DCCL2RPN=0 @DEFS@ -DMOSI=@MOSI@ -DIRTCLDIR=\"$(IRTCLDIR)\" \

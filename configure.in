@@ -1,7 +1,7 @@
 dnl IR toolkit for tcl/tk
 dnl (c) Index Data 1995
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.10 1995-09-20 11:37:01 adam Exp $
+dnl $Id: configure.in,v 1.11 1995-12-22 09:10:05 adam Exp $
 AC_INIT(ir-tcl.h)
 CC=${CC-cc}
 AC_SUBST(CC)
@@ -43,7 +43,7 @@ AC_SUBST(MOSIDIR)
 AC_MSG_CHECKING(for YAZ directory)
 AC_ARG_WITH(yazdir,[  --with-yazdir           Yaz directory], [YAZDIR=$withval])
 if test "$YAZDIR" = "yes"; then
-	YAZDIR="../yaz-1.0b3"
+	YAZDIR="../yaz-1.0"
 elif test "$YAZDIR" = ""; then
         YAZDIR="../yaz"
         for i in ../yaz-1.0b3 ../yaz-1.0b4 ../yaz-1.0 ../yaz; do
@@ -71,7 +71,7 @@ if test -r ${YAZDIR}/lib/librfc.a; then
 else
 	MOSI=0
 	MOSIDIR=$MOSIDIR
-        MOSILIB=''
+        MOSILIB='# $(MOSIDIR)/libmosi.a $(YAZDIR)/lib/librfc.a'
         MOSITELL=no
 fi
 AC_MSG_RESULT($MOSITELL)
