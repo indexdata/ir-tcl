@@ -1,7 +1,7 @@
 dnl IR toolkit for tcl/tk
 dnl (c) Index Data 1996-1999
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.29 2000-10-11 12:26:47 adam Exp $
+dnl $Id: configure.in,v 1.30 2001-02-09 12:04:53 adam Exp $
 AC_INIT(ir-tcl.h)
 dnl ------ Substitutions
 AC_SUBST(CC)
@@ -135,63 +135,63 @@ else
 		else
 			AC_MSG_RESULT($TK_VERSION)
 		fi
-	fi
-	AC_PATH_X
-	not_really_there=""
-	if test "$no_x" = ""; then
-		if test "$x_includes" = ""; then
-			AC_TRY_CPP([#include <X11/XIntrinsic.h>], , not_really_there="yes")
-		else
-			if test ! -r $x_includes/X11/Intrinsic.h; then
-				not_really_there="yes"
+		AC_PATH_X
+		not_really_there=""
+		if test "$no_x" = ""; then
+			if test "$x_includes" = ""; then
+				AC_TRY_CPP([#include <X11/XIntrinsic.h>], , not_really_there="yes")
+			else
+				if test ! -r $x_includes/X11/Intrinsic.h; then
+					not_really_there="yes"
+				fi
 			fi
 		fi
-	fi
-	if test "$no_x" = "yes" -o "$not_really_there" = "yes"; then
-		echo checking for X11 header files
-		XINCLUDES="# no special path needed"
-		AC_TRY_CPP([#include <X11/Intrinsic.h>], , XINCLUDES="nope")
-		if test "$XINCLUDES" = nope; then dirs="/usr/unsupported/include /usr/local/include /usr/X386/include /usr/include/X11R4 /usr/X11R5/include /usr/include/X11R5 /usr/openwin/include /usr/X11/include /usr/sww/include"
+		if test "$no_x" = "yes" -o "$not_really_there" = "yes"; then
+			echo checking for X11 header files
+			XINCLUDES="# no special path needed"
+			AC_TRY_CPP([#include <X11/Intrinsic.h>], , XINCLUDES="nope")
+			if test "$XINCLUDES" = nope; then dirs="/usr/unsupported/include /usr/local/include /usr/X386/include /usr/include/X11R4 /usr/X11R5/include /usr/include/X11R5 /usr/openwin/include /usr/X11/include /usr/sww/include"
+				for i in $dirs ; do
+					if test -r $i/X11/Intrinsic.h; then
+						XINCLUDES=" -I$i"
+					fi
+				done
+			fi
+		else
+			if test "$x_includes" != ""; then
+				XINCLUDES=-I$x_includes
+			else
+				XINCLUDES="# no special path needed"
+			fi
+		fi
+		if test "$XINCLUDES" = nope; then
+			echo "Warning:  couldn't find any X11 include files."
+			XINCLUDES="# no include files found"
+		fi
+		if test "$no_x" = yes; then
+			XLIBSW=nope
+			if test "$XLIBSW" = nope; then
+				dirs="/usr/unsupported/lib /usr/local/lib /usr/X386/lib /usr/lib/X11R4 /usr/X11R5/lib /usr/lib/X11R5 /usr/openwin/lib /usr/X11/lib /usr/sww/X11/lib"
 			for i in $dirs ; do
-				if test -r $i/X11/Intrinsic.h; then
-					XINCLUDES=" -I$i"
+				if test -r $i/libX11.a; then
+					XLIBSW="-L$i -lX11"
 				fi
 			done
 		fi
-	else
-		if test "$x_includes" != ""; then
-			XINCLUDES=-I$x_includes
 		else
-			XINCLUDES="# no special path needed"
-		fi
-	fi
-	if test "$XINCLUDES" = nope; then
-		echo "Warning:  couldn't find any X11 include files."
-		XINCLUDES="# no include files found"
-	fi
-	if test "$no_x" = yes; then
-		XLIBSW=nope
-		if test "$XLIBSW" = nope; then
-			dirs="/usr/unsupported/lib /usr/local/lib /usr/X386/lib /usr/lib/X11R4 /usr/X11R5/lib /usr/lib/X11R5 /usr/openwin/lib /usr/X11/lib /usr/sww/X11/lib"
-		for i in $dirs ; do
-			if test -r $i/libX11.a; then
-				XLIBSW="-L$i -lX11"
+			if test "$x_libraries" = ""; then
+				XLIBSW=-lX11
+			else
+				XLIBSW="-L$x_libraries -lX11"
 			fi
-		done
-	fi
-	else
-		if test "$x_libraries" = ""; then
-			XLIBSW=-lX11
-		else
-			XLIBSW="-L$x_libraries -lX11"
 		fi
-	fi
-	if test "$XLIBSW" = nope ; then
-		AC_CHECK_LIB(Xwindow, XCreateWindow, XLIBSW=-lXwindow)
-	fi
-	if test "$XLIBSW" = nope ; then
-		echo "Warning:  couldn't find the X11 library archive.  Using -lX11."
-		XLIBSW=-lX11
+		if test "$XLIBSW" = nope ; then
+			AC_CHECK_LIB(Xwindow, XCreateWindow, XLIBSW=-lXwindow)
+		fi
+		if test "$XLIBSW" = nope ; then
+			echo "Warning:  couldn't find the X11 library archive.  Using -lX11."
+			XLIBSW=-lX11
+		fi
 	fi
 	TKINC=$XINCLUDES
 	TKLIB="${TKLIB} ${XLIBSW} ${TCLLIB}"

@@ -1323,9 +1323,8 @@ echo "configure:1310: checking for Tk" >&5
 		else
 			echo "$ac_t""$TK_VERSION" 1>&6
 		fi
-	fi
-	echo $ac_n "checking how to run the C preprocessor""... $ac_c" 1>&6
-echo "configure:1329: checking how to run the C preprocessor" >&5
+		echo $ac_n "checking how to run the C preprocessor""... $ac_c" 1>&6
+echo "configure:1328: checking how to run the C preprocessor" >&5
 # On Suns, sometimes $CPP names a directory.
 if test -n "$CPP" && test -d "$CPP"; then
   CPP=
@@ -1340,13 +1339,13 @@ else
   # On the NeXT, cc -E runs the code through the compiler's parser,
   # not just through cpp.
   cat > conftest.$ac_ext <<EOF
-#line 1344 "configure"
+#line 1343 "configure"
 #include "confdefs.h"
 #include <assert.h>
 Syntax Error
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:1350: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:1349: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   :
@@ -1357,13 +1356,13 @@ else
   rm -rf conftest*
   CPP="${CC-cc} -E -traditional-cpp"
   cat > conftest.$ac_ext <<EOF
-#line 1361 "configure"
+#line 1360 "configure"
 #include "confdefs.h"
 #include <assert.h>
 Syntax Error
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:1367: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:1366: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   :
@@ -1374,13 +1373,13 @@ else
   rm -rf conftest*
   CPP="${CC-cc} -nologo -E"
   cat > conftest.$ac_ext <<EOF
-#line 1378 "configure"
+#line 1377 "configure"
 #include "confdefs.h"
 #include <assert.h>
 Syntax Error
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:1384: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:1383: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   :
@@ -1409,7 +1408,7 @@ echo "$ac_t""$CPP" 1>&6
 # Uses ac_ vars as temps to allow command line to override cache and checks.
 # --without-x overrides everything else, but does not touch the cache.
 echo $ac_n "checking for X""... $ac_c" 1>&6
-echo "configure:1413: checking for X" >&5
+echo "configure:1412: checking for X" >&5
 
 # Check whether --with-x or --without-x was given.
 if test "${with_x+set}" = set; then
@@ -1471,12 +1470,12 @@ if test "$ac_x_includes" = NO; then
 
   # First, try using that file with no special directory specified.
 cat > conftest.$ac_ext <<EOF
-#line 1475 "configure"
+#line 1474 "configure"
 #include "confdefs.h"
 #include <$x_direct_test_include>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:1480: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:1479: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -1545,14 +1544,14 @@ if test "$ac_x_libraries" = NO; then
   ac_save_LIBS="$LIBS"
   LIBS="-l$x_direct_test_library $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 1549 "configure"
+#line 1548 "configure"
 #include "confdefs.h"
 
 int main() {
 ${x_direct_test_function}()
 ; return 0; }
 EOF
-if { (eval echo configure:1556: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1555: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   LIBS="$ac_save_LIBS"
 # We can link X programs with no special library path.
@@ -1638,16 +1637,16 @@ else
   echo "$ac_t""libraries $x_libraries, headers $x_includes" 1>&6
 fi
 
-	not_really_there=""
-	if test "$no_x" = ""; then
-		if test "$x_includes" = ""; then
-			cat > conftest.$ac_ext <<EOF
-#line 1646 "configure"
+		not_really_there=""
+		if test "$no_x" = ""; then
+			if test "$x_includes" = ""; then
+				cat > conftest.$ac_ext <<EOF
+#line 1645 "configure"
 #include "confdefs.h"
 #include <X11/XIntrinsic.h>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:1651: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:1650: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   :
@@ -1659,22 +1658,22 @@ else
   not_really_there="yes"
 fi
 rm -f conftest*
-		else
-			if test ! -r $x_includes/X11/Intrinsic.h; then
-				not_really_there="yes"
+			else
+				if test ! -r $x_includes/X11/Intrinsic.h; then
+					not_really_there="yes"
+				fi
 			fi
 		fi
-	fi
-	if test "$no_x" = "yes" -o "$not_really_there" = "yes"; then
-		echo checking for X11 header files
-		XINCLUDES="# no special path needed"
-		cat > conftest.$ac_ext <<EOF
-#line 1673 "configure"
+		if test "$no_x" = "yes" -o "$not_really_there" = "yes"; then
+			echo checking for X11 header files
+			XINCLUDES="# no special path needed"
+			cat > conftest.$ac_ext <<EOF
+#line 1672 "configure"
 #include "confdefs.h"
 #include <X11/Intrinsic.h>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:1678: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:1677: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   :
@@ -1686,44 +1685,44 @@ else
   XINCLUDES="nope"
 fi
 rm -f conftest*
-		if test "$XINCLUDES" = nope; then dirs="/usr/unsupported/include /usr/local/include /usr/X386/include /usr/include/X11R4 /usr/X11R5/include /usr/include/X11R5 /usr/openwin/include /usr/X11/include /usr/sww/include"
+			if test "$XINCLUDES" = nope; then dirs="/usr/unsupported/include /usr/local/include /usr/X386/include /usr/include/X11R4 /usr/X11R5/include /usr/include/X11R5 /usr/openwin/include /usr/X11/include /usr/sww/include"
+				for i in $dirs ; do
+					if test -r $i/X11/Intrinsic.h; then
+						XINCLUDES=" -I$i"
+					fi
+				done
+			fi
+		else
+			if test "$x_includes" != ""; then
+				XINCLUDES=-I$x_includes
+			else
+				XINCLUDES="# no special path needed"
+			fi
+		fi
+		if test "$XINCLUDES" = nope; then
+			echo "Warning:  couldn't find any X11 include files."
+			XINCLUDES="# no include files found"
+		fi
+		if test "$no_x" = yes; then
+			XLIBSW=nope
+			if test "$XLIBSW" = nope; then
+				dirs="/usr/unsupported/lib /usr/local/lib /usr/X386/lib /usr/lib/X11R4 /usr/X11R5/lib /usr/lib/X11R5 /usr/openwin/lib /usr/X11/lib /usr/sww/X11/lib"
 			for i in $dirs ; do
-				if test -r $i/X11/Intrinsic.h; then
-					XINCLUDES=" -I$i"
+				if test -r $i/libX11.a; then
+					XLIBSW="-L$i -lX11"
 				fi
 			done
 		fi
-	else
-		if test "$x_includes" != ""; then
-			XINCLUDES=-I$x_includes
 		else
-			XINCLUDES="# no special path needed"
-		fi
-	fi
-	if test "$XINCLUDES" = nope; then
-		echo "Warning:  couldn't find any X11 include files."
-		XINCLUDES="# no include files found"
-	fi
-	if test "$no_x" = yes; then
-		XLIBSW=nope
-		if test "$XLIBSW" = nope; then
-			dirs="/usr/unsupported/lib /usr/local/lib /usr/X386/lib /usr/lib/X11R4 /usr/X11R5/lib /usr/lib/X11R5 /usr/openwin/lib /usr/X11/lib /usr/sww/X11/lib"
-		for i in $dirs ; do
-			if test -r $i/libX11.a; then
-				XLIBSW="-L$i -lX11"
+			if test "$x_libraries" = ""; then
+				XLIBSW=-lX11
+			else
+				XLIBSW="-L$x_libraries -lX11"
 			fi
-		done
-	fi
-	else
-		if test "$x_libraries" = ""; then
-			XLIBSW=-lX11
-		else
-			XLIBSW="-L$x_libraries -lX11"
 		fi
-	fi
-	if test "$XLIBSW" = nope ; then
-		echo $ac_n "checking for XCreateWindow in -lXwindow""... $ac_c" 1>&6
-echo "configure:1727: checking for XCreateWindow in -lXwindow" >&5
+		if test "$XLIBSW" = nope ; then
+			echo $ac_n "checking for XCreateWindow in -lXwindow""... $ac_c" 1>&6
+echo "configure:1726: checking for XCreateWindow in -lXwindow" >&5
 ac_lib_var=`echo Xwindow'_'XCreateWindow | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -1731,7 +1730,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lXwindow  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 1735 "configure"
+#line 1734 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -1742,7 +1741,7 @@ int main() {
 XCreateWindow()
 ; return 0; }
 EOF
-if { (eval echo configure:1746: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1745: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -1762,10 +1761,11 @@ else
   echo "$ac_t""no" 1>&6
 fi
 
-	fi
-	if test "$XLIBSW" = nope ; then
-		echo "Warning:  couldn't find the X11 library archive.  Using -lX11."
-		XLIBSW=-lX11
+		fi
+		if test "$XLIBSW" = nope ; then
+			echo "Warning:  couldn't find the X11 library archive.  Using -lX11."
+			XLIBSW=-lX11
+		fi
 	fi
 	TKINC=$XINCLUDES
 	TKLIB="${TKLIB} ${XLIBSW} ${TCLLIB}"
