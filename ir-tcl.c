@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.47  1995-06-25 10:25:04  adam
+ * Revision 1.48  1995-06-27 19:03:50  adam
+ * Bug fix in do_present in ir-tcl.c: p->set_child member weren't set.
+ * nextResultSetPosition used instead of setOffset.
+ *
+ * Revision 1.47  1995/06/25  10:25:04  adam
  * Working on triggerResourceControl. Description of compile/install
  * procedure moved to ir-tcl.sgml.
  *
@@ -1561,13 +1565,14 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
     Z_APDU *apdu;
     Odr_oct ccl_query;
     IrTcl_SetObj *obj = o;
-    IrTcl_Obj *p = obj->parent;
+    IrTcl_Obj *p;
     int r;
     oident bib1;
 
     if (argc <= 0)
         return TCL_OK;
 
+    p = obj->parent;
     p->set_child = o;
     if (argc != 3)
     {
@@ -1747,7 +1752,10 @@ static int do_nextResultSetPosition (void *o, Tcl_Interp *interp,
     IrTcl_SetObj *obj = o;
 
     if (argc <= 0)
+    {
+        obj->nextResultSetPosition = 0;
         return TCL_OK;
+    }
     return get_set_int (&obj->nextResultSetPosition, interp, argc, argv);
 }
 
@@ -2044,7 +2052,7 @@ static int do_present (void *o, Tcl_Interp *interp,
                        int argc, char **argv)
 {
     IrTcl_SetObj *obj = o;
-    IrTcl_Obj *p = obj->parent;
+    IrTcl_Obj *p;
     Z_APDU *apdu;
     Z_PresentRequest *req;
     int start;
@@ -2072,6 +2080,9 @@ static int do_present (void *o, Tcl_Interp *interp,
         interp->result = "not connected";
         return TCL_ERROR;
     }
+    p = obj->parent;
+    p->set_child = obj;
+
     odr_reset (p->odr_out);
     obj->start = start;
     obj->number = number;

@@ -4,7 +4,11 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.55  1995-06-27 17:10:37  adam
+# Revision 1.56  1995-06-27 19:03:48  adam
+# Bug fix in do_present in ir-tcl.c: p->set_child member weren't set.
+# nextResultSetPosition used instead of setOffset.
+#
+# Revision 1.55  1995/06/27  17:10:37  adam
 # Bug fix: install procedure didn't work on some systems.
 # Error turned up when clientrc.tcl was't present.
 #
@@ -215,6 +219,7 @@ set profile(Default) {{} {} {210} {} 16384 8192 tcpip {} 1 {} {} Z39 1}
 set hostid Default
 set settingsChanged 0
 set setNo 0
+set setNoLast 0
 set cancelFlag 0
 set scanEnable 0
 set fullMarcSeq 0
@@ -276,7 +281,7 @@ proc set-wrap {m} {
 }
 
 proc dputs {m} {
-#    puts $m
+    puts $m
 }
 
 proc set-display-format {f} {
@@ -293,9 +298,6 @@ proc set-display-format {f} {
     }
     update idletasks
     add-title-lines -1 10000 1
-    if {!$busy} {
-        .bot.a.status configure -text "Ready"
-    }
 }
 
 proc initBindings {} {
@@ -484,11 +486,13 @@ proc show-status {status b sb} {
         }
         if {$setNo == 0} {
             .top.service.m disable 1
-        } elseif {$setOffset > 0 && $setOffset <= [z39.$setNo resultCount]} {
+        } elseif {[z39.$setNo nextResultSetPosition] > 0 && 
+            [z39.$setNo nextResultSetPosition] <= [z39.$setNo resultCount]} {
             .top.service.m enable 1
             .mid.present configure -state normal
         } else {
             .top.service.m disable 1
+            .mid.present configure -state disabled
         }
         if {[winfo exists .scan-window]} {
             .scan-window.bot.2 configure -state normal
@@ -845,9 +849,11 @@ proc close-target {} {
     global hostid
     global cancelFlag
     global setNo
+    global setNoLast
 
     set cancelFlag 0
     set setNo 0
+    set setNoLast 0
     .bot.a.set configure -text ""
     set hostid Default
     z39 disconnect
@@ -857,15 +863,16 @@ proc close-target {} {
     show-message {}
     .top.target.m disable 1
     .top.target.m disable 2
-    .top.rset.m delete 2 last
+    .top.rset.m delete 1 last
+    .top.rset.m add separator
     .top.target.m enable 0
 }
 
 proc load-set-action {} {
-    global setNo
+    global setNoLast
 
-    incr setNo
-    ir-set z39.$setNo z39
+    incr setNoLast
+    ir-set z39.$setNoLast z39
 
     set fname [.load-set.top.filename.entry get]
     destroy .load-set
@@ -874,12 +881,12 @@ proc load-set-action {} {
         update
         z39.$setNo loadFile $fname
 
-        set no [z39.$setNo numberOfRecordsReturned]
-        add-title-lines $setNo $no 1
+        set no [z39.$setNoLast numberOfRecordsReturned]
+        add-title-lines $setNoLast $no 1
     }
-    set l [format "%-4d %7d" $setNo $no]
+    set l [format "%-4d %7d" $setNoLast $no]
     .top.rset.m add command -label $l \
-            -command [list add-title-lines $setNo 10000 1]
+            -command [list add-title-lines $setNoLast 10000 1]
     show-status {Ready} 0 {}
 }
 
@@ -904,7 +911,6 @@ proc load-set {} {
 }
 
 proc init-request {} {
-    global setNo
     global cancelFlag
 
     if {$cancelFlag} {
@@ -945,6 +951,7 @@ proc init-response {} {
 
 proc search-request {bflag} {
     global setNo
+    global setNoLast
     global profile
     global hostid
     global busy
@@ -972,7 +979,8 @@ proc search-request {bflag} {
     if {$query==""} {
         return
     }
-    incr setNo
+    incr setNoLast
+    set setNo $setNoLast
     ir-set z39.$setNo z39
 
     if {[lindex $profile($target) 10] == 1} {
@@ -1299,14 +1307,12 @@ proc search-response {} {
     show-status {Ready} 0 1
     set status [z39.$setNo responseStatus]
     if {[lindex $status 0] == "NSD"} {
+        z39.$setNo nextResultSetPosition 0
         set code [lindex $status 1]
         set msg [lindex $status 2]
         set addinfo [lindex $status 3]
         tkerror "NSD$code: $msg: $addinfo"
         return
-    }
-    if {$setMax > 20} {
-        set setMax 20
     }
     show-message "${setMax} hits"
     if {$setMax == 0} {
@@ -1317,6 +1323,9 @@ proc search-response {} {
     set l [format "%-4d %7d" $setNo $setMax]
     .top.rset.m add command -label $l \
             -command [list add-title-lines $setNo 10000 1]
+    if {$setMax > 20} {
+        set setMax 20
+    }
     z39 callback {present-response}
     z39.$setNo present $setOffset 1
     show-status {Retrieving} 1 0
@@ -1342,10 +1351,14 @@ proc present-more {number} {
         dputs "setNo=$setNo"
 	return
     }
+    set setOffset [z39.$setNo nextResultSetPosition]
+    dputs "setOffest=${setOffset}"
+    dputs "setNo=${setNo}"
     set max [z39.$setNo resultCount]
-    if {$max <= $setOffset} {
+    if {$max < $setOffset} {
         dputs "max=$max"
         dputs "setOffset=$setOffset"
+        show-status Ready 0 1
         return
     }
     if {$number == ""} {
@@ -1380,12 +1393,13 @@ proc title-press {y setno} {
 proc add-title-lines {setno no offset} {
     global displayFormats
     global displayFormat
-    global lastSetNo
+    global setNo
+    global busy
 
-    if {$setno == -1} {
-        set setno $lastSetNo
+    if {$setno != -1} {
+        set setNo $setno
     } else {
-        set lastSetNo $setno
+        set setno $setNo
     }
     if {$offset == 1} {
         .bot.a.set configure -text $setno
@@ -1408,6 +1422,9 @@ proc add-title-lines {setno no offset} {
         .data.record tag bind r$o <1> \
                 [list popup-marc $setno $o 0 0]
         update idletasks
+    }
+    if {!$busy} {
+        show-status Ready 0 1
     }
 }
 
