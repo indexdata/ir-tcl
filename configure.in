@@ -1,7 +1,7 @@
 dnl IR toolkit for tcl/tk
 dnl (c) Index Data 1996-2001
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.35 2002-09-02 11:19:12 adam Exp $
+dnl $Id: configure.in,v 1.36 2002-09-13 20:23:56 adam Exp $
 AC_INIT(ir-tcl.h)
 dnl ------ Substitutions
 AC_SUBST(CC)
@@ -20,7 +20,7 @@ AC_SUBST(RANLIB)
 dnl
 dnl ------ Build root
 AC_SUBST(build_root)
-AC_ARG_WITH(build-root, [  --with-buildroot        RPM Build root],[build_root=$withval],[build_root=""])
+AC_ARG_WITH(build-root, [  --with-build-root       RPM Build root],[build_root=$withval],[build_root=""])
 dnl
 dnl ------ Preliminary settings
 AC_PROG_INSTALL

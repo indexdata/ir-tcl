@@ -1,0 +1,122 @@
+#!/usr/bin/make -f
+# 
+# Script for building Zebra from source to .deb-packages.
+#
+# Created by Adam Dickmeiss, based on script by
+# Morten Hendriksen <mgh@dbc.dk>  and from Joey Hess.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# This is the debhelper compatability version to use.
+export DH_COMPAT=2
+
+CONFIG_FLAGS=--with-tclconfig=/usr/lib/tcl8.3 --with-yazconfig=/usr/bin --prefix=/usr
+
+# Enable parallel builds if CONCURRENCY_LEVEL is set
+ifdef CONCURRENCY_LEVEL
+MCFLAGS=-j$(CONCURRENCY_LEVEL)
+else
+MCFLAGS=
+endif
+
+IRTCL_VERSION=1.4
+IRTCLDIR?=$(shell pwd)
+# If this is not IndexData's release, then it is a cvs-checkout. Go cheat!
+#   YAZ_VERSION:=$(YAZ_VERSION)-$(shell date -r$(YAZSRCDIR)/CVS +"CVS%Y%m%d")
+export IRTCL_VERSION
+
+# Local library path for linking with right dependencies
+LOCAL_LINK=-ldebian/ir-tcl/usr/lib
+
+configure: configure.in
+	autoconf
+
+stamp-configure: configure
+	dh_testdir
+
+	./configure $(CONFIG_FLAGS) --with-build-root=$(IRTCLDIR)/debian/tmp
+	touch stamp-configure
+
+build: stamp-build
+stamp-build: stamp-configure
+	dh_testdir
+
+	# Add here commands to compile the package.
+	$(MAKE) $(MCFLAGS)
+	cd doc; $(MAKE) $(MCFLAGS)
+
+	touch stamp-build
+
+clean:
+	dh_testdir
+	#dh_testroot
+	-rm -f stamp-*
+	rm -f *.o *.so *.a config.* irclient
+
+	dh_clean
+	-rm -rf debian/ir-tcl debian/*.debhelper debian/substvars
+
+install: stamp-install
+stamp-install: stamp-build
+	dh_testdir
+	dh_testroot
+	dh_clean -k -a
+	dh_installdirs -a
+
+	# Add here commands to install the package into debian/tmp.
+	-mkdirhier debian/tmp/usr
+	$(MAKE) install
+	# $(MAKE) install prefix=`pwd`/debian/tmp/usr
+
+	touch stamp-install
+
+# Build architecture-independent files here.
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+	dh_installdocs -p ir-tcl-doc doc/
+	dh_installchangelogs -p ir-tcl-doc
+	dh_link -p ir-tcl-doc
+	dh_strip -p ir-tcl-doc
+	dh_compress -p ir-tcl-doc
+	dh_fixperms -p ir-tcl-doc
+	dh_gencontrol -p ir-tcl-doc
+	dh_md5sums -p ir-tcl-doc
+
+	dh_builddeb -p ir-tcl-doc
+
+# Build architecture-dependent files here.
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_movefiles -p ir-tcl usr/lib/ir-tcl usr/bin
+
+	cp CHANGELOG changelog
+	cp LICENSE debian/copyright
+	dh_installdocs --all README changelog debian/copyright
+
+	dh_installchangelogs
+	dh_link
+	dh_strip
+	dh_compress -a
+	dh_fixperms -a
+
+	dh_installdeb -p irtcl
+	# dh_undocumented -p ir-tcl.1
+	dh_shlibdeps -p ir-tcl
+
+	dh_gencontrol -p ir-tcl
+	dh_md5sums -p ir-tcl
+
+	# Go kill those CVS-dirs before build
+	-find debian/tmp -type d -name CVS | xargs rm -rf
+	# For some reason it is necessary to remove empty-dirs in doc
+	-rm -rf debian/tmp/usr/include debian/tmp/usr/lib debian/tmp/usr/bin \
+	        debian/tmp/usr/lib/ir-tcl
+
+	dh_builddeb -p ir-tcl
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install install-stamp configure
+

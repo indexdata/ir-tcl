@@ -1,0 +1,6 @@
+ir-tcl (1.4-1) unstable; urgency=low
+
+  * First IR Tcl debian package
+
+ -- Adam Dickmeiss <adam@indexdata.dk>  Fri, 13 Sep 2002 22:23:33 +0100
+
