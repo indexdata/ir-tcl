@@ -1,16 +1,16 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.33 2003-03-05 22:32:36 adam Exp $
+  $Id: ir-tcl.sgml,v 1.34 2004-04-26 09:09:06 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference 
 <author><htmlurl url="http://www.indexdata.dk/" name="Index Data">,
 <tt><htmlurl url="mailto:info@indexdata.dk" name="info@indexdata.dk"></tt>
-<date>$Date: 2003-03-05 22:32:36 $
+<date>$Date: 2004-04-26 09:09:06 $
 <abstract>
-IrTcl version 1.4.1 -- a Tcl extension that allows you to build
+IrTcl version 1.4.2 -- a Tcl extension that allows you to build
 Z39.50 clients.
 </abstract>
 
@@ -1105,6 +1105,12 @@ record.
 In <sf/IrTcl/ a SUTRS record is treated as one single string. To retrieve
 a SUTRS record use the <tt>getSutrs</tt> followed by an index.
 
+<sect1>XML
+
+<p>
+In <sf/IrTcl/ an XML record is treated as one single string. To retrieve
+a XML record use the <tt>getXml</tt> followed by an index.
+
 <sect1>GRS-1
 <p>
 A GRS-1 record in <sf/IrTcl/ is represented as a list of elements. 
@@ -1408,7 +1414,7 @@ been created.
 <sect>License
 
 <p>
-Copyright &copy; 1995-2003, Index Data ApS.
+Copyright &copy; 1995-2004, Index Data ApS.
 
 Permission to use, copy, modify, distribute, and sell this software and
 its documentation, in whole or in part, for any purpose, is hereby granted,

@@ -1,6 +1,6 @@
-.\" Copyright (c) 1995, 1996 Index Data
+.\" Copyright (c) 1995-2004 Index Data
 .\" All rights reserved.
-.\" $Id: ir-scan.n,v 1.2 2002-09-16 22:16:10 adam Exp $
+.\" $Id: ir-scan.n,v 1.3 2004-04-26 09:09:06 adam Exp $
 .TH ir-scan n  "24 June 1996" "IrTcl" "IR Scan"
 .SH NAME
 ir-scan \- IR scan

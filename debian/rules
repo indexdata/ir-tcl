@@ -1,7 +1,5 @@
 #!/usr/bin/make -f
 # 
-# Script for building Zebra from source to .deb-packages.
-#
 # Created by Adam Dickmeiss, based on script by
 # Morten Hendriksen <mgh@dbc.dk>  and from Joey Hess.
 
