@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.27  1995-06-02 14:29:42  adam
+# Revision 1.28  1995-06-02 14:52:13  adam
+# Minor changes really.
+#
+# Revision 1.27  1995/06/02  14:29:42  adam
 # Work on scan interface - up/down buttons.
 #
 # Revision 1.26  1995/06/01  16:36:46  adam
@@ -452,6 +455,7 @@ proc open-target {target base} {
     z39 failback [list fail-response $target]
     z39 callback [list connect-response $target]
     z39 connect [lindex $profile($target) 1]:[lindex $profile($target) 2]
+    z39 options search present scan namedResultSets triggerResourceCtrl
     show-status {Connecting} 1 {}
     set hostid $target
     .top.target.m disable 0
@@ -1797,6 +1801,8 @@ bind .data.list <Double-Button-1> {set indx [.data.list nearest %y]
 show-full-marc [incr indx] 0}
 
 ir z39
+z39 options search present scan namedResultSets triggerResourceCtrl
+puts [z39 options]
 
 show-logo 1
 
