@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.12  1995-07-28 10:28:38  adam
+ * Revision 1.13  1995-08-03 13:23:00  adam
+ * Request queue.
+ *
+ * Revision 1.12  1995/07/28  10:28:38  adam
  * First work on request queue.
  *
  * Revision 1.11  1995/06/20  08:07:35  adam
@@ -96,9 +99,10 @@ typedef struct {
 
     char       *cs_type;
     int         protocol_type;
-    int         connectFlag;
     int         failInfo;
     COMSTACK    cs_link;
+    
+    int         state;
 
     int         preferredMessageSize;
     int         maximumRecordSize;
@@ -121,12 +125,12 @@ typedef struct {
 
     char       *hostname;
    
-    char       *buf_out;
-    int         len_out;
     char       *buf_in;
     int         len_in;
+#if 0
     char       *sbuf;
     int         slen;
+#endif
     ODR         odr_in;
     ODR         odr_out;
     ODR         odr_pr;
@@ -152,13 +156,10 @@ typedef struct IrTcl_Request_ {
     
     char       *buf_out;
     int         len_out;
-    char       *buf_in;
-    int         len_in;
 
     char       *callback;
     char       *failback;
 
-    int         state;
 } IrTcl_Request;
 
 typedef struct {
@@ -243,8 +244,10 @@ struct ir_named_entry {
 
 int ir_tcl_get_marc (Tcl_Interp *interp, const char *buf,
                      int argc, char **argv);
-int ir_tcl_send (Tcl_Interp *interp, IrTcl_Obj *p, Z_APDU *apdu,
-                 const char *msg);
+int ir_tcl_send_APDU (Tcl_Interp *interp, IrTcl_Obj *p, Z_APDU *apdu,
+                      const char *msg);
+int ir_tcl_send_q (IrTcl_Obj *p, IrTcl_Request *rq, const char *msg);
+
 char *ir_tcl_fread_marc (FILE *inf, size_t *size);
 
 #define IR_TCL_FAIL_CONNECT      1
@@ -253,7 +256,9 @@ char *ir_tcl_fread_marc (FILE *inf, size_t *size);
 #define IR_TCL_FAIL_IN_APDU      4
 #define IR_TCL_FAIL_UNKNOWN_APDU 5
 
-#define IR_TCL_R_Queue           0
+#define IR_TCL_R_Idle            0
 #define IR_TCL_R_Writing         1
 #define IR_TCL_R_Waiting         2
+#define IR_TCL_R_Reading         3
+#define IR_TCL_R_Connecting      4
 #endif

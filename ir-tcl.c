@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.50  1995-07-20 08:09:49  adam
+ * Revision 1.51  1995-08-03 13:22:54  adam
+ * Request queue.
+ *
+ * Revision 1.50  1995/07/20  08:09:49  adam
  * client.tcl: Targets removed from hotTargets list when targets
  *  are removed/modified.
  * ir-tcl.c: More work on triggerResourceControl.
@@ -516,6 +519,7 @@ static void get_referenceId (char **dst, Z_ReferenceId *src)
 
 /* ------------------------------------------------------- */
 
+#if 0
 /*
  * ir-tcl_send_APDU: send APDU
  */
@@ -548,6 +552,7 @@ static int ir_tcl_send_APDU (Tcl_Interp *interp, IrTcl_Obj *p, Z_APDU *apdu,
         logf (LOG_DEBUG, "Sent whole %s (%d bytes)", msg, p->slen);
     return TCL_OK;
 }
+#endif
 
 /*
  * do_init_request: init method on IR object
@@ -1007,11 +1012,11 @@ static int do_connect (void *obj, Tcl_Interp *interp,
         if (r == 1)
         {
             ir_select_add_write (cs_fileno (p->cs_link), p);
-            p->connectFlag = 1;
+            p->state = IR_TCL_R_Connecting;
         }
         else
         {
-            p->connectFlag = 0;
+            p->state = IR_TCL_R_Idle;
             if (p->callback)
                 IrTcl_eval (p->interp, p->callback);
         }
@@ -1029,7 +1034,7 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
 
     if (argc == 0)
     {
-        p->connectFlag = 0;
+        p->state = IR_TCL_R_Idle;
         p->hostname = NULL;
 	p->cs_link = NULL;
         return TCL_OK;
@@ -1495,8 +1500,6 @@ static void ir_obj_delete (ClientData clientData)
     odr_destroy (obj->odr_in);
     odr_destroy (obj->odr_out);
     odr_destroy (obj->odr_pr);
-    free (obj->buf_out);
-    free (obj->buf_in);
     free (obj);
 }
 
@@ -1533,14 +1536,11 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     obj->odr_in = odr_createmem (ODR_DECODE);
     obj->odr_out = odr_createmem (ODR_ENCODE);
     obj->odr_pr = odr_createmem (ODR_PRINT);
-
-    obj->len_out = 10000;
-    if (!(obj->buf_out = ir_malloc (interp, obj->len_out)))
-        return TCL_ERROR;
-    odr_setbuf (obj->odr_out, obj->buf_out, obj->len_out, 0);
+    obj->state = IR_TCL_R_Idle;
 
     obj->len_in = 0;
     obj->buf_in = NULL;
+    obj->request_queue = NULL;
 
     tab[0].tab = ir_method_tab;
     tab[0].obj = obj;
@@ -2920,7 +2920,7 @@ void ir_select_read (ClientData clientData)
     Z_APDU *apdu;
     int r;
 
-    if (p->connectFlag)
+    if (p->state == IR_TCL_R_Connecting)
     {
         r = cs_rcvconnect (p->cs_link);
         if (r == 1)
@@ -2928,7 +2928,7 @@ void ir_select_read (ClientData clientData)
             logf (LOG_WARN, "cs_rcvconnect returned 1");
             return;
         }
-        p->connectFlag = 0;
+        p->state = IR_TCL_R_Idle;
         ir_select_remove_write (cs_fileno (p->cs_link), p);
         if (r < 0)
         {
@@ -2943,12 +2943,15 @@ void ir_select_read (ClientData clientData)
         }
         if (p->callback)
 	    IrTcl_eval (p->interp, p->callback);
+        if (p->cs_link && p->request_queue)
+            ir_tcl_send_q (p, p->request_queue, "x");
         return;
     }
     do
     {
 	/* signal one more use of ir object - callbacks must not
 	   release the ir memory (p pointer) */
+        p->state = IR_TCL_R_Reading;
 	++(p->ref_count);
         if ((r=cs_get (p->cs_link, &p->buf_in, &p->len_in)) <= 0)
         {
@@ -2961,7 +2964,7 @@ void ir_select_read (ClientData clientData)
             }
             do_disconnect (p, NULL, 2, NULL);
 
-	    /* relase ir object now if callback deleted it */
+	    /* release ir object now if callback deleted it */
 	    ir_obj_delete (p);
             return;
         }        
@@ -3007,6 +3010,21 @@ void ir_select_read (ClientData clientData)
             do_disconnect (p, NULL, 2, NULL);
         }
         odr_reset (p->odr_in);
+        if (p->request_queue)   /* remove queue entry */
+        {
+            IrTcl_Request *rq;
+            rq = p->request_queue;
+            p->request_queue = rq->next;
+            free (rq->buf_out);
+            free (rq);
+            if (!p->request_queue)
+                 p->state = IR_TCL_R_Idle;
+        }
+        else
+        {
+            logf (LOG_FATAL, "Internal error. No queue entry");
+            exit (1);
+        }
         if (p->callback)
 	    IrTcl_eval (p->interp, p->callback);
 	if (p->ref_count == 1)
@@ -3015,7 +3033,9 @@ void ir_select_read (ClientData clientData)
 	    return;
 	}
 	--(p->ref_count);
-    } while (p->cs_link && cs_more (p->cs_link));    
+    } while (p->cs_link && cs_more (p->cs_link));
+    if (p->cs_link && p->request_queue)
+        ir_tcl_send_q (p, p->request_queue, "x");
 }
 
 /*
@@ -3025,14 +3045,15 @@ void ir_select_write (ClientData clientData)
 {
     IrTcl_Obj *p = clientData;
     int r;
+    IrTcl_Request *rq;
 
     logf (LOG_DEBUG, "In write handler");
-    if (p->connectFlag)
+    if (p->state == IR_TCL_R_Connecting)
     {
         r = cs_rcvconnect (p->cs_link);
         if (r == 1)
             return;
-        p->connectFlag = 0;
+        p->state = IR_TCL_R_Idle;
         if (r < 0)
         {
             logf (LOG_DEBUG, "cs_rcvconnect error");
@@ -3050,6 +3071,7 @@ void ir_select_write (ClientData clientData)
 	    IrTcl_eval (p->interp, p->callback);
         return;
     }
+#if 0
     if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
     {   
         logf (LOG_DEBUG, "select write fail");
@@ -3060,9 +3082,28 @@ void ir_select_write (ClientData clientData)
         }
         do_disconnect (p, NULL, 2, NULL);
     }
+#else
+    rq = p->request_queue;
+    assert (rq);
+    if ((r=cs_put (p->cs_link, rq->buf_out, rq->len_out)) < 0)
+    {
+        logf (LOG_DEBUG, "select write fail");
+        if (p->failback)
+        {
+            p->failInfo = IR_TCL_FAIL_WRITE;
+            IrTcl_eval (p->interp, p->failback);
+        }
+        free (rq->buf_out);
+        rq->buf_out = NULL;
+        do_disconnect (p, NULL, 2, NULL);
+    }
+#endif
     else if (r == 0)            /* remove select bit */
     {
+        p->state = IR_TCL_R_Waiting;
         ir_select_remove_write (cs_fileno (p->cs_link), p);
+        free (rq->buf_out);
+        rq->buf_out = NULL;
     }
 }
 

@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: tclmain.c,v $
- * Revision 1.10  1995-06-30 12:39:28  adam
+ * Revision 1.11  1995-08-03 13:23:02  adam
+ * Request queue.
+ *
+ * Revision 1.10  1995/06/30  12:39:28  adam
  * Bug fix: loadFile didn't set record type.
  * The MARC routines are a little less strict in the interpretation.
  * Script display.tcl replaces the old marc.tcl.
@@ -42,7 +45,7 @@
 #include <assert.h>
 
 #include <tcl.h>
-
+#include <log.h>
 #include "ir-tcl.h"
 
 static char *fileName = NULL;
@@ -81,6 +84,7 @@ int main (int argc, char **argv)
     if (argc == 2)
         fileName = argv[1];
 
+    log_init (LOG_ALL, "", NULL);
     if (Tcl_AppInit(interp) != TCL_OK) {
         fprintf(stderr, "Tcl_AppInit failed: %s\n", interp->result);
     }
