@@ -1,9 +1,19 @@
-# $Id: shell.tcl,v 1.1 1995-06-30 12:39:27 adam Exp $
+# $Id: shell.tcl,v 1.2 1995-08-28 12:21:22 adam Exp $
 #
 source display.tcl
 
+ir z
+
+proc help {} {
+    puts "Commands:"
+    puts " target <host> <database>"
+    puts " find <query>"
+    puts " show <offset> <number>"
+    puts ""
+}
+
 proc target {name database} {
-    ir z
+    z disconnect
     z failback {puts "Connection failed"}
     z callback {connect-response}
     z databaseNames $database
@@ -17,7 +27,7 @@ proc connect-response {} {
 }
 
 proc init-response {} {
-    puts "Connect and initalized. ok"
+    puts "Connect and initialized."
 }
 
 proc find-response {z} {

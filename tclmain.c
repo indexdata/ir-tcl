@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: tclmain.c,v $
- * Revision 1.12  1995-08-28 11:07:16  adam
+ * Revision 1.13  1995-08-28 12:21:22  adam
+ * Removed lines and list as synonyms of list in MARC extractron.
+ * Configure searches also for tk4.0 / tcl7.4.
+ *
+ * Revision 1.12  1995/08/28  11:07:16  adam
  * Minor changes.
  *
  * Revision 1.11  1995/08/03  13:23:02  adam
@@ -87,7 +91,6 @@ int main (int argc, char **argv)
     if (argc == 2)
         fileName = argv[1];
 
-    log_init (LOG_ALL, "", NULL);
     if (Tcl_AppInit(interp) != TCL_OK) {
         fprintf(stderr, "Tcl_AppInit failed: %s\n", interp->result);
     }

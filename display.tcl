@@ -1,4 +1,4 @@
-# $Id: display.tcl,v 1.1 1995-06-30 12:39:16 adam Exp $
+# $Id: display.tcl,v 1.2 1995-08-28 12:21:21 adam Exp $
 #
 # Record display
 proc display {zset no} {
@@ -20,7 +20,7 @@ proc display {zset no} {
         puts [join [$zset getSutrs $no]]
         return
     } 
-    if {[catch {set r [$zset getMarc $no list * * *]}]} {
+    if {[catch {set r [$zset getMarc $no line * * *]}]} {
         puts "Unknown record type: $rtype"
         return
     }

@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: marc.c,v $
- * Revision 1.5  1995-06-30 12:39:26  adam
+ * Revision 1.6  1995-08-28 12:21:22  adam
+ * Removed lines and list as synonyms of list in MARC extractron.
+ * Configure searches also for tk4.0 / tcl7.4.
+ *
+ * Revision 1.5  1995/06/30  12:39:26  adam
  * Bug fix: loadFile didn't set record type.
  * The MARC routines are a little less strict in the interpretation.
  * Script display.tcl replaces the old marc.tcl.
@@ -109,7 +113,7 @@ int ir_tcl_get_marc (Tcl_Interp *interp, const char *buf,
     *ptag = '\0';
     if (!strcmp (argv[3], "field"))
         mode = 'f';
-    else if (!strcmp (argv[3], "lines") || !strcmp (argv[3], "list"))
+    else if (!strcmp (argv[3], "line"))
         mode = 'l';
     else
     {
