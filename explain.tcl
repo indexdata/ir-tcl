@@ -1,3 +1,14 @@
+# IR toolkit for tcl/tk
+# (c) Index Data 1995-1998
+# See the file LICENSE for details.
+# Sebastian Hammer, Adam Dickmeiss
+#
+# Explain Driver
+#
+# $Log: explain.tcl,v $
+# Revision 1.3  1998-02-12 13:32:42  adam
+# Updated configuration system.
+#
 
 # Procedure explain-search
 #  Issue search request with explain-attribute set and specific
@@ -75,7 +86,7 @@ proc explain-present-response {target zz category finish response fresponse} {
 proc explain-check-0 {target finish} {
     show-status Explaining 1 0
     show-message CategoryList
-    explain-search-request $target z39.categoryList CategoryList $finish \
+    explain-search-request $target z39.categoryList TargetInfo $finish \
             explain-check-5 explain-check-fail
 }
 

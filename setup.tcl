@@ -3,8 +3,13 @@
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
 #
+# Configuration Driver
+#
 # $Log: setup.tcl,v $
-# Revision 1.3  1998-01-30 13:30:50  adam
+# Revision 1.4  1998-02-12 13:32:42  adam
+# Updated configuration system.
+#
+# Revision 1.3  1998/01/30 13:30:50  adam
 # Name of target database is irtdb.tcl instead of clientrc.tcl.
 #
 # Revision 1.2  1997/11/19 11:20:57  adam
@@ -71,56 +76,76 @@ proc protocol-setup-action {target} {
     delete-target-hotlist $target
 }
 
-proc target-setup {target category dir} {
+proc target-setup-delete {target category dir} {
 
-    set w .setup100
-    if {$dir} {
-        target-setup-leave-$category $target
+    if {![string compare $target Default]} return
+    set a [alert "Are you sure you want to delete the target \
+definition $target ?"]
+    if {$a} {
+	target-setup $target $category $dir
     }
-    if {$dir == 2} {
+}
+
+proc target-setup {target category dir} {
+    global profile settingsChanged
+
+    set w .setup-$profile($target,windowNumber)
+
+    if {$dir} {
+        target-setup-leave-$category $target $w
+    }
+    if {$dir == 3} {
+	foreach n [array names profile $target,*] {
+	    unset profile($n)
+	}
+	set settingsChanged 1
+	cascade-target-list
+	delete-target-hotlist $target
+	destroy $w
+	return
+    } elseif {$dir == 2} {
         protocol-setup-action $target
         destroy $w
         return
-    }
-    incr category $dir
-    if {[winfo exists $w]} {
-        destroy $w.top
-        destroy $w.bot
     } else {
-        toplevel $w
-        wm geometry $w 430x400
+	incr category $dir
+	if {[winfo exists $w]} {
+	    destroy $w.top
+	    destroy $w.bot
+	} else {
+	    toplevelG $w
+	    wm geometry $w 430x370
+	}
+	if {$target == ""} {
+	    set target Default
+	}
+	top-down-window $w
+	bottom-buttons $w \
+	    [list {Ok} [list target-setup $target $category 2] \
+		 {Previous} [list target-setup $target $category -1] \
+		 {Next} [list target-setup $target $category 1] \
+		 {Delete} [list target-setup-delete $target $category 3] \
+		 {Cancel} [list destroy $w]] 0
+	if {$category == 0} {
+	    $w.bot.2 configure -state disabled
+	}
+	if {$category == 2} {
+	    $w.bot.4 configure -state disabled
+	}
+	target-setup-enter-$category $target $w
     }
-    if {$target == ""} {
-        set target Default
-    }
-    top-down-window $w
-    bottom-buttons $w [list \
-            {Ok} [list target-setup $target $category 2] \
-            {Previous} [list target-setup $target $category -1] \
-            {Next} [list target-setup $target $category 1] \
-            {Cancel} [list destroy $w]] 0
-    if {$category == 0} {
-        $w.bot.2 configure -state disabled
-    }
-    if {$category == 2} {
-        $w.bot.4 configure -state disabled
-    }
-    target-setup-enter-$category $target
 }
 
 
-proc target-setup-leave-0 {target} {
+proc target-setup-leave-0 {target w} {
     global profileS
 
-    set w .setup100
     set y $w.top.hostport
 
 }
 
-proc target-setup-enter-0 {target} {
+proc target-setup-enter-0 {target w} {
     global profileS
-
-    set w .setup100
 
     wm title $w "$target - Initial Information"
 
@@ -146,12 +171,34 @@ proc target-setup-enter-0 {target} {
     $y.idAuthentication.entry configure -textvariable \
 	profileS($target,idAuthentication)
 
-    # bottom
+    # databases
 
-    set y $w.top.bottom
+    frame $w.top.name -relief ridge -border 2
+    pack $w.top.name -pady 2 -padx 2 -side bottom -fill both -expand yes
 
-    frame $y
-    pack $y -side bottom -fill both -expand yes
+    label $w.top.name.label -text "Databases"
+    pack $w.top.name.label -side top -fill x
+
+    frame $w.top.name.buttons -border 2
+    pack $w.top.name.buttons -side right
+
+    button $w.top.name.buttons.add -text "Add" -command \
+	[list target-setup-db-add $target $w]
+    button $w.top.name.buttons.remove -text "Remove" -state disabled \
+        -command [list target-setup-db-remove $target $w]
+    button $w.top.name.buttons.configure -text "Configure" -state disabled
+    pack $w.top.name.buttons.add -side top -fill x
+    pack $w.top.name.buttons.remove -side top -fill x
+    pack $w.top.name.buttons.configure -side top -fill x
+
+    scrollbar $w.top.name.scroll -orient vertical -border 1
+    listbox $w.top.name.list -border 1 -height 5 -yscrollcommand \
+	[list $w.top.name.scroll set] 
+    pack $w.top.name.list -side left -padx 2 -pady 2 -fill both -expand yes
+    pack $w.top.name.scroll -side right -padx 2 -pady 2 -fill y
+    $w.top.name.scroll config -command [list $w.top.name.list yview]
+
+    target-setup-dblist-update $target $w
     
     # misc. dates . . .
 
@@ -193,12 +240,12 @@ proc target-setup-enter-0 {target} {
     radiobutton $y.mosi -text "MOSI" -anchor w\
             -variable profileS($target,comstack) -value mosi
     pack $y.label $y.tcpip $y.mosi -padx 2 -side top -fill x
+
 }
 
-proc target-setup-leave-1 {target} {
+proc target-setup-leave-1 {target w} {
     global profileS
 
-    set w .setup100
     set y $w.top.nr
 
     set profileS($target,targetInfoName) \
@@ -213,10 +260,8 @@ proc target-setup-leave-1 {target} {
     set y $w.top.rs
 }
 
-proc target-setup-enter-1 {target} {
+proc target-setup-enter-1 {target w} {
     global profileS
-
-    set w .setup100
 
     wm title $w "$target - Target Information"
 
@@ -310,7 +355,7 @@ proc target-setup-2-dbselect {menu e} {
     $menu configure -text $e
 }
 
-proc target-setup-leave-2 {target} {
+proc target-setup-leave-2 {target w} {
     global profileS
 }
 
@@ -345,7 +390,7 @@ proc target-setup-db-add-action {target wp} {
     lappend profileS($target,databases) $db
 
     destroy $w
-    target-setup-dblist-update $target
+    target-setup-dblist-update $target $wp
 }
 
 proc target-setup-db-remove {target wp} {
@@ -354,7 +399,8 @@ proc target-setup-db-remove {target wp} {
     set w .setup100
     set y $w.top.name
 
-    set db [$y.data cget -text]
+    set db [$wp.top.name.list get active]
+
     set a [alert "Are you sure you want to remove the database ${db}?"]
     if {$a} {
         set i [lsearch -exact $profileS($target,databases) $db]
@@ -362,7 +408,7 @@ proc target-setup-db-remove {target wp} {
             set profileS($target,databases) \
                     [lreplace $profileS($target,databases) $i $i]
         }
-        target-setup-dblist-update $target
+        target-setup-dblist-update $target $wp
         if {![llength $profileS($target,databases)]} {
             unset profileS($target,databases)
             puts removed
@@ -370,60 +416,36 @@ proc target-setup-db-remove {target wp} {
     }
 }
 
-proc target-setup-dblist-update {target} {
+proc target-setup-dblist-update {target w} {
     global profileS
 
-    set w .setup100
     set y $w.top.name
 
-    set no 0
+    $w.top.name.list delete 0 end
     if {[info exists profileS($target,databases)]} {
-        set databaseList $profileS($target,databases)
-        $y.data configure -text [lindex $databaseList 0]
-        $y.data.m delete 0 100
-        foreach d $databaseList {
-             $y.data.m add command -label $d -command \
-                [list target-setup-2-dbselect $y.data $d]
-            incr no
+        foreach db $profileS($target,databases) {
+            $w.top.name.list insert end $db  
         }
-    }
-    if {$no == 0} {
-        $y.remove configure -state disabled
+        $w.top.name.buttons.remove configure -state normal
+        $w.top.name.list see 0 
+        $w.top.name.list select set 0
     } else {
-        $y.remove configure -state normal
+        $w.top.name.buttons.remove configure -state disabled
     }
 }
 
-proc target-setup-enter-2 {target} {
+proc target-setup-add {target w} {
+
+
+}
+
+proc target-setup-enter-2 {target w} {
     global profileS
 
-    set w .setup100
-
-    wm title $w "$target - Database Information"
-    
-    frame $w.top.name -border 2
-    pack $w.top.name -pady 2 -padx 2 -side top -fill x
-    
-    label $w.top.name.label -text "Database Name" 
-    
-    pack $w.top.name.label -side left
-    menubutton $w.top.name.data -menu $w.top.name.data.m -relief raised
-    irmenu $w.top.name.data.m
-
-    pack $w.top.name.data -side left
+    wm title $w "$target - Other Information (not yet completed)"
    
-    button $w.top.name.add -text "Add" -command \
-            [list target-setup-db-add $target $w]
-    pack $w.top.name.add -side right
-
-    button $w.top.name.remove -text "Remove" -command \
-            [list target-setup-db-remove $target $w]
-    pack $w.top.name.remove -side right
-
     frame $w.top.data -relief ridge -border 2
     pack $w.top.data -pady 2 -padx 2 -side top -fill x
-
-    target-setup-dblist-update $target
 
     frame $w.top.data.avRecordSize
     frame $w.top.data.maxRecordSize

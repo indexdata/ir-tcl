@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.103  1998-01-30 13:30:50  adam
+# Revision 1.104  1998-02-12 13:32:41  adam
+# Updated configuration system.
+#
+# Revision 1.103  1998/01/30 13:30:50  adam
 # Name of target database is irtdb.tcl instead of clientrc.tcl.
 #
 # Revision 1.102  1997/11/19 13:19:54  adam
@@ -583,12 +586,19 @@ foreach target [array names profile] {
 	    set profile($target,comstack) [lindex $profile($target) 6]
 	    set profile($target,databases) [lindex $profile($target) 7]
 	    set profile($target,timeDefine) $timedef
-
-	    incr profile(Default,windowNumber)
+	    set profile($target,windowNumber) 1
 	}
 	unset profile($target)
     }
 }
+
+# Assign unique ID's to each target's window number
+set wno 1
+foreach n [array names profile *,windowNumber] {
+    set profile($n) $wno
+    incr wno
+}
+set profile(Default,windowNumber) $wno
 
 # These globals describe the current query type. They are set to the
 # first query type.
@@ -1418,7 +1428,7 @@ proc close-target {} {
     configure-disable-e .top.target.m 1
     configure-disable-e .top.target.m 2
     if {[tk4]} {
-        .top.rset.m delete 2 last
+        .top.rset.m delete 1 last
     } else {
         .top.rset.m delete 1 last
     }
@@ -3963,6 +3973,7 @@ irmenu .top.service.m.present
 
 irmenu .top.service.m.dblist
 
+# Init: Definition of Set menu.
 menubutton .top.rset -text Set -menu .top.rset.m
 irmenu .top.rset.m
 .top.rset.m add command -label Load -command {load-set}
@@ -4149,7 +4160,7 @@ if {[file exists ${libdir}/setup.tcl]} {
 }
 
 # Init: Uncomment this line if you wan't to enable logging.
-ir-log-init all
+ir-log-init all irtcl irtcl.log
 
 # Init: If hostid is a valid target, a new connection will be established
 # immediately.
