@@ -4,7 +4,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.22  1995-03-31 10:43:03  adam
+ * Revision 1.23  1995-04-10 10:50:27  adam
+ * Result-set name defaults to suffix of ir-set name.
+ * Started working on scan. Not finished at this point.
+ *
+ * Revision 1.22  1995/03/31  10:43:03  adam
  * More robust when getting bad MARC records.
  *
  * Revision 1.21  1995/03/31  08:56:37  adam
@@ -86,6 +90,7 @@
 
 #include <odr.h>
 #include <proto.h>
+#include <oid.h>
 #include <diagbib1.h>
 
 #include <tcl.h>
@@ -99,7 +104,6 @@ typedef struct {
     char       *protocol_type;
     int         connectFlag;
     COMSTACK    cs_link;
-
 
     int         preferredMessageSize;
     int         maximumRecordSize;
@@ -137,6 +141,11 @@ typedef struct {
     char       *query_method;
 
     CCL_bibset  bibset;
+    oident      bib1;
+
+    int         stepSize;
+    int         numberOfTermsRequested;
+    int         preferredPositionInResponse;
 
     struct IRSetObj_ *child;
 } IRObj;
@@ -226,7 +235,8 @@ static IRRecordList *find_IR_record (IRSetObj *setobj, int no)
  * get_parent_info: Returns information about parent object.
  */
 static int get_parent_info (Tcl_Interp *interp, const char *name,
-			    Tcl_CmdInfo *parent_info)
+			    Tcl_CmdInfo *parent_info,
+			    const char **suffix)
 {
     char parent_name[128];
     const char *csep = strrchr (name, '.');
@@ -237,6 +247,8 @@ static int get_parent_info (Tcl_Interp *interp, const char *name,
         interp->result = "missing .";
         return TCL_ERROR;
     }
+    if (suffix)
+        *suffix = csep+1;
     pos = csep-name;
     if (pos > 127)
         pos = 127;
@@ -309,7 +321,7 @@ int ir_asc2bitmask (const char *asc, Odr_bitmask *ob)
 /*
  * ir_strdup: Duplicate string
  */
-int ir_strdup (Tcl_Interp *interp, char** p, char *s)
+int ir_strdup (Tcl_Interp *interp, char** p, const char *s)
 {
     *p = malloc (strlen(s)+1);
     if (!*p)
@@ -346,7 +358,7 @@ void *ir_malloc (Tcl_Interp *interp, size_t size)
 static int do_init_request (void *obj, Tcl_Interp *interp,
 		       int argc, char **argv)
 {
-    Z_APDU apdu, *apdup;
+    Z_APDU apdu, *apdup = &apdu;
     IRObj *p = obj;
     Z_InitRequest req;
     int r;
@@ -370,7 +382,6 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
 
     apdu.u.initRequest = &req;
     apdu.which = Z_APDU_initRequest;
-    apdup = &apdu;
 
     if (!z_APDU (p->odr_out, &apdup, 0))
     {
@@ -757,6 +768,39 @@ static int do_replaceIndicator (void *obj, Tcl_Interp *interp,
     return TCL_OK;
 }
 
+/*
+ * do_scan: Perform scan 
+ */
+static int do_scan (void *obj, Tcl_Interp *interp, int argc, char **argv)
+{
+    Z_ScanRequest req;
+    Z_APDU apdu, *apdup = &apdu;
+    IRObj *p = obj;
+
+    if (!p->num_databaseNames)
+    {
+        interp->result = "no databaseNames";
+	return TCL_ERROR;
+    }
+    if (!p->cs_link)
+    {
+        interp->result = "not connected";
+	return TCL_ERROR;
+    }
+    apdu.which = Z_APDU_scanRequest;
+    apdu.u.scanRequest = &req;
+    req.referenceId = NULL;
+    req.num_databaseNames = p->num_databaseNames;
+    req.databaseNames = p->databaseNames;
+    req.attributeSet = oid_getoidbyent (&p->bib1);
+
+    req.stepSize = &p->stepSize;
+    req.numberOfTermsRequested = &p->numberOfTermsRequested;
+    req.preferredPositionInResponse = &p->preferredPositionInResponse;
+
+    return TCL_OK;
+}
+
 /* 
  * ir_obj_method: IR Object methods
  */
@@ -781,6 +825,7 @@ static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
     { 1, "databaseNames",           do_databaseNames},
     { 1, "replaceIndicator",        do_replaceIndicator},
     { 1, "query",                   do_query },
+    { 0, "scan",                    do_scan },
     { 0, NULL, NULL}
     };
     if (argc < 2)
@@ -817,6 +862,9 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     if (ir_strdup (interp, &obj->protocol_type, "Z3950") == TCL_ERROR)
         return TCL_ERROR;
     obj->cs_link = NULL;
+    obj->bib1.proto = PROTO_Z3950;
+    obj->bib1.class = CLASS_ATTSET;
+    obj->bib1.value = VAL_BIB1;
 
     obj->maximumRecordSize = 32768;
     obj->preferredMessageSize = 4096;
@@ -838,6 +886,10 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     obj->replaceIndicator = 1;
     obj->databaseNames = NULL;
     obj->num_databaseNames = 0; 
+
+    obj->stepSize = 1;
+    obj->numberOfTermsRequested = 20;
+    obj->preferredPositionInResponse = 1;
 
     obj->hostname = NULL;
 
@@ -884,8 +936,7 @@ static int do_search (void *o, Tcl_Interp *interp,
 {
     Z_SearchRequest req;
     Z_Query query;
-    Z_APDU apdu, *apdup;
-    static Odr_oid bib1[] = {1, 2, 840, 10003, 3, 1, -1};
+    Z_APDU apdu, *apdup = &apdu;
     Odr_oct ccl_query;
     IRSetObj *obj = o;
     IRObj *p = obj->parent;
@@ -909,7 +960,6 @@ static int do_search (void *o, Tcl_Interp *interp,
     }
     apdu.which = Z_APDU_searchRequest;
     apdu.u.searchRequest = &req;
-    apdup = &apdu;
 
     req.referenceId = 0;
     req.smallSetUpperBound = &p->smallSetUpperBound;
@@ -944,7 +994,7 @@ static int do_search (void *o, Tcl_Interp *interp,
         }
         query.which = Z_Query_type_1;
         assert((RPNquery = ccl_rpn_query(rpn)));
-        RPNquery->attributeSetId = bib1;
+        RPNquery->attributeSetId = oid_getoidbyent (&p->bib1);
         query.u.type_1 = RPNquery;
         printf ("- RPN\n");
     }
@@ -1251,7 +1301,7 @@ static int do_present (void *o, Tcl_Interp *interp,
 {
     IRSetObj *obj = o;
     IRObj *p = obj->parent;
-    Z_APDU apdu, *apdup;
+    Z_APDU apdu, *apdup = &apdu;
     Z_PresentRequest req;
     int start;
     int number;
@@ -1279,7 +1329,6 @@ static int do_present (void *o, Tcl_Interp *interp,
     obj->start = start;
     obj->number = number;
 
-    apdup = &apdu;
     apdu.which = Z_APDU_presentRequest;
     apdu.u.presentRequest = &req;
     req.referenceId = 0;
@@ -1404,17 +1453,19 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
 {
     Tcl_CmdInfo parent_info;
     IRSetObj *obj;
+    const char *suffix;
 
     if (argc != 2)
     {
         interp->result = "wrong # args";
         return TCL_ERROR;
     }
-    if (get_parent_info (interp, argv[1], &parent_info) == TCL_ERROR)
+    if (get_parent_info (interp, argv[1], &parent_info, &suffix) == TCL_ERROR)
         return TCL_ERROR;
     if (!(obj = ir_malloc (interp, sizeof(*obj))))
         return TCL_ERROR;
-    obj->setName = NULL;
+    if (ir_strdup (interp, &obj->setName, suffix) == TCL_ERROR)
+        return TCL_ERROR;
     obj->record_list = NULL;
     obj->addinfo = NULL;
     obj->parent = (IRObj *) parent_info.clientData;

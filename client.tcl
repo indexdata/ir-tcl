@@ -1,6 +1,10 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.17  1995-03-31 09:34:57  adam
+# Revision 1.18  1995-04-10 10:50:22  adam
+# Result-set name defaults to suffix of ir-set name.
+# Started working on scan. Not finished at this point.
+#
+# Revision 1.17  1995/03/31  09:34:57  adam
 # Search-button disabled when there is no connection.
 #
 # Revision 1.16  1995/03/31  08:56:36  adam
@@ -385,6 +389,8 @@ proc search-request {} {
 
     if {[lindex $profile($target) 10]} {
         z39.$setNo setName $setNo
+    } else {
+        z39.$setNo setName Default
     }
     if {[lindex $profile($target) 8]} {
         z39 query rpn
