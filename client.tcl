@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.12  1995-03-21 13:41:03  adam
+# Revision 1.13  1995-03-21 17:27:26  adam
+# Short-hand keys in setup.
+#
+# Revision 1.12  1995/03/21  13:41:03  adam
 # Comstack cs_create not used too often. Non-blocking connect.
 #
 # Revision 1.11  1995/03/21  10:39:06  adam
@@ -482,7 +485,7 @@ proc define-target-dialog {} {
 
 proc close-target {} {
     # pack forget .mid.searchlabel .mid.searchentry
-    .mid.searchentry -state disabled
+    #.mid.searchentry -state disabled
     z39 disconnect
     show-target {None}
     show-status {Not connected} 0
@@ -605,7 +608,6 @@ proc protocol-setup {target} {
     pack $w.top.description $w.top.host $w.top.port \
             $w.top.idAuthentication $w.top.maximumRecordSize \
             $w.top.preferredMessageSize -side top -anchor e -pady 2
-    #-anchor e
     
     entry-fields $w.top {description host port idAuthentication \
             maximumRecordSize preferredMessageSize} \
@@ -613,6 +615,12 @@ proc protocol-setup {target} {
             {Maximum Record Size:} {Preferred Message Size:}} \
             [list protocol-setup-action $target] [list destroy $w]
     
+    foreach sub {description host port idAuthentication \
+            maximumRecordSize preferredMessageSize} {
+        puts $sub
+        bind $w.top.$sub.entry <Control-a> "add-database $target"
+        bind $w.top.$sub.entry <Control-d> "delete-database $target"
+    }
     $w.top.description.entry insert 0 [lindex $profile($target) 0]
     $w.top.host.entry insert 0 [lindex $profile($target) 1]
     $w.top.port.entry insert 0 [lindex $profile($target) 2]
@@ -671,10 +679,6 @@ proc protocol-setup {target} {
     pack $w.top.query.c1 $w.top.query.c2 $w.top.query.c3 \
             -padx 4 -side top -fill x
 
-    foreach sub [winfo children $w.top] {
-        puts $sub
-        bind $sub <Control-a> "add-database $target"
-    }
     top-down-ok-cancel $w [list protocol-setup-action $target] 0
 }
 
@@ -823,14 +827,14 @@ pack .top .mid -side top -fill x
 pack .data      -side top -fill both -expand yes
 pack .bot      -fill x
 
-menubutton .top.file -text "File" -menu .top.file.m
+menubutton .top.file -text "File" -underline 0 -menu .top.file.m
 menu .top.file.m
 .top.file.m add command -label "Save settings" -command {save-settings}
 .top.file.m add command -label "Load Set" -command {load-set}
 .top.file.m add separator
 .top.file.m add command -label "Exit" -command {exit-action}
 
-menubutton .top.target -text "Target" -menu .top.target.m
+menubutton .top.target -text "Target" -underline 0 -menu .top.target.m
 menu .top.target.m
 .top.target.m add cascade -label "Connect" -menu .top.target.m.clist
 .top.target.m add command -label "Disconnect" -command {close-target}
@@ -846,7 +850,7 @@ menu .top.target.m.clist
 menu .top.target.m.slist
 cascade-target-list
 
-menubutton .top.database -text "Database" -menu .top.database.m
+menubutton .top.database -text "Database" -underline 0 -menu .top.database.m
 menu .top.database.m
 .top.database.m add command -label "Select ..." -command {database-select}
 .top.database.m add command -label "Add ..." -command {puts "Add"}
@@ -865,6 +869,7 @@ entry .mid.searchentry -width 32 -relief sunken
 pack .mid.searchlabel  -side left
 pack .mid.searchentry -side left -fill x -expand yes
 
+focus .mid.searchentry
 bind .mid.searchentry <Left> {left-cursor .mid.searchentry}
 bind .mid.searchentry <Right> {right-cursor .mid.searchentry}
 
@@ -876,12 +881,13 @@ pack .data.scroll -side right -fill y
 
 message .bot.target -text "None" -aspect 1000 -relief sunken -border 1
 label .bot.status -text "Not connected" -width 12 -relief \
-    sunken -anchor w -border 1
+        sunken -anchor w -border 1
 label .bot.set -textvariable setNo -width 5 -relief \
-    sunken -anchor w -border 1
+        sunken -anchor w -border 1
 label .bot.message -text "" -width 14 -relief \
-    sunken -anchor w -border 1
-pack .bot.target .bot.status .bot.set .bot.message -anchor nw -side left -padx 2 -pady 2
+        sunken -anchor w -border 1
+pack .bot.target .bot.status .bot.set .bot.message -anchor nw \
+        -side left -padx 2 -pady 2
 
 bind .data.list <Double-Button-1> {set indx [.data.list nearest %y]
 show-full-marc $indx}
