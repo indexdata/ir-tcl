@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.77  1995-10-18 15:37:46  adam
+# Revision 1.78  1995-10-18 15:45:36  quinn
+# *** empty log message ***
+#
+# Revision 1.77  1995/10/18  15:37:46  adam
 # Piggy-back present.
 #
 # Revision 1.76  1995/10/18  15:15:20  adam
@@ -3232,4 +3235,3 @@ z39 smallSetUpperBound 2
 z39 mediumSetPresentNumber 2
 z39 logLevel all
 show-logo 1
-
