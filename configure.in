@@ -1,7 +1,7 @@
 dnl IR toolkit for tcl/tk
 dnl (c) Index Data 1996-1999
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.25 1999-11-30 14:05:58 adam Exp $
+dnl $Id: configure.in,v 1.26 1999-12-10 10:24:00 adam Exp $
 AC_INIT(ir-tcl.h)
 CC=${CC-cc}
 dnl ------ Substitutions
@@ -63,7 +63,7 @@ dnl
 dnl ------ look for Tcl
 tclconfig=NONE
 tryprefix=NONE
-AC_ARG_WITH(tclconfig, [  --with-tclconfig        Path for tclConfig.sh], [tclconfig=$withval])
+AC_ARG_WITH(tclconfig, [  --with-tclconfig        Path for tclConfig.sh/tkConfig.sh], [tclconfig=$withval])
 if test "x$tclconfig" = xNONE; then
         saveprefix=${prefix}
 	AC_PREFIX_PROGRAM(tclsh)

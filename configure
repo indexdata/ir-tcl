@@ -16,7 +16,7 @@ ac_help="$ac_help
 ac_help="$ac_help
   --with-yazconfig        Path for yaz-config"
 ac_help="$ac_help
-  --with-tclconfig        Path for tclConfig.sh"
+  --with-tclconfig        Path for tclConfig.sh/tkConfig.sh"
 ac_help="$ac_help
   --with-x                use the X Window System"
 
