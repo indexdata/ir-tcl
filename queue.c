@@ -6,7 +6,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: queue.c,v $
- * Revision 1.5  1995-11-28 13:53:40  quinn
+ * Revision 1.6  1996-02-06 09:22:54  adam
+ * Ported ir-tcl to use beta releases of tcl7.5/tk4.1.
+ *
+ * Revision 1.5  1995/11/28  13:53:40  quinn
  * Windows port.
  *
  * Revision 1.4  1995/10/17  12:18:59  adam
@@ -82,7 +85,11 @@ int ir_tcl_send_q (IrTcl_Obj *p, IrTcl_Request *rp, const char *msg)
         return TCL_ERROR;
     else if (r == 1)
     {
+#if IRTCL_GENERIC_FILES
+        ir_select_add_write (p->csFile, p);
+#else
         ir_select_add_write (cs_fileno (p->cs_link), p);
+#endif
         logf (LOG_DEBUG, "Send part of %s", msg);
         p->state = IR_TCL_R_Writing;
     }
