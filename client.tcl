@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.43  1995-06-16 14:41:05  adam
+# Revision 1.44  1995-06-16 14:55:18  adam
+# Book logo mirrored.
+#
+# Revision 1.43  1995/06/16  14:41:05  adam
 # Scan line entries can be copied to a search entry.
 #
 # Revision 1.42  1995/06/16  12:28:13  adam
@@ -340,12 +343,12 @@ proc show-target {target} {
 proc show-logo {v1} {
     global busy
     if {$busy != 0} {
-        incr v1 -1
-        if {$v1==0} {
-            set v1 9
+        incr v1
+        if {$v1==10} {
+            set v1 1
         }
         .bot.logo configure -bitmap @book${v1}
-        after 140 [list show-logo $v1]
+        after 120 [list show-logo $v1]
         return
     }
     while {1} {
@@ -484,12 +487,12 @@ proc about-origin-logo {n} {
     if {![winfo exists $w]} {
         return
     }
-    incr n -1
-    if {$n==0} {
-        set n 9
+    incr n
+    if {$n==10} {
+        set n 1
     }
     $w.top.a.logo configure -bitmap @book$n
-    after 140 [list about-origin-logo $n]
+    after 120 [list about-origin-logo $n]
 }
 
 proc about-origin {} {
