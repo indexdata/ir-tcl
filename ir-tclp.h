@@ -5,7 +5,12 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.7  1995-06-01 07:31:28  adam
+ * Revision 1.8  1995-06-14 13:37:18  adam
+ * Setting recordType implemented.
+ * Setting implementationVersion implemented.
+ * Settings implementationId / implementationName edited.
+ *
+ * Revision 1.7  1995/06/01  07:31:28  adam
  * Rename of many typedefs -> IrTcl_...
  *
  * Revision 1.6  1995/05/31  08:36:40  adam
@@ -90,6 +95,7 @@ typedef struct {
 
     char       *implementationName;
     char       *implementationId;
+    char       *implementationVersion;
     int        initResult;
     char       *targetImplementationName;
     char       *targetImplementationId;
@@ -129,6 +135,7 @@ typedef struct IrTcl_RecordList_ {
         struct {
 	    char *buf;
 	    size_t size;
+            enum oid_value type;
         } dbrec;
         struct {
             int  condition;

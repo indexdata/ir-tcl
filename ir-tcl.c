@@ -5,7 +5,12 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.39  1995-06-08 10:26:32  adam
+ * Revision 1.40  1995-06-14 13:37:18  adam
+ * Setting recordType implemented.
+ * Setting implementationVersion implemented.
+ * Settings implementationId / implementationName edited.
+ *
+ * Revision 1.39  1995/06/08  10:26:32  adam
  * Bug fix in ir_strdup.
  *
  * Revision 1.38  1995/06/01  16:36:47  adam
@@ -475,7 +480,7 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
     }
     req.implementationId = p->implementationId;
     req.implementationName = p->implementationName;
-    req.implementationVersion = "0.1";
+    req.implementationVersion = p->implementationVersion;
     req.userInformationField = 0;
 
     apdu.u.initRequest = &req;
@@ -623,7 +628,8 @@ static int do_implementationName (void *obj, Tcl_Interp *interp,
     IrTcl_Obj *p = obj;
 
     if (argc == 0)
-        return ir_strdup (interp, &p->implementationName, "TCL/TK on YAZ");
+        return ir_strdup (interp, &p->implementationName,
+                          "Index Data/TCL/TK on YAZ");
     else if (argc == -1)
         return ir_strdel (interp, &p->implementationName);
     if (argc == 3)
@@ -638,7 +644,7 @@ static int do_implementationName (void *obj, Tcl_Interp *interp,
 }
 
 /*
- * do_implementationId: Set/get Implementation Id.
+ * do_implementationId: Get Implementation Id.
  */
 static int do_implementationId (void *obj, Tcl_Interp *interp,
                                 int argc, char **argv)
@@ -646,16 +652,29 @@ static int do_implementationId (void *obj, Tcl_Interp *interp,
     IrTcl_Obj *p = obj;
 
     if (argc == 0)
-        return ir_strdup (interp, &p->implementationId, "81");
+        return ir_strdup (interp, &p->implementationId, "YAZ (id=81)");
     else if (argc == -1)
         return ir_strdel (interp, &p->implementationId);
-    if (argc == 3)
-    {
-        free (p->implementationId);
-        if (ir_strdup (interp, &p->implementationId, argv[2]) == TCL_ERROR)
-            return TCL_ERROR;
-    }
     Tcl_AppendResult (interp, p->implementationId, (char*) NULL);
+    return TCL_OK;
+}
+
+/*
+ * do_implementationVersion: get Implementation Version.
+ */
+static int do_implementationVersion (void *obj, Tcl_Interp *interp,
+                                     int argc, char **argv)
+{
+    IrTcl_Obj *p = obj;
+
+#ifndef YAZ_VERSION
+#define YAZ_VERSION "0unknown"
+#endif
+    if (argc == 0)
+        return ir_strdup (interp, &p->implementationVersion, YAZ_VERSION);
+    else if (argc == -1)
+        return ir_strdel (interp, &p->implementationVersion);
+    Tcl_AppendResult (interp, p->implementationVersion, (char*) NULL);
     return TCL_OK;
 }
 
@@ -1174,6 +1193,7 @@ static IrTcl_Method ir_method_tab[] = {
 { 1, "maximumRecordSize",           do_maximumRecordSize },
 { 1, "implementationName",          do_implementationName },
 { 1, "implementationId",            do_implementationId },
+{ 1, "implementationVersion",       do_implementationVersion },
 { 0, "targetImplementationName",    do_targetImplementationName },
 { 0, "targetImplementationId",      do_targetImplementationId },
 { 0, "targetImplementationVersion", do_targetImplementationVersion },
@@ -1569,6 +1589,96 @@ static int do_type (void *o, Tcl_Interp *interp, int argc, char **argv)
 }
 
 /*
+ * do_recordType: Return record type (if any) at position.
+ */
+static int do_recordType (void *o, Tcl_Interp *interp, int argc, char **argv)
+{
+    IrTcl_SetObj *obj = o;
+    int offset;
+    IrTcl_RecordList *rl;
+    char *cp;
+
+    if (argc == 0)
+    {
+	return TCL_OK;
+    }
+    else if (argc == -1)
+    {
+	return TCL_OK;
+    }
+    if (argc < 3)
+    {
+        sprintf (interp->result, "wrong # args");
+        return TCL_ERROR;
+    }
+    if (Tcl_GetInt (interp, argv[2], &offset)==TCL_ERROR)
+        return TCL_ERROR;
+    rl = find_IR_record (obj, offset);
+    if (!rl)
+        return TCL_OK;
+    if (rl->which != Z_NamePlusRecord_databaseRecord)
+    {
+        Tcl_AppendResult (interp, "No DB record at #", argv[2], NULL);
+        return TCL_ERROR;
+    }
+    switch (rl->u.dbrec.type)
+    {
+    case VAL_UNIMARC:
+        cp = "UNIMARC";
+        break;
+    case VAL_INTERMARC:
+        cp = "INTERMARC";
+        break;
+    case VAL_CCF:
+        cp = "CCF";
+        break;
+    case VAL_USMARC:
+        cp = "USMARC";
+        break;
+    case VAL_UKMARC:
+        cp = "UKMARC";
+        break;
+    case VAL_NORMARC:
+        cp = "NORMARC";
+        break;
+    case VAL_LIBRISMARC:
+        cp = "LIBRISMARC";
+        break;
+    case VAL_DANMARC:
+        cp = "DANMARC";
+        break;
+    case VAL_FINMARC:
+        cp = "FINMARC";
+        break;
+    case VAL_MAB:
+        cp = "MAB";
+        break;
+    case VAL_CANMARC:
+        cp = "CANMARC";
+        break;
+    case VAL_SBN:
+        cp = "SBN";
+        break;
+    case VAL_PICAMARC:
+        cp = "PICAMARC";
+        break;
+    case VAL_AUSMARC:
+        cp = "AUSMARC";
+        break;
+    case VAL_IBERMARC:
+        cp = "IBERMARC";
+        break;
+    case VAL_SUTRS:
+        cp = "SUTRS";
+        break;
+    default:
+        cp = "";
+    }
+    Tcl_AppendElement (interp, cp);
+    return TCL_OK;
+}
+
+/*
  * do_diag: Return diagnostic record info
  */
 static int do_diag (void *o, Tcl_Interp *interp, int argc, char **argv)
@@ -1640,7 +1750,7 @@ static int do_getMarc (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     if (rl->which != Z_NamePlusRecord_databaseRecord)
     {
-        Tcl_AppendResult (interp, "No MARC record at #", argv[2], NULL);
+        Tcl_AppendResult (interp, "No DB record at #", argv[2], NULL);
         return TCL_ERROR;
     }
     return ir_tcl_get_marc (interp, rl->u.dbrec.buf, argc, argv);
@@ -1809,6 +1919,7 @@ static IrTcl_Method ir_set_method_tab[] = {
     { 0, "present",                 do_present },
     { 0, "type",                    do_type },
     { 0, "getMarc",                 do_getMarc },
+    { 0, "recordType",              do_recordType },
     { 0, "diag",                    do_diag },
     { 0, "responseStatus",          do_responseStatus },
     { 0, "loadFile",                do_loadFile },
@@ -2362,11 +2473,18 @@ static void ir_handleRecords (void *o, Z_Records *zrs)
                     ->u.databaseRecord;
                 oe = (Odr_external*) zr;
 		rl->u.dbrec.size = zr->u.octet_aligned->len;
+                rl->u.dbrec.type = VAL_USMARC;
                 if (oe->which == ODR_EXTERNAL_octet && rl->u.dbrec.size > 0)
                 {
                     const char *buf = (char*) zr->u.octet_aligned->buf;
                     if ((rl->u.dbrec.buf = malloc (rl->u.dbrec.size)))
 		        memcpy (rl->u.dbrec.buf, buf, rl->u.dbrec.size);
+                    if (oe->direct_reference)
+                    {
+                        struct oident *ident = 
+                            oid_getentbyoid (oe->direct_reference);
+                        rl->u.dbrec.type = ident->value;
+                    }
                 }
                 else
                     rl->u.dbrec.buf = NULL;

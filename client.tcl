@@ -4,7 +4,12 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.39  1995-06-14 12:16:22  adam
+# Revision 1.40  1995-06-14 13:37:17  adam
+# Setting recordType implemented.
+# Setting implementationVersion implemented.
+# Settings implementationId / implementationName edited.
+#
+# Revision 1.39  1995/06/14  12:16:22  adam
 # hotTargets, textWrap and displayFormat saved in clientg.tcl.
 #
 # Revision 1.38  1995/06/14  07:22:45  adam
@@ -472,8 +477,10 @@ proc about-origin {} {
     label $w.top.p.in -text "Implementation name: $i"
     set i [z39 implementationId]
     label $w.top.p.ii -text "Implementation id: $i"
+    set i [z39 implementationVersion]
+    label $w.top.p.iv -text "Implementation version: $i"
 
-    pack $w.top.p.in $w.top.p.ii -side top -anchor nw
+    pack $w.top.p.in $w.top.p.ii $w.top.p.iv -side top -anchor nw
 
     about-origin-logo 1
     bottom-buttons $w [list {Close} [list destroy $w] \
@@ -529,7 +536,8 @@ proc popup-marc {sno no b df} {
         set new 1
     }
     $w.top.record delete 0.0 end
-    wm title $w "Record #$no"
+    set recordType [z39.$sno recordType $no]
+    wm title $w "$recordType record #$no"
 
     set ffunc [lindex $displayFormats $df]
     set ffunc "display-$ffunc"
