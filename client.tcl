@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.59  1995-06-29 14:06:25  adam
+# Revision 1.60  1995-06-30 16:30:19  adam
+# Minor changes.
+#
+# Revision 1.59  1995/06/29  14:06:25  adam
 # Another bug in install fixed. Configure searches for more versions of yaz.
 #
 # Revision 1.58  1995/06/29  12:34:06  adam
@@ -297,7 +300,7 @@ proc tkerror err {
 
     label $w.top.b -bitmap error
     message $w.top.t -aspect 300 -text "Error: $err" \
-            -font -Adobe-Helvetica-Bold-R-Normal-*-200-*
+            -font -Adobe-Helvetica-Bold-R-Normal-*-180-*
     pack $w.top.b $w.top.t -side left -padx 10 -pady 10
 
     bottom-buttons $w [list {Close} [list destroy $w]] 1
