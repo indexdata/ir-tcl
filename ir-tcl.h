@@ -24,7 +24,11 @@
  * OF THIS SOFTWARE.
  *
  * $Log: ir-tcl.h,v $
- * Revision 1.13  1996-02-19 15:41:54  adam
+ * Revision 1.14  1996-02-21 10:16:19  adam
+ * Simplified select handling. Only one function ir_tcl_select_set has
+ * to be externally defined.
+ *
+ * Revision 1.13  1996/02/19  15:41:54  adam
  * Better log messages.
  * Minor improvement of connect method.
  *
@@ -67,27 +71,9 @@
 #ifndef IR_TCL_H
 #define IR_TCL_H
 
-#if 0
-#define IRTCL_GENERIC_FILES 1
-#else
-#define IRTCL_GENERIC_FILES 0
-#endif
-
 int Irtcl_Init (Tcl_Interp *interp);
 
-#if IRTCL_GENERIC_FILES
-void ir_select_add          (Tcl_File file, void *obj);
-void ir_select_add_write    (Tcl_File file, void *obj);
-void ir_select_remove       (Tcl_File file, void *obj);
-void ir_select_remove_write (Tcl_File file, void *obj);
-#else
-void ir_select_add          (int fd, void *obj);
-void ir_select_add_write    (int fd, void *obj);
-void ir_select_remove       (int fd, void *obj);
-void ir_select_remove_write (int fd, void *obj);
-#endif
-
-void ir_select_read         (ClientData clientData);
-void ir_select_write        (ClientData clientData);
-
+void *ir_tcl_malloc (size_t size);
+void ir_tcl_select_set (void (*f)(ClientData clientData, int r, int w, int e),
+                        int fd, ClientData clientData, int r, int w, int e);
 #endif

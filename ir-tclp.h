@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.25  1996-02-05 17:58:04  adam
+ * Revision 1.26  1996-02-21 10:16:20  adam
+ * Simplified select handling. Only one function ir_tcl_select_set has
+ * to be externally defined.
+ *
+ * Revision 1.25  1996/02/05  17:58:04  adam
  * Ported ir-tcl to use the beta releases of tcl7.5/tk4.1.
  *
  * Revision 1.24  1996/01/29  11:35:27  adam
@@ -329,7 +333,6 @@ int ir_tcl_send_APDU (Tcl_Interp *interp, IrTcl_Obj *p, Z_APDU *apdu,
                       const char *msg, const char *object_name);
 int ir_tcl_send_q (IrTcl_Obj *p, IrTcl_Request *rq, const char *msg);
 void ir_tcl_del_q (IrTcl_Obj *p);
-void *ir_tcl_malloc (size_t size);
 int ir_tcl_strdup (Tcl_Interp *interp, char** p, const char *s);
 int ir_tcl_strdel (Tcl_Interp *interp, char **p);
 
@@ -337,6 +340,11 @@ char *ir_tcl_fread_marc (FILE *inf, size_t *size);
 void ir_tcl_read_grs (Z_GenericRecord *r, IrTcl_GRS_Record **grs_record);
 int ir_tcl_get_grs (Tcl_Interp *interp, IrTcl_GRS_Record *grs_record, 
                      int argc, char **argv);
+
+void ir_select_add (int fd, void *obj);
+void ir_select_add_write (int fd, void *obj);
+void ir_select_remove (int fd, void *obj);
+void ir_selcet_remove_write (int fd, void *obj);
 
 #define IR_TCL_FAIL_CONNECT      1
 #define IR_TCL_FAIL_READ         2

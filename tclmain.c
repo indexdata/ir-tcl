@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: tclmain.c,v $
- * Revision 1.16  1996-02-05 17:58:05  adam
+ * Revision 1.17  1996-02-21 10:16:21  adam
+ * Simplified select handling. Only one function ir_tcl_select_set has
+ * to be externally defined.
+ *
+ * Revision 1.16  1996/02/05  17:58:05  adam
  * Ported ir-tcl to use the beta releases of tcl7.5/tk4.1.
  *
  * Revision 1.15  1996/01/10  09:18:45  adam
@@ -71,10 +75,9 @@ static char *fileName = NULL;
 
 /* select(2) callbacks */
 struct callback {
-    void (*r_handle)(ClientData);
-    void (*w_handle)(ClientData);
-    void (*x_handle)(ClientData);
-    void *obj;
+    void (*handle)(ClientData, int, int, int);
+    int r, w, e;
+    ClientData obj;
 };
 #define MAX_CALLBACK 200
 
@@ -107,11 +110,7 @@ int main (int argc, char **argv)
         fprintf(stderr, "Tcl_AppInit failed: %s\n", interp->result);
     }
     for (i=0; i<MAX_CALLBACK; i++)
-    {
-        callback_table[i].r_handle = NULL;
-        callback_table[i].w_handle = NULL;
-        callback_table[i].x_handle = NULL;
-    }
+        callback_table[i].handle = NULL;
     if (fileName)
     {
         code = Tcl_EvalFile (interp, fileName);
@@ -177,17 +176,17 @@ void tcl_mainloop (Tcl_Interp *interp, int interactive)
             FD_SET (0, &fdset_tcl_r);
         for (res=0, i=min_fd; i<=max_fd; i++)
         {
-            if (callback_table[i].w_handle)
+            if (callback_table[i].handle && callback_table[i].w)
             {
                 FD_SET (i, &fdset_tcl_w);
                 res++;
             }
-            if (callback_table[i].r_handle)
+            if (callback_table[i].handle && callback_table[i].r)
             {
                 FD_SET (i, &fdset_tcl_r);
                 res++;
             }
-            if (callback_table[i].x_handle)
+            if (callback_table[i].handle && callback_table[i].e)
             {
                 FD_SET (i, &fdset_tcl_x);
                 res++;
@@ -205,21 +204,21 @@ void tcl_mainloop (Tcl_Interp *interp, int interactive)
             continue;
         for (i=min_fd; i<=max_fd; i++)
         {
-            if (FD_ISSET (i, &fdset_tcl_r))
-            {
-                if (callback_table[i].r_handle)
-                    (*callback_table[i].r_handle) (callback_table[i].obj);
-            }
-            if (FD_ISSET (i, &fdset_tcl_w))
-            {
-                if (callback_table[i].w_handle)
-                    (*callback_table[i].w_handle) (callback_table[i].obj);
-            }
-            if (FD_ISSET (i, &fdset_tcl_x))
-            {
-                if (callback_table[i].x_handle)
-                    (*callback_table[i].x_handle) (callback_table[i].obj);
-            }
+            int r_flag = 0;
+            int w_flag = 0;
+            int e_flag = 0;
+
+            if (!callback_table[i].handle)
+                continue;
+            if (FD_ISSET (i, &fdset_tcl_r) && callback_table[i].r)
+                r_flag = 1;
+            if (FD_ISSET (i, &fdset_tcl_w) && callback_table[i].w)
+                w_flag = 1;
+            if (FD_ISSET (i, &fdset_tcl_x) && callback_table[i].e)
+                e_flag = 1;
+            if (r_flag || w_flag || e_flag)
+                (*callback_table[i].handle)(callback_table[i].obj,
+                 r_flag, w_flag, e_flag);
         }
         if (interactive && FD_ISSET(0, &fdset_tcl_r))
         {
@@ -243,55 +242,15 @@ void tcl_mainloop (Tcl_Interp *interp, int interactive)
     }
 }
 
-#if IRTCL_GENERIC_FILES
-void ir_select_add (Tcl_File file, void *obj)
+void ir_tcl_select_set (void (*f)(ClientData clientData, int r, int w, int e),
+                        int fd, ClientData clientData, int r, int w, int e)
 {
-    int fd = (int) Tcl_GetFileInfo (file, NULL);
-#else
-void ir_select_add (int fd, void *obj)
-{
-#endif
-    callback_table[fd].obj = obj;
-    callback_table[fd].r_handle = ir_select_read;
-    callback_table[fd].w_handle = NULL;
-    callback_table[fd].x_handle = NULL;
+    callback_table[fd].handle = f;
+    callback_table[fd].obj = clientData;
+    callback_table[fd].r = r;
+    callback_table[fd].w = w;
+    callback_table[fd].e = e;
     if (fd > max_fd)
         max_fd = fd;
 }
 
-#if IRTCL_GENERIC_FILES
-void ir_select_add_write (Tcl_File file, void *obj)
-{
-    int fd = (int) Tcl_GetFileInfo (file, NULL);
-#else
-void ir_select_add_write (int fd, void *obj)
-{
-#endif
-    callback_table[fd].w_handle = ir_select_write;
-    if (fd > max_fd)
-        max_fd = fd;
-}
-
-#if IRTCL_GENERIC_FILES
-void ir_select_remove_write (Tcl_File file, void *obj)
-{
-    int fd = (int) Tcl_GetFileInfo (file, NULL);
-#else
-void ir_select_remove_write (int fd, void *obj)
-{
-#endif
-    callback_table[fd].w_handle = NULL;
-}
-
-#if IRTCL_GENERIC_FILES
-void ir_select_remove (Tcl_File file, void *obj)
-{
-    int fd = (int) Tcl_GetFileInfo (file, NULL);
-#else
-void ir_select_remove (int fd, void *obj)
-{
-#endif
-    callback_table[fd].r_handle = NULL;
-    callback_table[fd].w_handle = NULL;
-    callback_table[fd].x_handle = NULL;
-}

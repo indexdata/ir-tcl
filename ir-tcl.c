@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.77  1996-02-20 17:52:58  adam
+ * Revision 1.78  1996-02-21 10:16:08  adam
+ * Simplified select handling. Only one function ir_tcl_select_set has
+ * to be externally defined.
+ *
+ * Revision 1.77  1996/02/20  17:52:58  adam
  * Uses the YAZ oid system to name record syntax object identifiers.
  *
  * Revision 1.76  1996/02/20  16:09:51  adam
@@ -281,6 +285,8 @@
 
 #define CS_BLOCK 0
 
+#define IRTCL_GENERIC_FILES 0
+
 #include "ir-tclp.h"
 
 typedef struct {
@@ -297,6 +303,28 @@ typedef struct {
 static void ir_deleteDiags (IrTcl_Diagnostic **dst_list, int *dst_num);
 static int do_disconnect (void *obj, Tcl_Interp *interp, 
                           int argc, char **argv);
+
+static void ir_select_notify (ClientData clientData, int r, int w, int e);
+
+void ir_select_add (int fd, void *obj)
+{
+    ir_tcl_select_set (ir_select_notify, fd, obj, 1, 0, 0);
+}
+
+void ir_select_add_write (int fd, void *obj)
+{
+    ir_tcl_select_set (ir_select_notify, fd, obj, 1, 1, 0);
+}
+
+void ir_select_remove (int fd, void *obj)
+{
+    ir_tcl_select_set (NULL, fd, obj, 0, 0, 0);
+}
+
+void ir_select_remove_write (int fd, void *obj)
+{
+    ir_tcl_select_set (ir_select_notify, fd, obj, 1, 0, 0);
+}
 
 static IrTcl_RecordList *new_IR_record (IrTcl_SetObj *setobj, 
                                         int no, int which, 
@@ -3367,7 +3395,7 @@ static void ir_scanResponse (void *o, Z_ScanResponse *scanrs,
 /*
  * ir_select_read: handle incoming packages
  */
-void ir_select_read (ClientData clientData)
+static void ir_select_read (ClientData clientData)
 {
     IrTcl_Obj *p = clientData;
     Z_APDU *apdu;
@@ -3541,7 +3569,7 @@ void ir_select_read (ClientData clientData)
 /*
  * ir_select_write: handle outgoing packages - not yet written.
  */
-void ir_select_write (ClientData clientData)
+static void ir_select_write (ClientData clientData)
 {
     IrTcl_Obj *p = clientData;
     int r;
@@ -3608,6 +3636,14 @@ void ir_select_write (ClientData clientData)
         free (rq->buf_out);
         rq->buf_out = NULL;
     }
+}
+
+static void ir_select_notify (ClientData clientData, int r, int w, int e)
+{
+    if (r)
+        ir_select_read (clientData);
+    if (w)
+        ir_select_write (clientData);
 }
 
 /* ------------------------------------------------------- */
