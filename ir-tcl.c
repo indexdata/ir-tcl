@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.37  1995-06-01 07:31:20  adam
+ * Revision 1.38  1995-06-01 16:36:47  adam
+ * About buttons. Minor bug fixes.
+ *
+ * Revision 1.37  1995/06/01  07:31:20  adam
  * Rename of many typedefs -> IrTcl_...
  *
  * Revision 1.36  1995/05/31  13:09:59  adam
@@ -1507,7 +1510,7 @@ static int do_setName (void *o, Tcl_Interp *interp,
  * do_numberOfRecordsReturned: Get number of records returned
  */
 static int do_numberOfRecordsReturned (void *o, Tcl_Interp *interp,
-		       int argc, char **argv)
+                                       int argc, char **argv)
 {
     IrTcl_SetObj *obj = o;
 
@@ -1517,9 +1520,9 @@ static int do_numberOfRecordsReturned (void *o, Tcl_Interp *interp,
 }
 
 /*
- * do_recordType: Return record type (if any) at position.
+ * do_type: Return type (if any) at position.
  */
-static int do_recordType (void *o, Tcl_Interp *interp, int argc, char **argv)
+static int do_type (void *o, Tcl_Interp *interp, int argc, char **argv)
 {
     IrTcl_SetObj *obj = o;
     int offset;
@@ -1548,24 +1551,25 @@ static int do_recordType (void *o, Tcl_Interp *interp, int argc, char **argv)
     switch (rl->which)
     {
     case Z_NamePlusRecord_databaseRecord:
-        interp->result = "databaseRecord";
+        interp->result = "DB";
         break;
     case Z_NamePlusRecord_surrogateDiagnostic:
-        interp->result = "surrogateDiagnostic";
+        interp->result = "SD";
         break;
     }
     return TCL_OK;
 }
 
 /*
- * do_recordDiag: Return diagnostic record info
+ * do_diag: Return diagnostic record info
  */
-static int do_recordDiag (void *o, Tcl_Interp *interp, int argc, char **argv)
+static int do_diag (void *o, Tcl_Interp *interp, int argc, char **argv)
 {
     IrTcl_SetObj *obj = o;
     int offset;
     IrTcl_RecordList *rl;
     char buf[20];
+    const char *cp;
 
     if (argc <= 0)
         return TCL_OK;
@@ -1587,10 +1591,18 @@ static int do_recordDiag (void *o, Tcl_Interp *interp, int argc, char **argv)
         Tcl_AppendResult (interp, "No Diagnostic record at #", argv[2], NULL);
         return TCL_ERROR;
     }
+
     sprintf (buf, "%d", rl->u.diag.condition);
-    Tcl_AppendResult (interp, buf, " {", 
-                      (rl->u.diag.addinfo ? rl->u.diag.addinfo : ""),
-                      "}", NULL);
+    Tcl_AppendElement (interp, buf);
+    cp = diagbib1_str (rl->u.diag.condition);
+    if (cp)
+        Tcl_AppendElement (interp, (char*) cp);
+    else
+        Tcl_AppendElement (interp, "");
+    if (rl->u.diag.addinfo)
+        Tcl_AppendElement (interp, (char*) rl->u.diag.addinfo);
+    else
+        Tcl_AppendElement (interp, "");
     return TCL_OK;
 }
 
@@ -1787,9 +1799,9 @@ static IrTcl_Method ir_set_method_tab[] = {
     { 0, "resultCount",             do_resultCount },
     { 0, "numberOfRecordsReturned", do_numberOfRecordsReturned },
     { 0, "present",                 do_present },
-    { 0, "recordType",              do_recordType },
+    { 0, "type",                    do_type },
     { 0, "getMarc",                 do_getMarc },
-    { 0, "Diag",                    do_recordDiag },
+    { 0, "diag",                    do_diag },
     { 0, "responseStatus",          do_responseStatus },
     { 0, "loadFile",                do_loadFile },
     { 0, NULL, NULL}

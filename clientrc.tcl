@@ -1,11 +1,11 @@
 # Setup file
-set hotTargets { RLG LOC ztest Penn DANBIB dranet Aleph CARL OCLC IREG Innovative CNIDR CLSI AULS Nsrtest                               }
+set hotTargets { dranet RLG ztest LOC Penn DANBIB Aleph CARL OCLC IREG Innovative CNIDR CLSI AULS Nsrtest                                         }
 set profile(CNIDR) {CNIDR Kudzu.cnidr.org 5556 {} 16384 8192 tcpip {Book ERIC} 1 {} {} z39v2}
 set profile(Penn) {{Penn State's Library} 128.118.88.200 210 {} 16384 8192 tcpip CATALOG 1 {} {} z39v2}
-set profile(ztest) {{test server} localhost 9999 {} 16384 8192 tcpip dummy 1 {} {} z39v2}
+set profile(ztest) {{test server} localhost 9999 {} 16384 4096 tcpip dummy 1 {} {} z39v2}
 set profile(Nsrtest) {{NSR in house.} localhost 4500 {} 16384 8192 mosi x 1 {} {} sr}
 set profile(Default) {{} {} {210} {} 16384 8192 tcpip {} }
-set profile(RLG) {{Research Libraries group} rlg.stanford.edu 210 {} 16384 2048 tcpip {BKS AMC MAPS MDF REC SCO SER VIM NAF SAF AUT CATALOG ABI AVI DSA EIP FLP HAP HST NPA PAI PRA WLI} 1 {} {} z39v2}
+set profile(RLG) {{Research Libraries group} rlg.stanford.edu 210 {} 16384 16384 tcpip {BKS AMC MAPS MDF REC SCO SER VIM NAF SAF AUT CATALOG ABI AVI DSA EIP FLP HAP HST NPA PAI PRA WLI} 1 {} {} z39v2}
 set profile(LOC) {{Library of Congress} IBM2.LOC.gov 210 {} 16384 16384 tcpip {BOOKS NAMES} 1 {} 0 z39v2}
 set profile(IREG) {{Internet Resource} frost.notis.com 210 {} 16384 8192 tcpip {IREG ERIC} 1 {} {} z39v2}
 set profile(DANBIB) {{SR Target DANBIB} 0103/find2.denet.dk 4500 {} 8192 8192 mosi danbib 1 {} 1 z39v2}

@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.25  1995-05-31 13:09:57  adam
+# Revision 1.26  1995-06-01 16:36:46  adam
+# About buttons. Minor bug fixes.
+#
+# Revision 1.25  1995/05/31  13:09:57  adam
 # Client searches/presents may be interrupted.
 # New moving book-logo.
 #
@@ -93,6 +96,7 @@ set settingsChanged 0
 set setNo 0
 set cancelFlag 0
 set searchEnable 0
+set fullMarcSeq 0
 
 set queryTypes {Simple}
 set queryButtons { { {I 0} {I 1} {I 2} } }
@@ -118,22 +122,21 @@ proc top-down-window {w} {
 
 proc top-down-ok-cancel {w ok-action g} {
     frame $w.bot.left -relief sunken -border 1
-    pack $w.bot.left -side left -expand yes -padx 5 -pady 5
+    pack $w.bot.left -side left -expand yes -ipadx 2 -ipady 2 -padx 5 -pady 5
     button $w.bot.left.ok -width 6 -text {Ok} \
             -command ${ok-action}
-    pack $w.bot.left.ok -expand yes -padx 3 -pady 3
+    pack $w.bot.left.ok -expand yes -ipadx 2 -ipady 2 -padx 3 -pady 3
     button $w.bot.cancel -width 6 -text {Cancel} \
             -command "destroy $w"
     pack $w.bot.cancel -side left -expand yes    
 
     if {$g} {
-        # Grab ...
         grab $w
         tkwait window $w
     }
 }
 
-proc top-down-ok-cancelx {w buttonList g} {
+proc bottom-buttons {w buttonList g} {
     set i 0
     set l [llength $buttonList]
 
@@ -141,19 +144,15 @@ proc top-down-ok-cancelx {w buttonList g} {
     pack $w.bot.$i -side left -expand yes -padx 5 -pady 5
     button $w.bot.$i.ok -text [lindex $buttonList $i] \
             -command [lindex $buttonList [expr $i+1]]
-    pack $w.bot.$i.ok -expand yes -padx 3 -pady 3 -side left
+    pack $w.bot.$i.ok -expand yes -ipadx 2 -ipady 2 -padx 3 -pady 3 -side left
 
     incr i 2
     while {$i < $l} {
         button $w.bot.$i -text [lindex $buttonList $i] \
                 -command [lindex $buttonList [expr $i+1]]
-        pack $w.bot.$i -expand yes -padx 3 -pady 3 -side left
+        pack $w.bot.$i -expand yes -ipadx 2 -ipady 2 -padx 3 -pady 3 -side left
         incr i 2
     }
-    button $w.bot.cancel -width 6 -text {Cancel} \
-            -command "destroy $w"
-    pack $w.bot.cancel -side left -expand yes    
-    
     if {$g} {
         # Grab ...
         grab $w
@@ -163,13 +162,16 @@ proc top-down-ok-cancelx {w buttonList g} {
 
 proc cancel-operation {} {
     global cancelFlag
+    global busy
 
     set cancelFlag 1
-    show-status Cancelled 0 {}
+    if {$busy} {
+        show-status Cancelled 0 {}
+    }
 }
 
 proc show-target {target} {
-    .bot.target configure -text "$target"
+    .bot.a.target configure -text "$target"
 }
 
 proc show-logo {v1} {
@@ -179,17 +181,17 @@ proc show-logo {v1} {
         if {$v1==0} {
             set v1 9
         }
-        .mid.logo configure -bitmap @book${v1}
+        .bot.logo configure -bitmap @book${v1}
         after 140 [list show-logo $v1]
         return
     }
     while {1} {
+        .bot.logo configure -bitmap @book1
         tkwait variable busy
         if {$busy} {
             show-logo 1
             return
         }
-        .mid.logo configure -bitmap @book1
     }
 }
         
@@ -197,7 +199,7 @@ proc show-status {status b sb} {
     global busy
     global searchEnable
 
-    .bot.status configure -text "$status"
+    .bot.a.status configure -text "$status"
     if {$b == 1} {
         if {$busy == 0} {set busy 1}
     } else {
@@ -222,7 +224,7 @@ proc show-status {status b sb} {
 }
 
 proc show-message {msg} {
-    .bot.message configure -text "$msg"
+    .bot.a.message configure -text "$msg"
 }
 
 proc insertWithTags {w text args} {
@@ -236,11 +238,59 @@ proc insertWithTags {w text args} {
     }
 }
 
-proc show-full-marc {no} {
+proc about-target {} {
+    set w .about-target-w
+
+    toplevel $w
+
+    wm title $w "About target"
+    place-force $w .
+    top-down-window $w
+
+    set i [z39 targetImplementationName]
+    label $w.top.in -text "Implementation name: $i"
+    set i [z39 targetImplementationId]
+    label $w.top.ii -text "Implementation id: $i"
+    set i [z39 targetImplementationVersion]
+    label $w.top.iv -text "Implementation version: $i"
+
+    pack $w.top.in $w.top.ii $w.top.iv -side top -anchor nw
+
+    bottom-buttons $w [list {Close} [list destroy $w]] 1
+}
+
+proc about-origin {} {
+    set w .about-origin-w
+
+    toplevel $w
+
+    wm title $w "About IrTcl"
+    place-force $w .
+    top-down-window $w
+
+    set i [z39 implementationName]
+    label $w.top.in -text "Implementation name: $i"
+    set i [z39 implementationId]
+    label $w.top.ii -text "Implementation id: $i"
+
+    pack $w.top.in $w.top.ii -side top -anchor nw
+
+    bottom-buttons $w [list {Close} [list destroy $w]] 1
+}
+
+proc show-full-marc {no b} {
     global setNo
+    global fullMarcSeq
 
-    set w .full-marc
-
+    if {[z39.$setNo type $no] != "DB"} {
+        return
+    }
+    if {$b} {
+        set w .full-marc-$fullMarcSeq
+        incr fullMarcSeq
+    } else {
+        set w .full-marc
+    }
     if {[winfo exists $w]} {
         $w.top.record delete 0.0 end
         set new 0
@@ -248,7 +298,7 @@ proc show-full-marc {no} {
 
         toplevel $w
 
-        wm minsize $w 200 200
+        wm minsize $w 0 0
         
         frame $w.top -relief raised -border 1
         frame $w.bot -relief raised -border 1
@@ -262,8 +312,6 @@ proc show-full-marc {no} {
 
         set new 1
     }
-    incr no
-    
     set r [z39.$setNo getMarc $no list * * *]
 
     $w.top.record tag configure marc-tag -foreground blue
@@ -296,15 +344,10 @@ proc show-full-marc {no} {
         
         pack $w.top.s -side right -fill y
         pack $w.top.record -expand yes -fill both
-        
-        frame $w.bot.left -relief sunken -border 1
-        pack $w.bot.left -side left -expand yes -padx 5 -pady 5
-        button $w.bot.left.close -width 6 -text {Close} \
-                -command {destroy .full-marc}
-        pack $w.bot.left.close -expand yes -padx 3 -pady 3
-        button $w.bot.edit -width 6 -text {Edit} \
-                -command {destroy .full-marc}
-        pack $w.bot.edit -side left -expand yes
+
+        bottom-buttons $w [list \
+                {Close} [list destroy $w] \
+                {Duplicate} [list show-full-marc $no 1]] 0
     }
 }
 
@@ -313,7 +356,7 @@ proc update-target-hotlist {target} {
 
     set len [llength $hotTargets]
     if {$len > 0} {
-        .top.target.m delete 5 [expr 5+[llength $hotTargets]]
+        .top.target.m delete 6 [expr 6+[llength $hotTargets]]
     }
     set indx [lsearch $hotTargets $target]
     if {$indx >= 0} {
@@ -398,6 +441,7 @@ proc open-target {target base} {
     set hostid $target
     .top.target.m disable 0
     .top.target.m enable 1
+    .top.target.m enable 2
 }
 
 proc close-target {} {
@@ -407,12 +451,12 @@ proc close-target {} {
     set cancelFlag 0
     set hostid Default
     z39 disconnect
-    show-target {None}
+    show-target {}
     show-status {Not connected} 0 0
     show-message {}
     .top.target.m disable 1
+    .top.target.m disable 2
     .top.target.m enable 0
-    .mid.logo configure -bitmap @book1
 }
 
 proc load-set-action {} {
@@ -478,7 +522,6 @@ proc init-response {} {
         return
     }
     show-status {Ready} 0 1
-    .mid.logo configure -bitmap @book1
     if {![z39 initResult]} {
         set u [z39 userInformationField]
         close-target
@@ -551,7 +594,7 @@ proc scan-request {} {
         pack $w.top.scroll -side right -fill y
         $w.top.scroll config -command [list $w.top.list yview]
 
-        top-down-ok-cancelx $w [list {Close} [list destroy $w]] 0 
+        bottom-buttons $w [list {Close} [list destroy $w]] 0 
     }
     z39.scan numberOfTermsRequested 100
     z39.scan scan "@attr 1=4 0"
@@ -582,13 +625,8 @@ proc search-response {} {
     puts "In search-response"
     init-title-lines
     show-status {Ready} 0 1
-    if {$cancelFlag} {
-        set cancelFlag 0
-        return
-    }
     show-message "[z39.$setNo resultCount] hits"
     set setMax [z39.$setNo resultCount]
-    puts $setMax
     if {$setMax == 0} {
         set status [z39.$setNo responseStatus]
         if {[lindex $status 0] == "NSD"} {
@@ -599,12 +637,16 @@ proc search-response {} {
         }
         return
     }
-    if {$setMax > 10} {
-        set setMax 10
+    if {$setMax > 20} {
+        set setMax 20
+    }
+    set setOffset 1
+    if {$cancelFlag} {
+        set cancelFlag 0
+        return
     }
     z39 callback {present-response}
-    set setOffset 1
-    z39.$setNo present $setOffset $setMax
+    z39.$setNo present $setOffset 1
     show-status {Retrieve} 1 0
 }
 
@@ -621,15 +663,18 @@ proc present-more {number} {
     if {$max <= $setMax} {
         return
     }
-    puts "max=$max"
-    puts "setOffset=$setOffset"
     if {$number == ""} {
         set setMax $max
     } else {
         incr setMax $number
     }
     z39 callback {present-response}
-    z39.$setNo present $setOffset [expr $setMax - $setOffset + 1]
+
+    set toGet [expr $setMax - $setOffset + 1]
+    if {$toGet > 3} {
+        set toGet 3
+    }
+    z39.$setNo present $setOffset $toGet
     show-status {Retrieve} 1 0
 }
 
@@ -640,10 +685,22 @@ proc init-title-lines {} {
 proc add-title-lines {setno no offset} {
     for {set i 0} {$i < $no} {incr i} {
         set o [expr $i + $offset]
-        set title [lindex [z39.$setno getMarc $o field 245 * a] 0]
-        set year  [lindex [z39.$setno getMarc $o field 260 * c] 0]
-        set nostr [format "%5d" $o]
-        .data.list insert end "$nostr $title - $year"
+        set type [z39.$setno type $o]
+        if {$type == "DB"} {
+            set title [lindex [z39.$setno getMarc $o field 245 * a] 0]
+            set year  [lindex [z39.$setno getMarc $o field 260 * c] 0]
+            set nostr [format "%5d" $o]
+            .data.list insert end "$nostr $title - $year"
+        } elseif {$type == "SD"} {
+            set err [lindex [z39.$setno diag $o] 1]
+            set add [lindex [z39.$setno diag $o] 2]
+            if {$add != {}} {
+                set add " :${add}"
+            }
+            .data.list insert end "Error ${err}${add}"
+        } elseif {$type == ""} {
+            .data.list insert end "empty"
+        }
     }
 }
 
@@ -673,7 +730,12 @@ proc present-response {} {
         return
     }
     if {$no > 0 && $setOffset <= $setMax} {
-        z39.$setNo present $setOffset [expr $setMax - $setOffset + 1]
+        puts "present from ${setOffset}"
+        set toGet [expr $setMax - $setOffset + 1]
+        if {$toGet > 3} {
+            set toGet 3
+        }
+        z39.$setNo present $setOffset $toGet
     } else {
         show-status {Finished} 0 1
     }
@@ -1375,11 +1437,12 @@ proc query-setup {queryNo} {
     pack $w.top.completeness.label $w.top.completeness.b -fill x
 
     # Ok-cancel
-    top-down-ok-cancelx $w [list \
+    bottom-buttons $w [list \
             {Ok} [list query-setup-action $queryNo] \
             {Add index} [list query-add-index $queryNo] \
             {Add line} [list query-add-line $queryNo] \
-            {Delete line} [list query-del-line $queryNo]] 0
+            {Delete line} [list query-del-line $queryNo] \
+            {Cancel} [list destroy $w]] 0
 }
 
 proc index-clear {} {
@@ -1518,18 +1581,21 @@ menu .top.file.m
 .top.file.m add command -label "Load Set" -command {load-set}
 .top.file.m add separator
 .top.file.m add command -label "Exit" -command {exit-action}
+.top.file.m add separator
+.top.file.m add command -label "About" -command {about-origin}
 
 menubutton .top.target -text "Target" -underline 0 -menu .top.target.m
 menu .top.target.m
 .top.target.m add cascade -label "Connect" -menu .top.target.m.clist
 .top.target.m add command -label "Disconnect" -command {close-target}
-#.top.target.m add command -label "Initialize" -command {init-request}
+.top.target.m add command -label "About" -command {about-target}
 .top.target.m add cascade -label "Setup" -menu .top.target.m.slist
 .top.target.m add command -label "Setup new" -command {define-target-dialog}
 .top.target.m add separator
 set-target-hotlist
 
 .top.target.m disable 1
+.top.target.m disable 2
 
 menu .top.target.m.clist
 menu .top.target.m.slist
@@ -1581,27 +1647,32 @@ button .mid.clear -width 7 -text {Clear} -command index-clear
 pack .mid.search .mid.scan .mid.present .mid.clear -side left \
         -fill y -padx 5 -pady 3
 
-button .mid.logo  -bitmap @book1 -command cancel-operation
-pack .mid.logo -side right -pady 3
-
 listbox .data.list -yscrollcommand {.data.scroll set} -font fixed
 scrollbar .data.scroll -orient vertical -border 1
 pack .data.list -side left -fill both -expand yes
 pack .data.scroll -side right -fill y
 .data.scroll config -command {.data.list yview}
 
-message .bot.target -text "None" -aspect 1000 -relief sunken -border 1
-label .bot.status -text "Not connected" -width 12 -relief \
+button .bot.logo  -bitmap @book1 -command cancel-operation
+frame .bot.a
+pack .bot.a -side left -fill x
+pack .bot.logo -side right -padx 2 -pady 2
+
+message .bot.a.target -text "" -aspect 1000 -border 1
+
+label .bot.a.status -text "Not connected" -width 15 -relief \
         sunken -anchor w -border 1
-label .bot.set -textvariable setNo -width 5 -relief \
+label .bot.a.set -textvariable setNo -width 5 -relief \
         sunken -anchor w -border 1
-label .bot.message -text "" -width 14 -relief \
+label .bot.a.message -text "" -width 15 -relief \
         sunken -anchor w -border 1
-pack .bot.target .bot.status .bot.set .bot.message -anchor nw \
+
+pack .bot.a.target -side top -anchor nw -padx 2 -pady 2
+pack .bot.a.status .bot.a.set .bot.a.message \
         -side left -padx 2 -pady 2
 
 bind .data.list <Double-Button-1> {set indx [.data.list nearest %y]
-show-full-marc $indx}
+show-full-marc [incr indx] 0}
 
 ir z39
 
