@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.30 1997-04-13 19:00:34 adam Exp $
+$Id: CHANGELOG,v 1.31 1997-04-13 19:05:26 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -114,7 +114,7 @@ $Id: CHANGELOG,v 1.30 1997-04-13 19:00:34 adam Exp $
 
 11/14/96 Added some Explain documentation.
 
-04/13/96 Added support for Tcl8.0/Tk8.0.
+04/13/97 Added support for Tcl8.0/Tk8.0.
 
-04/13/96 Added ir-log-init command.
+04/13/97 Added ir-log-init command.
 
