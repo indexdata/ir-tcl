@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.58  1995-06-29 12:34:06  adam
+# Revision 1.59  1995-06-29 14:06:25  adam
+# Another bug in install fixed. Configure searches for more versions of yaz.
+#
+# Revision 1.58  1995/06/29  12:34:06  adam
 # IrTcl now works with both tk4.0b4/tcl7.4b4 and tk3.6/tcl7.3
 #
 # Revision 1.57  1995/06/29  09:20:30  adam
@@ -206,7 +209,12 @@
 #
 #
 
-set tk4 0
+if {$tk_version == "3.6"} {
+    set tk4 0
+} else {
+    set tk4 1
+}
+
 if {$tk4} {
     proc configure-enable-e {w n} {
         incr n
@@ -239,7 +247,7 @@ if {! $tk4} {
 
 set libdir LIBDIR
 if {[file readable bitmaps/book2]} {
-	set libdir .
+    set libdir .
 }
 if {! [file readable ${libdir}/bitmaps/book2]} {
     puts "Cannot locate system files in ${libdir}. You must either run this"
@@ -275,7 +283,6 @@ wm minsize . 0 0
 set setOffset 0
 set setMax 0
 
-if {0} {
 proc tkerror err {
     set w .tkerrorw
 
@@ -290,11 +297,10 @@ proc tkerror err {
 
     label $w.top.b -bitmap error
     message $w.top.t -aspect 300 -text "Error: $err" \
-            -font -Adobe-Helvetica-Bold-R-Normal-*-240-*
+            -font -Adobe-Helvetica-Bold-R-Normal-*-200-*
     pack $w.top.b $w.top.t -side left -padx 10 -pady 10
 
     bottom-buttons $w [list {Close} [list destroy $w]] 1
-}
 }
 
 proc read-formats {} {
@@ -1551,7 +1557,7 @@ proc bind-fields {list returnAction escapeAction} {
     bind [lindex $list $i] <Return> $returnAction
     bind [lindex $list $i] <Escape> $escapeAction
     if {!$tk4} {
-        bind [lindex $list $i] <Tab>    [list focus [lindex $list 0]]
+        bind [lindex $list $i] <Tab>  [list focus [lindex $list 0]]
         bind [lindex $list $i] <Left> [list left-cursor [lindex $list $i]]
         bind [lindex $list $i] <Right> [list right-cursor [lindex $list $i]]
     }

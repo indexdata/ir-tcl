@@ -1,9 +1,10 @@
 dnl IR toolkit for tcl/tk
 dnl (c) Index Data 1995
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.5 1995-06-23 10:58:11 adam Exp $
-AC_INIT(README)
-AC_PROG_CC
+dnl $Id: configure.in,v 1.6 1995-06-29 14:06:26 adam Exp $
+AC_INIT(ir-tcl.h)
+CC=${CC-cc}
+AC_SUBST(CC)
 AC_PROG_RANLIB
 AC_PROG_INSTALL
 checkBoth=0
@@ -34,10 +35,12 @@ AC_ARG_WITH(yazdir,[  --with-yazdir           Yaz directory], [YAZDIR=$withval])
 if test "$YAZDIR" = "yes"; then
 	YAZDIR="../yaz-1.0b"
 elif test "$YAZDIR" = ""; then
-	YAZDIR="../yaz-1.0b"
-	if test -d "../yaz"; then
-		YAZDIR="../yaz"
-	fi
+        YAZDIR="../yaz"
+        for i in ../yaz-1.0b3 ../yaz-1.0b2 ../yaz-1.0b1 ../yaz-1.0b ../yaz; do
+            if test -d $i; then
+                YAZDIR=$i
+            fi
+        done
 fi
 AC_MSG_RESULT($YAZDIR)
 if test ! -d $YAZDIR; then

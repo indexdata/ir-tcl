@@ -2,7 +2,7 @@
 # (c) Index Data 1995
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.12 1995-06-29 12:34:06 adam Exp $
+# $Id: Makefile.in,v 1.13 1995-06-29 14:06:24 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -41,7 +41,7 @@ MOSILIB=@MOSILIB@
 YAZLIB=$(YAZDIR)/lib/libyaz.a $(MOSILIB) $(YAZDIR)/lib/libutil.a
 
 # All include paths
-INCLUDE=-I$(YAZDIR)/include $(XINCLUDE) -I$(MOSIDIR)
+INCLUDE=-I$(YAZDIR)/include $(XINCLUDE) -I$(MOSIDIR) -I/usr/local/include
 
 # All command line options except CFLAGS
 DEFS=-DCCL2RPN=0 @DEFS@ -DMOSI=@MOSI@ -DIRTCLDIR=\"$(IRTCLDIR)\" \
@@ -90,7 +90,9 @@ install: ir-tcl
 		cat head.bak client.tcl| sed "s,^set libdir LIBDIR,set libdir $(IRTCLDIR)," >client.bak; \
 		$(INSTALL_PROGRAM) client.bak $(BINDIR)/irclient; \
 		echo "Installing clientrc.tcl" ; \
-		$(INSTALL_DATA) LICENSE clientrc.tcl $(IRTCLDIR); \
+		$(INSTALL_DATA) clientrc.tcl $(IRTCLDIR); \
+		echo "Installing LICENSE" ; \
+		$(INSTALL_DATA) LICENSE $(IRTCLDIR); \
 		echo "Installing display format scripts"; \
 		for b in formats/*.tcl; do \
 			if [ -f $$b ]; then \
