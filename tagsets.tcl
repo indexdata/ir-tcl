@@ -1,5 +1,5 @@
 # TagSet definition file
-# $Id: tagsets.tcl,v 1.1 1996-03-29 16:04:32 adam Exp $
+# $Id: tagsets.tcl,v 1.2 1996-04-12 13:45:42 adam Exp $
 #
 
 # TagSet-M
@@ -45,3 +45,48 @@ set tagSet(2,16) country
 set tagSet(2,17) description
 set tagSet(2,18) time
 set tagSet(2,19) documentcontent
+
+set tagSet(4,1) controlIdentifier
+set tagSet(4,2) streetAddress
+set tagSet(4,3) city
+set tagSet(4,4) state
+set tagSet(4,5) zipcode
+set tagSet(4,6) hoursOfService
+set tagSet(4,7) resourceDescription
+set tagSet(4,8) technicalPrerequisites
+set tagSet(4,9) westernMost/westBoundingCoordinate
+set tagSet(4,10) easternMost/eastBoundingCoordinate
+set tagSet(4,11) northernMost/northBoundingCoordinate
+set tagSet(4,12) southernMost/southBoundingCoordinate
+set tagSet(4,13) geographicKeywordName
+set tagSet(4,14) geographicKeywordType
+set tagSet(4,15) timePeriodStructured
+set tagSet(4,16) timePeriodTextual
+set tagSet(4,17) linkage
+set tagSet(4,18) linkageType
+set tagSet(4,19) recordSource
+set tagSet(4,20) controlledTerm/ct
+set tagSet(4,21) thesaurus
+set tagSet(4,22) localSubjectTerm/lst
+set tagSet(4,23) originalControlIdentifier
+
+set tagSet(4,51) purpose
+set tagSet(4,52) originator
+set tagSet(4,53) accessConstraints
+set tagSet(4,54) useConstraints
+set tagSet(4,55) orderProcess   
+set tagSet(4,56) agencyProgram
+set tagSet(4,57) sourcesOfData
+set tagSet(4,58) methodology
+set tagSet(4,59) supplementalInformation
+set tagSet(4,70) availability
+set tagSet(4,71) spatialReference/spatialDomain
+set tagSet(4,90) distributor
+set tagSet(4,91) boundingRectangle/boundingCoordinates
+set tagSet(4,92) geographicName
+set tagSet(4,93) timePeriod
+set tagSet(4,94) pointOfContact
+set tagSet(4,95) controlledVocabulary
+set tagSet(4,96) indexTermsControlled
+set tagSet(4,97) localSubjectIndex
+set tagSet(4,98) crossReference/cr
