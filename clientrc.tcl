@@ -1,6 +1,6 @@
 # Setup file
 set {profile(Penn)} {{Penn State's Library} 128.118.88.200 210 {} 16384 8192 tcpip CATALOG 1 {} {} Z39 2}
-set {profile(ztest)} {{test server} localhost 9999 {} 16384 4096 tcpip dummy 1 {} 1 Z39 3}
+set {profile(ztest)} {{test server} localhost 210 {} 16384 4096 tcpip dummy 1 {} 1 Z39 3}
 set {profile(madison)} {{University of Wisconsin-Madison} z3950.adp.wisc.edu 210 {} 16384 8192 tcpip madison 1 {} {} Z39 22}
 set {profile(Default)} {{} {} {210} {} 16384 8192 tcpip {} 1 {} {} {} 27}
 set {profile(RLG)} {{Research Libraries group} rlg.stanford.edu 210 {} 4096 4096 tcpip {BKS AMC MAPS MDF REC SCO SER VIM NAF SAF AUT CATALOG ABI AVI DSA EIP FLP HAP HST NPA PAI PRA WLI} 1 {} 1 Z39 5}

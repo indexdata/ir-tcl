@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: line.tcl,v $
-# Revision 1.5  1995-06-22 13:16:28  adam
+# Revision 1.6  1995-06-29 12:34:20  adam
+# IrTcl now works with both tk4.0b4/tcl7.4b4 and tk3.6/tcl7.3
+#
+# Revision 1.5  1995/06/22  13:16:28  adam
 # Feature: SUTRS. Setting getSutrs implemented.
 # Work on display formats.
 #
@@ -25,9 +28,10 @@
 #
 
 proc display-line {sno no w hflag} {
+    global monoFlag
     set type [z39.$sno type $no] 
     if {$hflag} {
-        if {[tk colormodel .] == "color"} {
+        if {! $monoFlag} {
             $w tag bind r$no <Any-Enter> \
                 [list $w tag configure r$no -background gray80]
             $w tag bind r$no <Any-Leave> \

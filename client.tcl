@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.57  1995-06-29 09:20:30  adam
+# Revision 1.58  1995-06-29 12:34:06  adam
+# IrTcl now works with both tk4.0b4/tcl7.4b4 and tk3.6/tcl7.3
+#
+# Revision 1.57  1995/06/29  09:20:30  adam
 # Target entries in cascade menus are sorted.
 #
 # Revision 1.56  1995/06/27  19:03:48  adam
@@ -203,6 +206,37 @@
 #
 #
 
+set tk4 0
+if {$tk4} {
+    proc configure-enable-e {w n} {
+        incr n
+        $w entryconfigure $n -state normal
+    }
+    proc configure-disable-e {w n} {
+        incr n
+        $w entryconfigure $n -state disabled
+    }
+    set noFocus [list -takefocus 0]
+} else {
+    proc configure-enable-e {w n} {
+        $w enable $n
+    }
+    proc configure-disable-e {w n} {
+        $w disable $n
+    }
+    set noFocus {}
+}
+
+if {! $tk4} {
+    if {[tk colormodel .] == "color"} {
+        set monoFlag 0
+    } else {
+        set monoFlag 1
+    }
+} else {
+    set monoFlag 0
+}
+
 set libdir LIBDIR
 if {[file readable bitmaps/book2]} {
 	set libdir .
@@ -241,6 +275,7 @@ wm minsize . 0 0
 set setOffset 0
 set setMax 0
 
+if {0} {
 proc tkerror err {
     set w .tkerrorw
 
@@ -259,6 +294,7 @@ proc tkerror err {
     pack $w.top.b $w.top.t -side left -padx 10 -pady 10
 
     bottom-buttons $w [list {Close} [list destroy $w]] 1
+}
 }
 
 proc read-formats {} {
@@ -284,7 +320,7 @@ proc set-wrap {m} {
 }
 
 proc dputs {m} {
-    puts $m
+#   puts $m
 }
 
 proc set-display-format {f} {
@@ -488,13 +524,13 @@ proc show-status {status b sb} {
             .mid.scan configure -state normal
         }
         if {$setNo == 0} {
-            .top.service.m disable 1
+            configure-disable-e .top.service.m 1
         } elseif {[z39.$setNo nextResultSetPosition] > 0 && 
             [z39.$setNo nextResultSetPosition] <= [z39.$setNo resultCount]} {
-            .top.service.m enable 1
+            configure-enable-e .top.service.m 1
             .mid.present configure -state normal
         } else {
-            .top.service.m disable 1
+            configure-disable-e .top.service.m 1
             .mid.present configure -state disabled
         }
         if {[winfo exists .scan-window]} {
@@ -677,7 +713,8 @@ proc popup-marc {sno no b df} {
                 -yscrollcommand [list $w.top.s set]
         scrollbar $w.top.s -command [list $w.top.record yview]
 
-        if {[tk colormodel .] == "color"} {
+        global monoFlag
+        if {! $monoFlag} {
             $w.top.record tag configure marc-tag -foreground blue
             $w.top.record tag configure marc-id -foreground red
         } else {
@@ -718,8 +755,10 @@ proc popup-marc {sno no b df} {
         }
     } else {
         set i 0
+        $w.bot.formats.m delete 0 last
         foreach f $displayFormats {
-            $w.bot.formats.m entryconfigure $i \
+            $w.bot.formats.m add radiobutton -label $f \
+                    -variable popupMarcdf -value $i \
                     -command [list display-$f $sno $no $w.top.record 0]
             incr i
         }
@@ -732,10 +771,15 @@ proc popup-marc {sno no b df} {
 
 proc update-target-hotlist {target base} {
     global hotTargets
+    global tk4
 
     set len [llength $hotTargets]
     if {$len > 0} {
-        .top.target.m delete 6 [expr 6+[llength $hotTargets]]
+        if {$tk4} {
+            .top.target.m delete 7 [expr 7+[llength $hotTargets]]
+        } else {
+            .top.target.m delete 6 [expr 6+[llength $hotTargets]]
+        }
     }
     set i 0
     foreach e $hotTargets {
@@ -839,13 +883,13 @@ proc open-target {target base} {
         } errorMessage]
     if {$err} {
         tkerror $errorMessage
-        show-status Ready 0 {}
+        show-status "Not connected" 0 {}
         return
     }
     set hostid $target
-    .top.target.m disable 0
-    .top.target.m enable 1
-    .top.target.m enable 2
+    configure-disable-e .top.target.m 0
+    configure-enable-e .top.target.m 1
+    configure-enable-e .top.target.m 2
 }
 
 proc close-target {} {
@@ -853,6 +897,7 @@ proc close-target {} {
     global cancelFlag
     global setNo
     global setNoLast
+    global tk4
 
     set cancelFlag 0
     set setNo 0
@@ -864,11 +909,15 @@ proc close-target {} {
     show-status {Not connected} 0 0
     init-title-lines
     show-message {}
-    .top.target.m disable 1
-    .top.target.m disable 2
-    .top.rset.m delete 1 last
+    configure-disable-e .top.target.m 1
+    configure-disable-e .top.target.m 2
+    if {$tk4} {
+        .top.rset.m delete 2 last
+    } else {
+        .top.rset.m delete 1 last
+    }
     .top.rset.m add separator
-    .top.target.m enable 0
+    configure-enable-e .top.target.m 0
 }
 
 proc load-set-action {} {
@@ -882,7 +931,7 @@ proc load-set-action {} {
     if {$fname != ""} {
         show-status {Loading} 1 {}
         update
-        z39.$setNo loadFile $fname
+        z39.$setNoLast loadFile $fname
 
         set no [z39.$setNoLast numberOfRecordsReturned]
         add-title-lines $setNoLast $no 1
@@ -1063,23 +1112,19 @@ proc scan-request {} {
         entry $w.top.entry -relief sunken 
         pack $w.top.entry -fill x -padx 4 -pady 2
         bind $w.top.entry <KeyRelease> [list scan-term-h $attr]
-        if {1} {
-            listbox $w.top.list -yscrollcommand [list $w.top.scroll set] \
-                    -font fixed 
-            scrollbar $w.top.scroll -orient vertical -border 1
-            pack $w.top.list -side left -fill both -expand yes
-            pack $w.top.scroll -side right -fill y
-            $w.top.scroll config -command [list $w.top.list yview]
-        } else {
-            listbox $w.top.list -font fixed -geometry 60x14
-            pack $w.top.list -side left -fill both -expand yes
-        }
+        listbox $w.top.list -yscrollcommand [list $w.top.scroll set] \
+                -font fixed 
+        scrollbar $w.top.scroll -orient vertical -border 1
+        pack $w.top.list -side left -fill both -expand yes
+        pack $w.top.scroll -side right -fill y
+        $w.top.scroll config -command [list $w.top.list yview]
         
         bottom-buttons $w [list {Close} [list destroy $w] \
                 {Up} [list scan-up $attr] \
                 {Down} [list scan-down $attr]] 0
         bind $w.top.list <Up> [list scan-up $attr]
         bind $w.top.list <Down> [list scan-down $attr]
+        focus $w.top.entry
     }
     bind $w.top.list <Double-Button-1> [list scan-copy %y $curIndexEntry]
     wm title $w "Scan $title"
@@ -1478,28 +1523,38 @@ proc left-cursor {w} {
         incr i -1
         $w icursor $i
     }
+    dputs left
 }
 
 proc right-cursor {w} {
     set i [$w index insert]
     incr i
+    dputs right
     $w icursor $i
 }
 
 proc bind-fields {list returnAction escapeAction} {
+    global tk4
     set max [expr [llength $list]-1]
     for {set i 0} {$i < $max} {incr i} {
         bind [lindex $list $i] <Return> $returnAction
         bind [lindex $list $i] <Escape> $escapeAction
-        bind [lindex $list $i] <Tab> [list focus [lindex $list [expr $i+1]]]
-        bind [lindex $list $i] <Left> [list left-cursor [lindex $list $i]]
-        bind [lindex $list $i] <Right> [list right-cursor [lindex $list $i]]
+        if {!$tk4} {
+            bind [lindex $list $i] <Tab> \
+                    [list focus [lindex $list [expr $i+1]]]
+            bind [lindex $list $i] <Left> \
+                    [list left-cursor [lindex $list $i]]
+            bind [lindex $list $i] <Right> \
+                    [list right-cursor [lindex $list $i]]
+        }
     }
     bind [lindex $list $i] <Return> $returnAction
     bind [lindex $list $i] <Escape> $escapeAction
-    bind [lindex $list $i] <Tab>    [list focus [lindex $list 0]]
-    bind [lindex $list $i] <Left> [list left-cursor [lindex $list $i]]
-    bind [lindex $list $i] <Right> [list right-cursor [lindex $list $i]]
+    if {!$tk4} {
+        bind [lindex $list $i] <Tab>    [list focus [lindex $list 0]]
+        bind [lindex $list $i] <Left> [list left-cursor [lindex $list $i]]
+        bind [lindex $list $i] <Right> [list right-cursor [lindex $list $i]]
+    }
     focus [lindex $list 0]
 }
 
@@ -1676,9 +1731,9 @@ proc protocol-setup {target} {
     dputs target
     dputs $profile($target)
 
+    frame $w.top.description
     frame $w.top.host
     frame $w.top.port
-    frame $w.top.description
     frame $w.top.idAuthentication
     frame $w.top.maximumRecordSize
     frame $w.top.preferredMessageSize
@@ -1727,8 +1782,14 @@ proc protocol-setup {target} {
             -command [list add-database $target]
     button $w.top.databases.delete -text "Delete" \
             -command [list delete-database $target]
-    listbox $w.top.databases.list -geometry 20x6 \
-            -yscrollcommand "$w.top.databases.scroll set"
+    global tk4
+    if {! $tk4} {
+        listbox $w.top.databases.list -geometry 20x6 \
+                -yscrollcommand "$w.top.databases.scroll set"
+    } else {
+        listbox $w.top.databases.list -width 20 \
+                -yscrollcommand "$w.top.databases.scroll set"
+    }
     scrollbar $w.top.databases.scroll -orient vertical -border 1
     pack $w.top.databases.label -side top -fill x \
             -padx 2 -pady 2
@@ -2356,6 +2417,7 @@ proc use-attr {init} {
         {Content type}                 1034 
         {Anywhere}                     1035 
     }
+    global tk4
     set w .index-setup
     global useTmpValue
     set l [llength $attr]
@@ -2371,8 +2433,13 @@ proc use-attr {init} {
             }
             incr lno
         }
-        $w.top.use.list select from $s
-        $w.top.use.list select to $s
+        if {$tk4} {
+            $w.top.use.list selection clear 0 end
+            $w.top.use.list selection set $s $s
+        } else {
+            $w.top.use.list select from $s
+            $w.top.use.list select to $s
+        }
         incr s -3
         if {$s < 0} {
             set s 0
@@ -2434,6 +2501,7 @@ proc index-setup {attr queryNo indexNo} {
     global completenessTmpValue
     global positionTmpValue
     global useTmpValue
+    global tk4
     set relationTmpValue 0
     set truncationTmpValue 0
     set structureTmpValue 0
@@ -2488,8 +2556,13 @@ proc index-setup {attr queryNo indexNo} {
     pack $w.top.use -side left -pady 6 -padx 6 -fill y
 
     label $w.top.use.label -text "Use"
-    listbox $w.top.use.list -geometry 26x10 \
-            -yscrollcommand "$w.top.use.scroll set"
+    if {$tk4} {
+        listbox $w.top.use.list -width 26 \
+                -yscrollcommand "$w.top.use.scroll set"
+    } else {
+        listbox $w.top.use.list -geometry 26x10 \
+                -yscrollcommand "$w.top.use.scroll set"
+    }
     scrollbar $w.top.use.scroll -orient vertical -border 1
     pack $w.top.use.label -side top -fill x \
             -padx 2 -pady 2
@@ -2579,6 +2652,7 @@ proc query-setup {queryNo} {
     global queryButtonsTmp
     global queryInfoTmp
     global queryIndexTmp
+    global tk4
     
     set queryIndexTmp 0
     set queryName [lindex $queryTypes $queryNo]
@@ -2621,8 +2695,13 @@ proc query-setup {queryNo} {
     pack $w.top.index.list -side left -fill both -expand yes -padx 2 -pady 2
     pack $w.top.index.scroll -side right -fill y -padx 2 -pady 2
 
-    $w.top.index.list select from 0
-    $w.top.index.list select to 0
+    if {$tk4} {
+        $w.top.index.list selection clear 0 end
+        $w.top.index.list selection set 0 0
+    } else {
+        $w.top.index.list select from 0
+        $w.top.index.list select to 0
+    }
 
     foreach x $queryInfoTmp {
         $w.top.index.list insert end [lindex $x 0]
@@ -2695,16 +2774,24 @@ proc index-query {} {
 
 proc index-focus-in {w i} {
     global curIndexEntry
+    global tk4
 
-    $w.$i configure -background red
+    if {! $tk4} {
+        $w.$i configure -background red
+    }
     set curIndexEntry $i
 }
 
 proc index-lines {w realOp buttonInfo queryInfo handle} {
+    global tk4
     set i 0
     foreach b $buttonInfo {
         if {! [winfo exists $w.$i]} {
-            frame $w.$i -background white -border 1
+            if {$tk4} {
+                frame $w.$i -border 0
+            } else {
+                frame $w.$i -background white -border 1
+            }
         }
         listbuttonx $w.$i.l [lindex $b 1] $queryInfo $handle $i
 
@@ -2717,8 +2804,10 @@ proc index-lines {w realOp buttonInfo queryInfo handle} {
                 pack $w.$i.l -side left
                 pack $w.$i.e -side left -fill x -expand yes
                 pack $w.$i -side top -fill x -padx 2 -pady 2
-                bind $w.$i.e <Left> [list left-cursor $w.$i.e]
-                bind $w.$i.e <Right> [list right-cursor $w.$i.e]
+                if {!$tk4} {
+                    bind $w.$i.e <Left> [list left-cursor $w.$i.e]
+                    bind $w.$i.e <Right> [list right-cursor $w.$i.e]
+                }
                 bind $w.$i.e <Return> {search-request 0}
             }
         } else {
@@ -2735,15 +2824,19 @@ proc index-lines {w realOp buttonInfo queryInfo handle} {
     if {! $realOp} {
         return
     }
-    set j 0
-    incr i -1
-    while {$j < $i} {
-        set k [expr $j+1]
-        bind $w.$j.e <Tab> "focus $w.$k.e"
-        set j $k
+    if {! $tk4} {
+        set j 0
+        incr i -1
+        while {$j < $i} {
+            set k [expr $j+1]
+            bind $w.$j.e <Tab> "focus $w.$k.e"
+            set j $k
+        }
     }
     if {$i >= 0} {
-        bind $w.$i.e <Tab> "focus $w.0.e"
+        if {! $tk4} {
+            bind $w.$i.e <Tab> "focus $w.0.e"
+        }
         focus $w.0.e
     }
 }
@@ -2816,8 +2909,8 @@ menu .top.target.m
 .top.target.m add separator
 set-target-hotlist
 
-.top.target.m disable 1
-.top.target.m disable 2
+configure-disable-e .top.target.m 1
+configure-disable-e .top.target.m 2
 
 menu .top.target.m.clist
 menu .top.target.m.slist
@@ -2928,11 +3021,15 @@ pack .mid.search .mid.scan .mid.present .mid.clear -side left \
 text .data.record -height 2 -width 20 -wrap none \
         -yscrollcommand [list .data.scroll set] -wrap $textWrap
 scrollbar .data.scroll -command [list .data.record yview]
+if {$tk4} {
+    .data.record configure -takefocus 0
+    .data.scroll configure -takefocus 0
+}
 pack .data.scroll -side right -fill y
 pack .data.record -expand yes -fill both
 initBindings
 
-if {[tk colormodel .] == "color"} {
+if {! $monoFlag} {
     .data.record tag configure marc-tag -foreground blue
     .data.record tag configure marc-id -foreground red
 } else {
@@ -2942,6 +3039,9 @@ if {[tk colormodel .] == "color"} {
 .data.record tag configure marc-data -foreground black
 
 button .bot.logo  -bitmap @${libdir}/bitmaps/book1 -command cancel-operation
+if {$tk4} {
+    .bot.logo configure -takefocus 0
+}
 frame .bot.a
 pack .bot.a -side left -fill x
 pack .bot.logo -side right -padx 2 -pady 2
