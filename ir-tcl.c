@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.72  1996-01-19 17:45:34  quinn
+ * Revision 1.73  1996-01-29 11:35:19  adam
+ * Bug fix: cs_type member renamed to comstackType to avoid conflict with
+ * cs_type macro defined by YAZ.
+ *
+ * Revision 1.72  1996/01/19  17:45:34  quinn
  * Added debugging output
  *
  * Revision 1.71  1996/01/19  16:22:38  adam
@@ -1021,7 +1025,7 @@ static int do_connect (void *obj, Tcl_Interp *interp,
         }
         if (ir_tcl_strdup (interp, &p->hostname, argv[2]) == TCL_ERROR)
             return TCL_ERROR;
-        if (!strcmp (p->cs_type, "tcpip"))
+        if (!strcmp (p->comstackType, "tcpip"))
         {
             p->cs_link = cs_create (tcpip_type, CS_BLOCK, p->protocol_type);
             addr = tcpip_strtoaddr (argv[2]);
@@ -1032,7 +1036,7 @@ static int do_connect (void *obj, Tcl_Interp *interp,
             }
             logf (LOG_DEBUG, "tcp/ip connect %s", argv[2]);
         }
-        else if (!strcmp (p->cs_type, "mosi"))
+        else if (!strcmp (p->comstackType, "mosi"))
         {
 #if MOSI
             p->cs_link = cs_create (mosi_type, CS_BLOCK, p->protocol_type);
@@ -1051,7 +1055,7 @@ static int do_connect (void *obj, Tcl_Interp *interp,
         else 
         {
             Tcl_AppendResult (interp, "Bad comstack type: ", 
-                              p->cs_type, NULL);
+                              p->comstackType, NULL);
             return TCL_ERROR;
         }
         if ((r=cs_connect (p->cs_link, addr)) < 0)
@@ -1135,16 +1139,16 @@ static int do_comstack (void *o, Tcl_Interp *interp,
     IrTcl_Obj *obj = o;
 
     if (argc == 0)
-        return ir_tcl_strdup (interp, &obj->cs_type, "tcpip");
+        return ir_tcl_strdup (interp, &obj->comstackType, "tcpip");
     else if (argc == -1)
-        return ir_tcl_strdel (interp, &obj->cs_type);
+        return ir_tcl_strdel (interp, &obj->comstackType);
     else if (argc == 3)
     {
-        free (obj->cs_type);
-        if (ir_tcl_strdup (interp, &obj->cs_type, argv[2]) == TCL_ERROR)
+        free (obj->comstackType);
+        if (ir_tcl_strdup (interp, &obj->comstackType, argv[2]) == TCL_ERROR)
             return TCL_ERROR;
     }
-    Tcl_AppendElement (interp, obj->cs_type);
+    Tcl_AppendElement (interp, obj->comstackType);
     return TCL_OK;
 }
 

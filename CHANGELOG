@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.13 1996-01-22 09:28:57 adam Exp $
+$Id: CHANGELOG,v 1.14 1996-01-29 11:35:17 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -73,5 +73,8 @@ $Id: CHANGELOG,v 1.13 1996-01-22 09:28:57 adam Exp $
 
 19/01/96 Bug fix: When running in Windows NT/95 displayFormats wasn't
          properly read from the subdirectory formats.
+
+29/01/96 Bug fix: cs_type member in ir-tclp.h renamed to comstackType to
+         avoid conflict with cs_type macro defined by YAZ.
 
 

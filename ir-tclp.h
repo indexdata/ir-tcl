@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.23  1996-01-19 16:22:40  adam
+ * Revision 1.24  1996-01-29 11:35:27  adam
+ * Bug fix: cs_type member renamed to comstackType to avoid conflict with
+ * cs_type macro defined by YAZ.
+ *
+ * Revision 1.23  1996/01/19  16:22:40  adam
  * New method: apduDump - returns information about last incoming APDU.
  *
  * Revision 1.22  1996/01/10  09:18:44  adam
@@ -138,7 +142,7 @@ typedef struct {
 typedef struct {
     int         ref_count;
 
-    char       *cs_type;
+    char       *comstackType;
     int         protocol_type;
     int         failInfo;
     COMSTACK    cs_link;
