@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.101  1997-09-09 10:19:53  adam
+ * Revision 1.102  1997-09-17 12:22:40  adam
+ * Changed to use YAZ version 1.4. The new comstack utility, cs_straddr,
+ * is used.
+ *
+ * Revision 1.101  1997/09/09 10:19:53  adam
  * New MSV5.0 port with fewer warnings.
  *
  * Revision 1.100  1997/05/01 15:04:05  adam
@@ -1173,24 +1177,12 @@ static int do_connect (void *obj, Tcl_Interp *interp,
         if (!strcmp (p->comstackType, "tcpip"))
         {
             p->cs_link = cs_create (tcpip_type, CS_BLOCK, p->protocol_type);
-            addr = tcpip_strtoaddr (argv[2]);
-            if (!addr)
-            {
-                Tcl_AppendResult (interp, "tcpip_strtoaddr fail", NULL);
-                return ir_tcl_error_exec (interp, argc, argv);
-            }
             logf (LOG_DEBUG, "tcp/ip connect %s", argv[2]);
         }
         else if (!strcmp (p->comstackType, "mosi"))
         {
 #if MOSI
             p->cs_link = cs_create (mosi_type, CS_BLOCK, p->protocol_type);
-            addr = mosi_strtoaddr (argv[2]);
-            if (!addr)
-            {
-                Tcl_AppendResult (interp, "mosi_strtoaddr fail", NULL);
-                return ir_tcl_error_exec (interp, argc, argv);
-            }
             logf (LOG_DEBUG, "mosi connect %s", argv[2]);
 #else
             Tcl_AppendResult (interp, "mosi not supported", NULL);
@@ -1206,6 +1198,13 @@ static int do_connect (void *obj, Tcl_Interp *interp,
         if (ir_tcl_strdup (interp, &p->hostname, argv[2]) == TCL_ERROR)
             return TCL_ERROR;
         p->eventType = "connect";
+	addr = cs_straddr (p->cs_link, argv[2]);
+	if (!addr)
+	{
+	    ir_tcl_disconnect (p);
+	    Tcl_AppendResult (interp, "cs_straddr fail", NULL);
+	    return ir_tcl_error_exec (interp, argc, argv);
+	}
         if ((r=cs_connect (p->cs_link, addr)) < 0)
         {
             ir_tcl_disconnect (p);
