@@ -1,0 +1,122 @@
+.\" Copyright (c) 1995, 1996 Index Data
+.\" All rights reserved.
+.\" $Id: ir-assoc.n,v 1.1 1996-06-24 13:58:45 adam Exp $
+.TH ir-assoc N  "24 June 1996" "IrTcl" "IR Association"
+.SH NAME
+ir \- IR association 
+.SH SYNOPSIS
+.BI "ir " z
+.sp
+.SH DESCRIPTION
+The Tcl command
+.B ir
+creates an IR association, that is an object that describes the
+connection between an origin and a target. Initially, the association
+is in a non-connected state.
+.SH EVENTS
+Event-oriented operations:
+.TP
+.BI "" z " callback " event
+Sets the callback handler. This handler is invoked upon normal 
+completion of requests.
+.TP
+.BI "" z " eventType"
+Gets the type of last event; typically used in callback handlers.
+One of the following events are returned: \fBconnect\fR, \fBinit\fR,
+\fBsearch\fR, \fBpresent\fR, \fBscan\fR or the empty string which
+indicates that no event has occurred (yet).
+.TP
+.BI "" z " failback " event
+Sets the failback handler. The failback handler is called when an
+unrecoverable fatal error occur, for example if the connection is lost.
+.TP
+.BI "" z " failInfo"
+Returns information about the latest fatal error; should be examined
+in failback handlers. Two elements are returned:
+error number and error string.
+.SH CONNECTIONS
+The operations that affect connecting to a target.
+.TP
+.BI "" z " connect [" host "]"
+Tries to establish a connection with the \fIhost\fR if specified.
+In this case, the default callback is invoked if the connect operation
+succeeds; otherwise, the default failback or an error is immediately issued.
+If the comstack setting is unknown, the
+operation also fails. If the \fIhost\fR is not given, the operation
+can be used to detect whether the assocation is connected. In this case
+the hostname is returned; otherwise the empty string is returned.
+.TP
+.BI "" z " disconnect"
+Shuts down the connection with the current target. An error is
+issued if there is no current connection.
+.TP
+.BI "" z " comstack [" type "]"
+Sets/gets the YAZ comstack. \fItype\fR is either \fBtcpip\fR (the default)
+or \fBmosi\fR.
+.TP
+.BI "" z " protocol [" type "]"
+Sets/gets the protocol type.\fItype\fR is either \fBZ39\fR (the default)
+or \fBSR\fR.
+.SH INIT
+The following operations concern the initialize fase.
+.TP
+.BI "" z " init"
+Sends an initialize request.
+.TP
+.BI "" z " idAuthentication " " openID 
+.TP
+.BI "" z " idAuthentication " " groupID userID password 
+If one argument is passed the old-style open authentication method is
+used in the following initialize request - using an empty string as the
+authentication string prevents the (optional) authentication.
+If three arguments are passed the new version 3 style name/group/password
+scheme is used. The current authentication settings are returned
+as either 3 elements (name/group/password scheme), 1 element (open style)
+or the empty string (no password used).
+.TP
+.BI "" z " protocolVersion [" version "]"
+Sets/gets the protocol version: 2, 3, etc. Before an initialize-request is
+sent the protocol version should be set to the preferred version. After
+an initalize response is read the version holds the negotiated version.
+.TP
+.BI "" z " preferredMessageSize [" size "]"
+Sets/gets Z39.50/SR preferred-message-size; default is 30000.
+.TP
+.BI "" z " maxiumumRecordSize [" size "]"
+Sets/gets the Z39.50/SR maximum-record-size; default is 30000.
+.TP
+.BI "" z " implementationId" 
+Gets the Z39.50/SR implementation-ID.
+.TP
+.BI "" z " implementationName" 
+Gets the Z39.50/SR implementation-name.
+.TP
+.BI "" z " implementationVersion"
+Gets the Z39.50/SR implementation-version.
+.TP
+.BI "" z " options [" option ... "]"
+Sets/gets the Z39.50/SR options. These are: \fBsearch\fR, \fBpresent\fR,
+\fBdelSet\fR, \fBresourceReport\fR, \fBtriggerResourceCtrl\fR, 
+\fBresourceCtrl\fR, \fBaccessCtrl\fR, \fBscan\fR, \fBsort\fR, 
+\fBextendedServices\fR, \fBlevel-1Segmentation\fR, \fBlevel-2Segmentation\fR,
+\fBconcurrentOperations\fR and \fBnamedResultSets\fR.
+.TP
+.BI "" z " targetImplementationName"
+Gets the Z39.50/SR implementation-name of the target.
+.TP
+.BI "" z " targetImplementationId"
+Gets the Z39.50/SR implementation-ID of the target.
+.TP
+.BI "" z " targetImplementationVersion"
+Gets the Z39.50/SR implementation-version of the target.
+.TP
+.BI "" z " initResult"
+Gets the initialize-response status as an integer:
+0 if connection is rejected by the target; 1 if connection is accepted.
+.TP
+.BI "" z " userInformationField"
+Gets the the user-information-field; this should be inspected when
+the connection is rejected by the target (\fBinitResult\fR returns 0).
+
+.SH "SEE ALSO"
+.BR ir-set "(n)"

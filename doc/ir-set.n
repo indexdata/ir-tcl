@@ -1,0 +1,171 @@
+.\" Copyright (c) 1995, 1996 Index Data
+.\" All rights reserved.
+.\" $Id: ir-set.n,v 1.1 1996-06-24 13:58:47 adam Exp $
+.TH ir-set N  "24 June 1996" "IrTcl" "IR Set"
+.SH NAME
+ir-set \- IR  set
+.SH SYNOPSIS
+.BI "ir-set " zs " " za
+.sp
+.SH DESCRIPTION
+The Tcl command
+.B ir-set
+creates an IR set \fIzs\fR that belongs to the IR association \fIza\fR.
+The ir-set describes the result set including records, query, record
+syntax, etc. When a result set is created it is not (yet) associated
+with a real result set and it contains an empty set of records.
+When records are returned by the target they are automatically stored
+at their logical result set positions. They may exist more than one
+record at a given result set position if the records is marked with
+different element set specifications.
+.SH SEARCH
+Operations that are used to search a target:
+.TP
+.BI "" zs " databaseNames " db1 " " db2 " " ...
+Sets the database(s) to be used in the following search request(s).
+.TP
+.BI "" zs " setName [" name "]"
+Sets/gets the name of the result-set to be (re)searched.
+.TP
+.BI "" zs " replaceIndicator [" b "]"
+Sets/gets the replace-indicator as 0 (false) or 1 (true); default is
+1.
+.TP
+.BI "" zs " queryType [" type "]"
+Sets/gets the query-type. \fItype\fR is \fBrpn\fR or \fBccl\fR.
+.TP
+.BI "" zs " preferredRecordSyntax [" syntax "]"
+Sets/gets the preferred-record-syntax. Some record syntaxes include:
+\fBUSmarc\fR, \fBUKmarc\fR, \fBUnimarc\fR, \fBSUTRS\fR and \fBGRS-1\fR.
+All the available record syntaxes are listed in \fByaz/util/oid.c\fR.
+.TP
+.BI "" zs " smallSetUpperBound [" value "]"
+Sets/gets the small-set-upper-bound. Default is 0.
+.TP
+.BI "" zs " largeSetLowerBound [" value "]"
+Sets/gets the large-set-lower-bound. Default is 2.
+.TP
+.BI "" zs " mediumSetPresentNumber [" value "]"
+Sets/gets the medium-set-present-number. Default is 0.
+.TP
+.BI "" zs " smallSetElementSetNames [" element "]"
+Sets/gets the small-set-element-set-names. Default is that
+no small-set-element-set-names are transferred in the search-request.
+.TP
+.BI "" zs " mediumSetElementSetNames [" element "]"
+Sets/gets the medium-set-element-set-names. Default is that
+no medium-set-element-set-names are transferred in the search-request.
+.TP
+.BI "" zs " referenceId [" ID "]"
+Sets/gets the reference-ID. Default is that no reference ID is transferred
+in the search-request.
+.TP
+.BI "" zs " search " query
+Sends a search request. The \fIquery\fR must follow a syntax according to
+the \fBqueryType\fR setting.
+.TP
+.BI "" zs " responseStatus"
+Gets the search/present-response information. The first element indicates
+the type of response.
+If the element is \fBOK\fR it means that the search operation was
+succesful and that no records were returned. If the first element is
+\fBNSD\fR an error message is retunred by the target as one or more
+non-surrogate diagnostics. In this case, the following elements are
+those diagnostics. If the first element is \fBDBOSD\fR one of more
+records are returned, each of which is either a database record or a
+surrogate diagnostic.
+.TP
+.BI "" zs " resultCount"
+Gets the result-count (number of hits).
+.SH PRESENT
+Operations that concern retrieving records:
+.TP
+.BI "" zs " setName [" name "]"
+Sets/gets the name of the result-set to be read.
+.TP
+.BI "" zs " elementSetNames [" element "]"
+Sets/gets the element-set-names. Default is that no element-set-names are
+transferred in the present-request.
+.TP
+.BI "" zs " present [" from " [" requested "]]"
+Sends a present-request; starting position is given by the
+\fIfrom\fR argument (default 1), number-of-terms-requested is given by the
+\fIrequested\fR parameter (default 10).
+.TP
+.BI "" zs " responseStatus"
+Gets the search/present-response information. Refer to the
+\fBresponseStatus\fR in the section \fBSEARCH\fR above.
+.SH RECORDS
+Records may be returned in either a search-response or a present-response.
+The following operations apply to both cases.
+.TP
+.BI "" zs " nextResultSetPosition"
+Gets the next-result-set-position.
+.TP
+.BI "" zs " numberOfRecordsReturned"
+Gets the number of records returned in the last response.
+.TP
+.BI "" zs " recordElements " elements
+Sets the elements of the records to be inspected in all subsequent
+record inspection commands, i.e. those commands that include a
+\fIposition\fR parameter. If \fIelements\fR is set to the empty string
+(default) a record is always indicated as present no matter what the
+elements associated with the record are. 
+.TP
+.BI "" zs " type " position
+Inspects the type of record at the \fIposition\fR specified. If no record
+is present the message "\fBNo record at position\fR \fIposition\fR" is
+returned. If a database record is present at the position, \fBDB\fR is
+returned. If a surrogate diagnostic is at the position, \fBSD\fR is
+returned.
+.TP
+.BI "" zs " recordType " position
+Inspects the record syntax of the database record at the \fIposition\fR
+specified. The empty string is returned if no database record is present
+at the position.
+.TP 
+.BI "" zs " diag " position
+Inspects the surroagate diagnostic message at the given position.
+For each diagnostic message 3 items is returned; the first item is the
+error code, the second item is the textual representation of the error
+code and the third item is additional information. An error is issued
+if there is no surrogate diagnostic record at the position. 
+.TP
+.BI "" zs " getMarc " position " " type " " tag " " indicator " " field
+Extracts information about the MARC record at the specified \fIposition\fR.
+The \fItag\fR, \fIindicator\fR and \fIfield\fR arguments are used to
+to specify which part of the record that should be extracted.
+Two special operators are supported:
+the \fB?\fR operator matches exactly one character;
+the \fB*\fR operator matches the whole item (don't care).
+The format of the data returned is determined by the \fItype\fR argument.
+If \fItype\fR is \fBfield\fR the matcing part of the record is returned
+as a list of MARC tag specifications. Each MARC tag specification item
+consists of three elements: tag, indicator and field-list. The field-list
+part is a list of field specifications. Each field specification is a tuple
+of field and data of the field. Setting \fItype\fR to \fBfield\fR returns
+a list of elements in which each element is simply the data of the fields
+that matches the specification.
+An error is returned if there is no MARC record at the position.
+.TP
+.BI "" zs " getSutrs " position
+Returns the SUTRS record at the given \fIposition\fR as a single
+string token. If the record at the position is not present or is not a
+SUTRS record an error is returned.
+.TP
+.BI "" zs " getGrs " position " [" spec " " spec " " ... "]"
+Extracts information about the GRS-1 record at the specified \Iposition\fR.
+The \fIspec\fR arguments determine the parts of the GRS-1 record to
+be extracted. The \fIspec\fR masks the GRS-1 tag at the first level
+(top-level), the second \fIspec\fR masks the GRS-1 tags at the
+second-level, and so on.
+Each \fIspec\fR has the format \fB(\fItag-set\fB,\fItag-value\fB)\fR, where
+\fItag-type\fR specifies the tag set and the \fItag-value\fR specifies the
+tag value. The GRS-1 record is returned as a Tcl list. Each element consists
+of 5 elements: \fItag-set\fR, \fItag-type\fR, \fItag-value\fR,
+\fIdata-type\fR, \fIdata\fR. The \fItype-type\fR is either \fBnumeric\fR or
+\fBstring\fR. The \fIdata-type\fR is one of: \fBoctets\fR, \fBnumeric\fR,
+\fBext\fR, \fBstring\fR, \fBbool\fR, \fBintUnit\fR, \fBempty\fR, 
+\fBnotRequested\fR, \fBdiagnostic\fR or \fBsubtree\fR. 
+.SH "SEE ALSO"
+.BR ir-assoc "(n)"
