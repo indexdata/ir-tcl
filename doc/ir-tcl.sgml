@@ -1,0 +1,832 @@
+<!doctype linuxdoc system>
+
+<!--
+  $Id
+-->
+
+<article>
+<title>IrTcl User's Guide and Reference
+<author>Index Data, <tt/info@index.ping.dk/
+<date>May 1995
+<abstract>
+This document describes IrTcl - an information retrieval toolkit for
+Tcl and Tk that provides access to the Z39.50/SR protocol.
+</abstract>
+
+<toc>
+
+<sect>Introduction
+
+<p>
+This document describes the <sf/IrTcl/ information retrieval toolkit,
+which offers a high-level, client interface to the Z39.50 and SR protocols.
+The toolkit is based on the Tcl/Tk toolkit developed by Prof. John
+K. Ousterhout at the University of California [ref 1]. 
+Tcl is a simple, somewhat shell-like, interpreted language. What
+makes Tcl attractive is that it also offers a C API, which makes
+extensions to the language possible. The most important Tcl extension is
+probably Tk --- A Motif look-and-feel interface to the X window
+system.
+
+To interface the Z39.50/SR protocol <sf/IrTcl/ uses <bf/YAZ.
+<bf/YAZ/ offers two transport types: RFC1729/BER on TCP/IP and the mOSI
+protocol stack.
+However, the mOSI transport is only an option, and hence it is not
+needed unless you wish to communicate within an OSI environment.
+See [ref 2] for more information about the XTI/mOSI implementation.
+
+<sf/IrTcl/ provides two system environments:
+
+<itemize>
+<item> A simple command line shell --- useful for
+testing purposes.
+<item> A system which operates within the Tk environment which
+makes it very easy to implement GUI clients.
+</itemize>
+
+<sect>Overview
+
+<p>
+Basically, <sf/IrTcl/ is a set of commands introduced to Tcl.
+When extending Tcl there are two approaches: action-oriented commands
+and object-oriented commands.
+
+Action-oriented commands manipulate
+Tcl variables and each command introduces only one action.
+The string manipulation commands in Tcl are action oriented.
+
+Object-oriented commands are added for every declared
+variable (object). Object-oriented commands usually provide a set of
+actions (methods) to manipulate the object.
+The widgets in Tk (X objects) are examples of the object-oriented style.
+
+<sf/IrTcl/ commands are object-oriented. The main reason
+for this is that the data structures involved in the IR protocol
+are not easily represented by Tcl data structures.
+Also, the <sf/IrTcl/ objects tend to exist for a relativly long time.
+Note that although we use the term object-oriented commands, this
+does not mean that the programming style is strictly object-oriented. For
+example, there is such no such thing as inheritance.
+
+We are now ready to present the three commands introduced to Tcl by
+<sf/IrTcl/:
+
+<itemize>
+<item> ir: The ir object represents a connection to a target. More
+precisely it describes a Z-association. 
+<item> ir-set: The ir-set describes a result set, which is
+conceptually a collection of records returned by the target.
+The ir-set object may retrieve records from a target by means of
+the ir object; it may read/write records from/to a local file or it may be
+updated with a user-edited record. 
+<item> ir-scan: The scan object represents a list of scan lines
+retrieved from a target.
+</itemize>
+
+<bf/Example/
+
+To create a new IR object called <tt/z-assoc/ write:
+<tscreen><verb>
+   ir z-assoc
+</verb></tscreen>
+
+<bf/End of example/
+
+Each object provides a set of <em/settings/ which may either be
+readable, writeable of both. All settings immediately follow
+the name of the object. If a value is present the setting
+is set to <em/value/.
+
+<bf/Example/
+
+We wish to set the preferred-message-size to 18000 on the
+<tt/z-assoc/ object:
+
+<tscreen><verb>
+   z-assoc preferredMessageSize 18000
+</verb></tscreen>
+
+To read the current value of preferred-message-size use:
+
+<tscreen><verb>
+   z-assoc preferredMessageSize
+</verb></tscreen>
+<bf/End of example/
+
+One important category consists of settings is those that relate to the
+event-driven model. When <sf/IrTcl/ receives responses from the target, i.e.
+init responses, search responses, etc., a <em/callback/ routine
+is called. Callback routines are represented in Tcl as
+a list, which is re-interpreted prior to invocation.
+The method is similar to the one used in Tk to capture X events.
+
+For each SR/Z39.50 request there is a corresponding object action. The most
+important actions are:
+<itemize>
+<item> connect Establishes connection with a target
+<item> init Sends an initialize request.
+<item> search Sends a search request.
+<item> present Sends a present request.
+<item> scan Sends a scan request.
+</itemize>
+
+<bf/Example/
+This example shows a complete
+connect - init - search - present scenario. 
+
+First an IR object, called <tt/z/, is created.
+Also a result set <tt/z.1/ is introduced by the <tt/ir-set/ 
+and it is specified that the result set uses <tt/z/ as its association.
+
+The setting <tt/databaseNames/ is set to the 
+database <tt/books/ to which the following searches are directed.
+A connection is established to <tt/fake.com/ by the <tt/connect/ action.
+A callback is then defined <em/before/ the init request is executed. 
+The Tcl procedure <tt/init-response/ is called when a 
+init-response is returned from the target.
+
+The <tt/init-response/ procedure sets up a <tt/search-response/ 
+callback handler and sends a search-request by using a query which
+consists of a single word <tt/science/.
+
+When the <tt/search-response/ procedure is called it defines
+a variable <tt/hits/ and sets it to the value of the setting
+<tt/resultCount/. If <tt/hits/ is positive a present-request is
+sent --- asking for 5 records from position 1. 
+
+Finally, a present-response is received and the number of records
+returned is stored in the variable <tt/ret/.
+
+<tscreen><verb>
+ir z
+ir-set z.1 z
+z databaseNames books
+z connect fake.com
+z callback {init-response}
+z init
+
+proc init-response {} {
+    z.1 callback {search-response}
+    z.1 search science
+}
+
+proc search-response {} {
+    set hits [z.1 resultCount]
+    puts "$hits hits"
+    if {$hits > 0} {
+        z.1 callback {present-response}
+        z.1 present 1 5
+    }
+}
+
+proc present-response {} {
+    set ret [z.1 numberOfRecordsReturned]
+    puts "$ret records returned"
+}
+</verb></tscreen>
+<bf/End of example/
+
+The previous example program doesn't care about error conditions. 
+If errors occur in the program they will be trapped by the Tcl error 
+handler. This is not always appropriate. However, Tcl offers a 
+<tt/catch/ command to support error handling by the program itself.
+
+<sect>Associations
+
+<p>
+The ir object describes an association with a target.
+This section covers the connect-init-disconnect actions provided
+by the ir object.
+An ir object is created by the <tt/ir/ command and the
+created object enters a 'not connected' state, because it isn't
+connected to a target yet. 
+
+<sect1>Connect
+
+<p>
+A connection is established by the <tt/connect/ action which is
+immediately followed by a hostname. Table ref{tab:irconnect} lists the
+settings that affect the <tt/connect/ action. 
+Obviously, these settings should be set <bf/before/ connecting.
+
+<descrip>
+<tag><tt>comstack </tt><tt>mosi|tcpip</tt></tag>
+ Comstack type
+<tag><tt>protocol </tt><tt>Z3950|SR</tt></tag>
+ ANSI/NISO Z39.50 or ISO SR
+<tag><tt>failback </tt><em>list</em></tag>
+ Fatal error Tcl script. Called on protocol errors or if target
+ closes connection
+</descrip>
+
+<sect1>Init
+
+<p>
+If the connect operation succeeds the <tt/init/ action should be used. 
+Table ref{tab:irinit} lists the init related settings.
+
+<descrip>
+<tag><tt>preferredMessageSize </tt><em>integer</em></tag>
+ Preferred-message-size
+<tag><tt>maximumRecordSize </tt><em>integer</em></tag>
+ Maximum-record-size
+<tag><tt>idAuthentication </tt><em>string</em></tag>
+ Id-authentication
+<tag><tt>implementationName </tt><em>string</em></tag>
+ Implementation-name of origin system
+<tag><tt>implementationId </tt><em>string</em></tag>
+ Implementation-id of origin system
+<tag><tt>options </tt><em>list</em></tag>
+ Options to be negotiated in init. The list contains the options that
+are set.
+<tag><tt>protocolVersion </tt><em>integer</em></tag>
+ Protocol version: 2, 3, etc.
+<tag><tt>initResponse </tt><em>list</em></tag>
+ Init-response Tcl script
+<tag><tt>callback </tt><em>list</em></tag>
+ General response Tcl script. Only used if initResponse is not specified
+</descrip>
+
+The init-response handler should inspect some of the settings in table
+ref{tab:irinitresponse}
+
+<descrip>
+<tag><tt>initResult </tt><em>boolean</em></tag>
+ Init response status
+<tag><tt>preferredMessageSize </tt><em>integer</em></tag>
+ Preferred-message-size
+<tag><tt>maximumRecordSize </tt><em>integer</em></tag>
+ Maximum-record-size
+<tag><tt>targetImplementationName </tt><em>string</em></tag>
+ Implementation-name of target system
+<tag><tt>targetImplementationId </tt><em>string</em></tag>
+ Implementation-id of target system
+<tag><tt>targetImplementationVersion </tt><em>string</em></tag>
+ Implementation-version of target system
+<tag><tt>options </tt><em>list</em></tag>
+ Options negotiated after init. The list contains the options that are set.
+<tag><tt>protocolVersion </tt><em>integer</em></tag>
+ Protocol version: 2, 3, etc.
+<tag><tt>userInformationField </tt><em>string</em></tag>
+ User information field
+</descrip>
+
+<bf/Example/
+Consider a client with the ability to access multiple targets.
+
+We define a list of targets that we wish to connect to.
+Each item in the list describes the target parameters with
+the following four components: association-name, comstack-type,
+protocol-type and a hostname.
+
+The list for the two targets: ISO/SR target DANBIB and TCP/Z39.50 
+target Data Research, will be defined as:
+<tscreen><verb>
+set targetList { {danbib mosi sr 0103/find2.denet.dk:4500}
+                 {drs tcpip z39 dranet.dra.com} }
+</verb></tscreen>
+
+The Tcl code below defines, connect and initialize the
+targets in <tt/targetList/:
+
+<tscreen><verb>
+\foreach target $targetList {
+    set assoc [lindex $target 0]
+    ir $assoc
+    $assoc comstack [lindex $target 1]
+    $assoc protocol [lindex $target 2]
+    $assoc failback [list fail-response $assoc]
+    $assoc connect [lindex $target 3]
+    $assoc initResponse [list init-response $assoc]
+    $assoc init
+}
+
+proc fail-response {assoc} {
+    puts "$assoc closed connection or protocol error"
+}
+
+proc init-response {assoc} {
+    if {[$assoc initResult]} {
+        puts "$assoc initialized ok"
+    } else {
+        puts "$assoc didn't initialize"
+    }
+}
+</verb></tscreen>
+
+<tt/target/ is bound to each item in the list of targets.
+The <tt/assoc/ is set to the ir object name.
+Then, the comstack, protocol and failback are set for the <tt/assoc/ object.
+The ir object name is argument to the <tt/fail-response/ routine. 
+Note the use of the Tcl <tt/list/ command which 
+is necessary here because the argument contains variables 
+(<tt/assoc/) that should be substituted before the handler is defined.
+After the connect operation, the <tt/init-response/ handler
+is defined in much the same way as the failback handler.
+And, finally, an init request is executed.
+<bf/End of example/
+
+<sect1>Disconnect
+
+<p>
+To terminate the connection the <tt/disconnect/ action should be used. 
+This action has no parameters. 
+Another connection may be established by a new <tt/connect/ action on
+the same ir object.
+
+<sect>Result sets
+
+<p>
+This section covers the queries used by <sf/IrTcl/, and how searches and
+presents are handled.
+
+A search operation and a result set is described by the ir set object.
+The ir set object is defined by the <tt/ir-set/ command which
+has two parameters. The first is the name of the new ir set object, and
+the second, which is optional, is the name of an assocation --- an ir
+object. The second argument is required if the ir set object should be able
+to perform searches and presents. However, it is not required if
+only ``local'' operations is done with the ir set object.
+
+When the ir set object is created a number of settings are inherited
+from the ir object, such as the selected databass, query type,
+etc. Thus, the ir object contains what we could call default
+settings.
+
+<sect1>Queries
+
+<p>
+Search requests are sent by the <tt/search/ action which
+takes a query as parameter. There are two types of queries,
+RPN and CCL, controlled by the setting <tt/queryType/.
+A string representation for the query is used in <sf/IrTcl/ since
+Tcl has reasonably powerful string manipulaton capabilities.
+The RPN query used in <sf/IrTcl/ is the prefix query notation also used in
+the <bf/YAZ/ test client.
+
+The CCL query is an uninterpreted octet-string which is parsed by the target.
+We refer to the standard: ISO 8777. Note that only a few targets
+actually support the CCL query and the interpretation of
+the standard may vary.
+
+The prefix query notation (which is converted to RPN) offer a few
+operators, shown in table ref{tab:prefixop}.
+
+<descrip>
+<tag><tt>@attr </tt><em>list op</em></tag>
+ The attributes in list are applied to op
+<tag><tt>@and </tt><em>op1 op2</em></tag>
+ Boolean <em/and/ on op1 and op2
+<tag><tt>@or </tt><em>op1 op2</em></tag>
+ Boolean <em/or/ on op1 and op2
+<tag><tt>@not </tt><em>op1 op2</em></tag>
+ Boolean <em/not/ on op1 and op2
+<tag><tt>@prox </tt><em>list op1 op2</em></tag>
+ Proximity operation on op1 and op2 
+</descrip>
+
+It is simple to build RPN queries in <sf/IrTcl/. Search terms
+are sequences of characters, as in:
+<tscreen><verb>
+   science
+</verb></tscreen>
+
+Boolean operators use the prefix notation (instead of the suffix/RPN),
+as in:
+<tscreen><verb>
+   @and science technology
+</verb></tscreen>
+
+Search terms may be associated with attributes. These
+attributes are indicated by the <tt/@attr/ operator.
+Assuming the bib-1 attribute set, we can set the use-attribute 
+(type is 1) to title (value is 4):
+
+<tscreen><verb>
+   @attr 1=4 science
+</verb></tscreen>
+
+Also, it is possible to apply attributes to a range of search terms.
+In the query below, both search terms have use=title but the <tt/tech/
+term is right truncated:
+
+<tscreen><verb>
+   @attr 1=4 @and @attr 5=1 tech beta
+</verb></tscreen>
+
+<sect1>Search
+
+<p>
+Table ref{tab:irsearchrequest} lists settings that affect the search.
+Setting the <tt/databaseNames/ is mandatory. All other settings
+have reasonable defaults.
+
+</article>
+
+\begin{table}[htbf]
+\begin{tabular}{l|l|p{8cm}}
+Setting & Value & Description \\\hline
+databaseNames        & list    & database-names \\
+smallSetUpperBound   & integer & small set upper bound \\
+largeSetLowerBound   & integer & large set lower bound \\
+mediumSetPresentNumber & integer & medium set present number \\
+replaceIndicator     & boolean & replace-indicator \\
+setName                 & string  & name of result set \\
+queryType               & rpn     & query type-1 \\
+                        & ccl     & query type-2 \\
+preferredRecordSyntax   & string & preferred record syntax. 
+See table ref{tab:recordtypes} on page \pageref{tab:recordtypes} \\
+smallSetElementSetNames  & string  & small-set-element-set names \\
+mediumSetElementSetNames & string  & medium-set-element-set names \\
+searchResponse          & list    & Search-response Tcl script \\
+callback                & list    & General response Tcl script. Only used
+if searchResponse is not specified \\
+\end{tabular}
+\caption{Search request settings}
+\label{tab:irsearchrequest}
+\end{table}
+
+The search-response handler, specified by the <tt/callback/ - or
+the <tt/searchResponse/ setting, 
+should read some of the settings shown in table ref{tab:irsearchresponse}.
+
+\begin{table}[htbf]
+\begin{tabular}{l|l|p{8cm}}
+Setting & Value & Description \\\hline
+searchStatus            & boolean & search-status \\
+responseStatus          & list    & response status information \\
+resultCount             & integer & result-count \\
+numberOfRecordsReturned & integer & number of records retrieved \\
+\end{tabular}
+\caption{Search response settings}
+\label{tab:irsearchresponse}
+\end{table}
+
+The <tt/responseStatus/ signals one of three conditions which
+is indicated by the value of the first item in the list:
+
+\begin{description}
+\item[NSD] indicates that the target has returned one or more non-surrogate
+diagnostic messages. The <tt/NSD/ item is followed by a list with
+all non-surrogate messages. Each non-surrogate message consists
+of three items. The first item of the three items is the error
+code (integer); the next item is a textual representation of the error
+code in plain english; the third item is additional information, possibly
+empty if no additional information was returned by the target.
+
+\item[DBOSD] indicates a successful operation where the
+target has returned one or more records. Each record may be
+either a database record or a surrogate diagnostic.
+
+\item[OK] indicates a successful operation --- no records are
+returned from the target. 
+\end{description}
+
+<bf/Example/
+We continue with the multiple-targets example. 
+The <tt/init-response/ procedure will attempt to make searches:
+
+<tscreen><verb>
+proc init-response {assoc} {
+    puts "$assoc connected"
+    ir-set ${assoc}.1 $assoc
+    $assoc.1 queryType rpn
+    $assoc.1 databaseNames base-a base-b
+    $assoc.1 searchResponse [list search-response $assoc ${assoc}.1]
+    $assoc.1 search "@attr 1=4 @and @attr 5=1 tech beta"
+}
+</verb></tscreen>
+
+An ir set object is defined and the
+ir object is told about the name of ir object.
+The ir set object use the name of the ir object as prefix.
+
+Then, the query-type is defined to be RPN, i.e. we will
+use the prefix query notation later on.
+
+Two databases, <tt/base-a/ and <tt/base-b/, are selected.
+
+A <tt/search-response/ handler is defined with the
+ir object and the ir-set object as parameters and
+the search is executed.
+
+The first part of the <tt/search-response/ looks like:
+<tscreen><verb>
+proc search-response {assoc rset} {
+    set status [$rset responseStatus]
+    set type [lindex $status 0]
+    if {$type == NSD} {
+        set code [lindex $status 1]
+        set msg [lindex $status 2]
+        set addinfo [lindex $status 3]
+        puts "NSD $code: $msg: $addinfo"
+        return
+    } 
+    set hits [$rset resultCount]
+    if {$type == DBOSD} {
+        set ret [$rset numberOfRecordsReturned]
+        ...
+    }
+}
+</verb></tscreen>
+The response status is stored in variable <tt/status/ and 
+the first element indicates the condition.
+If non-surrogate diagnostics are returned they are displayed.
+Otherwise, the search was a success and the number of hits
+is read. Finally, it is tested whether the search response
+returned records (database or diagnostic).
+
+Note that we actually didn't inspect the search status (setting
+<tt/searchStatus/) to determine whether the search was successful or not, 
+because the standard specifies that one or more non-surrogate
+diagnostics should be returned by the target in case of errors.
+<bf/End of example/
+
+If one or more records are returned from the target they
+will be stored in the result set object.
+In the case in which the search response contains records, it is
+very similar to the present response case. Therefore, some settings
+are common to both situations.
+
+<sect1>Present
+
+<p>
+The <tt/present/ action sends a present request. The <tt/present/ is
+followed by two optional integers. The first integer is the 
+result-set starting position --- defaults to 1. The second integer 
+is the number of records requested --- defaults to 10. 
+The settings which could be modified before a <tt/present/
+action are shown in table ref{tab:irpresentrequest}.
+
+\begin{table}[htbf]
+\begin{tabular}{l|l|p{8cm}}
+Setting & Value & Description \\\hline
+preferredRecordSyntax   & string & preferred record syntax. 
+See table ref{tab:recordtypes} on page \pageref{tab:recordtypes} \\
+elementSetElementSetNames & string  & element-set names \\
+presentResponse         & list    & Present-response Tcl script \\
+callback                & list    & General response Tcl script. Only used
+if presentResponse is not specified \\
+\end{tabular}
+\caption{Present request settings}
+\label{tab:irpresentrequest}
+\end{table}
+
+The present-response handler should inspect the settings
+shown in table ref{tab:irpresentresponse}. 
+Note that <tt/responseStatus/ and <tt/numberOfRecordsReturned/
+settings were also used in the search-response case.
+
+As in the search-response case, records returned from the
+target are stored in the result set object.
+
+\begin{table}[htbf]
+\begin{tabular}{l|l|p{8cm}}
+Setting & Value & Description \\\hline
+presentStatus           & boolean & present-status \\
+responseStatus          & list    & Response status information \\
+numberOfRecordsReturned & integer & number of records returned \\
+nextResultSetPosition   & integer & next result set position \\
+\end{tabular}
+\caption{Present response settings}
+\label{tab:irpresentresponse}
+\end{table}
+
+<sect1>Records
+
+<p>
+Search responses and present responses may result in
+one or more records stored in the ir set object if
+the <tt/responseStatus/ setting indicates database or
+surrogate diagnostics (<tt/DBOSD/). The individual
+records, indexed by an integer position, should be 
+inspected.
+
+The action <tt/Type/ followed by an integer returns information 
+about a given position in an ir set. There are three possiblities:
+
+<itemize>
+<item> SD The item is a surrogate diagnostic.
+<item> DB The item is a database record.
+<item> <em/empty/ There is no record at the specified position.
+</itemize>
+
+To handle the first case, surrogate diagnostic, the
+<tt/Diag/ action should be used. It returns three
+items: error code (integer), text representation in plain english
+(string), and additional information (string, possibly empty).
+
+In the second case, database record, the <tt/recordType/ action should
+be used. It returns the record type at the given position.
+Some record types are shown in table ref{tab:recordtypes}.
+
+\begin{table}[htbf]
+\begin{center}
+\begin{tabular}{c}
+Type \\\hline
+UNIMARC \\
+INTERMARC \\ 
+CCF \\
+USMARC \\
+UKMARC \\
+NORMARC \\
+LIBRISMARC \\
+DANMARC \\
+FINMARC \\
+SUTRS \\
+\end{tabular}
+\end{center}
+\caption{Record types}
+\label{tab:recordtypes}
+\end{table}
+
+<bf/Example/
+We continue our search-response example. In the case,
+<tt/DBOSD/, we should inspect the result set items. 
+Recall that the ir set name was passed to the
+search-response handler as argument <tt/rset/.
+
+<tscreen><verb>
+    if {$type == DBOSD} {
+        set ret [$rset numberOfRecordsReturned]
+        for {set i 1} {$i<=$ret} {incr i} {
+            set itype [$rset Type $i]
+            if {$itype == SD} {
+                set diag [$rset Diag $i]
+                set code [lindex $diag 0]
+                set msg [lindex $diag 1]
+                set addinfo [lindex $diag 2]
+                puts "$i: NSD $code: $msg: $addinfo"
+            } else if {$itype == DB} {
+                set rtype [$rset RecordType $i]
+                puts "$i: type is $rtype"
+            }
+        }
+    }
+</verb></tscreen>
+Each item in the result-set is examined. 
+If an item is a diagnostic message it is displayed; otherwise
+if it's a database record its type is displayed.
+<bf/End of example/
+
+<sect1>MARC records
+
+<p>
+In the case, where there is a MARC record at a given position we
+want to display it somehow. The action <tt/getMarc/ is what we need.
+The <tt/getMarc/ is followed by a position integer and the type of
+extraction we want to make: <tt/field/ or <tt/line/.
+
+The <tt/field/ and <tt/line/ type are followed by three
+parameters that serve as extraction masks.
+They are called tag, indicator and field.
+If the mask matches a tag/indicator/field of a record the information
+is extracted. Two characters have special meaning in masks: the
+dot (any character) and star (any number of any character).
+
+The <tt/field/ type returns one or more lists of field information
+that matches the mask specification. Only the content of fields
+is returned.
+
+The <tt/line/ type, on the other hand, returns a Tcl list that
+completely describe the layout of the MARC record --- including
+tags, fields, etc.
+
+The <tt/field/ type is sufficient and efficient in the case, where only a
+small number of fields are extracted, and in the case where no
+further processing (in Tcl) is necessary.
+
+However, if the MARC record is to be edited or altered in any way, the
+<tt/line/ extraction is more powerful --- only limited by the Tcl
+language itself.
+
+<bf/Example/
+Consider the record below:
+<tscreen><verb>
+001       11224466 
+003    DLC
+005    00000000000000.0
+008    910710c19910701nju           00010 eng  
+010    $a    11224466 
+040    $a DLC $c DLC
+050 00 $a 123-xyz
+100 10 $a Jack Collins
+245 10 $a How to program a computer
+260 1  $a Penguin
+263    $a 8710
+300    $a p. cm.
+</verb></tscreen>
+
+Assuming this record is at position 1 in ir-set <tt/z.1/, we
+might extract the title-field (245 * a), with the following command:
+<tscreen><verb>
+z.1 getMarc 1 field 245 * a
+</verb></tscreen>
+
+which gives:
+<tscreen><verb>
+{How to program a computer}
+</verb></tscreen>
+
+Using the <tt/line/ instead of <tt/field/ gives:
+<tscreen><verb>
+{245 {10} {{a {How to program a computer}} }}
+</verb></tscreen>
+
+If we wish to extract the whole record as a list, we use:
+<tscreen><verb>
+z.1 getMarc 1 line * * *
+</verb></tscreen>
+
+giving:
+<tscreen><verb>
+{001 {} {{{} {   11224466 }} }}
+{003 {} {{{} DLC} }}
+{005 {} {{{} 00000000000000.0} }}
+{008 {} {{{} {910710c19910701nju           00010 eng  }} }}
+{010 {  } {{a {   11224466 }} }}
+{040 {  } {{a DLC} {c DLC} }}
+{050 {00} {{a 123-xyz} }}
+{100 {10} {{a {Jack Collins}} }}
+{245 {10} {{a {How to program a computer}} }}
+{260 {1 } {{a Penguin} }}
+{263 {  } {{a 8710} }}
+{300 {  } {{a {p. cm.}} }}
+</verb></tscreen>
+
+<bf/End of example/
+
+<bf/Example/
+This example demonstrates how Tcl can be used to examine
+a MARC record in the list notation.
+
+The procedure <tt/extract-format/ makes an extraction of
+fields in a MARC record based on a number of masks.
+There are 5 parameters, <tt/r/: a
+record in list notation, <tt/tag/: regular expression to
+match the record tags, <tt/ind/: regular expression to
+match indicators, <tt/field/: regular expression to 
+match fields, and finally <tt/text/: regular expression to 
+match the content of a field.
+
+<tscreen><verb>
+proc extract-format {r tag ind field text} {
+    foreach line $r {
+        if {[regexp $tag [lindex $line 0]] && \
+                [regexp $ind [lindex $line 1]]} {
+            foreach f [lindex $line 2] {
+                if {[regexp $field [lindex $f 0]]} {
+                    if {[regexp $text [lindex $f 1]]} {
+                        puts [lindex $f 1]
+                    }
+                }
+            }
+        }
+    }
+}
+</verb></tscreen>
+
+To match <tt/comput/ followed by any number of character(s) in the
+245 fields in the record from the previous example, we could use:
+<tscreen><verb>
+set r [z.1 getMarc 1 line * * *]
+
+extract-format $r 245 .. . comput
+</verb></tscreen>
+which gives:
+<tscreen><verb>
+How to program a computer
+</verb></tscreen>
+
+<bf/End of example/
+
+The <tt/putMarc/ action does the opposite of <tt/getMarc/. It
+copies a record in Tcl list notation to a ir set object and is
+needed if a result-set must be updated by a Tcl modified (user-edited)
+record.
+
+<sect>Scan
+
+<p>
+<em/To be written/
+
+\appendix
+\pagebreak
+
+<sect>References
+
+<p>
+\label{sec:references}
+
+<itemize>
+<item> <bf/Ousterhout, John K./:
+Tcl and the Tk Toolkit. Addison-Wesley Company Inc (ISBN
+0-201-63337-X). Source and documentation
+can be found in <tt/URL:ftp://ftp.cs.berkeley.edu/pub/tcl/
+and mirrors.
+<item> <bf/Furniss, Peter/:
+RFC 1698: Octet Sequences for Upper-Layer OSI to Support
+Basic Communications Applications.
+</itemize>
+
+</article>
