@@ -8,8 +8,6 @@ Vendor: Index Data ApS <info@indexdata.dk>
 Url: http://www.indexdata.dk/irtcl/
 Source: ir-tcl-1.5.tar.gz
 Requires: tcl
-BuildRequires: yaz
-BuildRequires: tcl
 BuildRoot: /var/tmp/%{name}-%{version}-root
 Packager: Adam Dickmeiss <adam@indexdata.dk>
 
