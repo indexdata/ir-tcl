@@ -4,7 +4,11 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.37  1995-06-13 14:37:59  adam
+# Revision 1.38  1995-06-14 07:22:45  adam
+# Target definitions can be deleted.
+# Listbox used in the query definition dialog.
+#
+# Revision 1.37  1995/06/13  14:37:59  adam
 # Work on query setup.
 # Better about origin/target.
 # Better presentation formats.
@@ -131,6 +135,8 @@ set hotTargets {}
 set hotInfo {}
 set busy 0
 
+set libDir ""
+
 set profile(Default) {{} {} {210} {} 16384 8192 tcpip {} 1 {} {} z39v2}
 set hostid Default
 set settingsChanged 0
@@ -165,7 +171,10 @@ proc set-display-format {f} {
     if {$setNo == 0} {
         return
     }
+    .bot.a.status configure -text "Reformatting"
+    update idletasks
     add-title-lines 0 10000 1
+    .bot.a.status configure -text "Done"
 }
 
 proc initBindings {} {
@@ -354,6 +363,32 @@ proc insertWithTags {w text args} {
     }
 }
 
+proc popup-license {} {
+    set w .popup-licence
+    toplevel $w
+
+    wm title $w "License" 
+
+    wm minsize $w 0 0
+
+    top-down-window $w
+
+    text $w.top.t -width 80 -height 10 -wrap word \
+        -yscrollcommand [list $w.top.s set]
+    scrollbar $w.top.s -command [list $w.top.t yview]
+    
+    pack $w.top.s -side right -fill y
+    pack $w.top.t -expand yes -fill both
+
+    set f [open "LICENSE" r]
+    while {[gets $f buf] != -1} {
+        $w.top.t insert end $buf
+        $w.top.t insert end "\n"
+    } 
+    close $f
+    bottom-buttons $w [list {Close} [list destroy $w]] 1
+}
+
 proc about-target {} {
     set w .about-target-w
     global hostid
@@ -387,10 +422,26 @@ proc about-target {} {
     bottom-buttons $w [list {Close} [list destroy $w]] 1
 }
 
+proc about-origin-logo {n} {
+    set w .about-origin-w
+    if {![winfo exists $w]} {
+        return
+    }
+    incr n -1
+    if {$n==0} {
+        set n 9
+    }
+    $w.top.a.logo configure -bitmap @book$n
+    after 140 [list about-origin-logo $n]
+}
+
 proc about-origin {} {
     set w .about-origin-w
-
-    toplevelG $w
+    
+    if {[winfo exists $w]} {
+        destroy $w
+    }
+    toplevel $w
 
     wm title $w "About IrTcl"
     place-force $w .
@@ -401,10 +452,10 @@ proc about-origin {} {
 
     pack $w.top.a $w.top.p -side top -fill x
     
-    label $w.top.a.about -text "About"
     label $w.top.a.irtcl -text "IrTcl" \
             -font -Adobe-Helvetica-Bold-R-Normal-*-240-*
-    pack $w.top.a.about $w.top.a.irtcl -side top
+    label $w.top.a.logo -bitmap @book1 
+    pack $w.top.a.irtcl $w.top.a.logo -side left -expand yes
 
     set i [z39 implementationName]
     label $w.top.p.in -text "Implementation name: $i"
@@ -413,7 +464,9 @@ proc about-origin {} {
 
     pack $w.top.p.in $w.top.p.ii -side top -anchor nw
 
-    bottom-buttons $w [list {Close} [list destroy $w]] 1
+    about-origin-logo 1
+    bottom-buttons $w [list {Close} [list destroy $w] \
+                            {License} [list popup-license]] 0
 }
 
 proc popup-marc {sno no b df} {
@@ -464,7 +517,7 @@ proc popup-marc {sno no b df} {
     set ffunc [lindex $displayFormats $df]
     set ffunc "display-$ffunc"
 
-    $ffunc $sno $no  $w.top.record 0
+    $ffunc $sno $no $w.top.record 0
 
     if {$new} {
         bind $w.top.record <Return> {destroy .full-marc}
@@ -635,6 +688,7 @@ proc load-set-action {} {
     destroy .load-set
     if {$fname != ""} {
         show-status {Loading} 1 {}
+        update
         z39.$setNo loadFile $fname
 
         set no [z39.$setNo numberOfRecordsReturned]
@@ -653,11 +707,9 @@ proc load-set {} {
     toplevel $w
 
     place-force $w .
-
     top-down-window $w
 
     frame $w.top.filename
-    
     pack $w.top.filename -side top -anchor e -pady 2
     
     entry-fields $w.top {filename} \
@@ -1068,7 +1120,7 @@ proc add-title-lines {setno no offset} {
         $ffunc $setno $o .data.record 1
         .data.record tag add r$o $insert0 insert
         .data.record tag bind r$o <1> \
-                [list popup-marc $setno $o 0 $displayFormat]
+                [list popup-marc $setno $o 0 0]
     }
 }
 
@@ -1169,6 +1221,19 @@ proc define-target-dialog {} {
             {{Target:}} \
             {define-target-action} {destroy .target-define}
     top-down-ok-cancel $w {define-target-action} 1
+}
+
+proc protocol-setup-delete {target} {
+    global profile
+
+    set a [alert "Are you you want to delete the target definition $target ?"]
+    if {$a} {
+        set wno [lindex $profile($target) 12]
+        set w .setup-${wno}
+        destroy $w
+        unset profile($target)
+        cascade-target-list
+    }
 }
 
 proc protocol-setup-action {target} {
@@ -1334,7 +1399,7 @@ proc protocol-setup {target} {
     }
 
     # Databases ....
-    pack $w.top.databases -side left -pady 6 -padx 6 -expand yes -fill both
+    pack $w.top.databases -side left -pady 4 -padx 4 -expand yes -fill both
 
     label $w.top.databases.label -text "Databases"
     button $w.top.databases.add -text "Add" \
@@ -1359,7 +1424,7 @@ proc protocol-setup {target} {
     }
 
     # Transport ...
-    pack $w.top.cs-type -pady 6 -padx 6 -side top -fill x
+    pack $w.top.cs-type -pady 4 -padx 4 -side top -fill x
     
     label $w.top.cs-type.label -text "Transport" 
     radiobutton $w.top.cs-type.tcpip -text "TCP/IP" -anchor w \
@@ -1371,7 +1436,7 @@ proc protocol-setup {target} {
             -padx 4 -side top -fill x
 
     # Protocol ...
-    pack $w.top.protocol -pady 6 -padx 6 -side top -fill x
+    pack $w.top.protocol -pady 4 -padx 4 -side top -fill x
     
     label $w.top.protocol.label -text "Protocol" 
     radiobutton $w.top.protocol.z39v2 -text "Z39.50" -anchor w \
@@ -1383,7 +1448,7 @@ proc protocol-setup {target} {
             -padx 4 -side top -fill x
 
     # Query ...
-    pack $w.top.query -pady 6 -padx 6 -side top -fill x
+    pack $w.top.query -pady 4 -padx 4 -side top -fill x
 
     label $w.top.query.label -text "Query support"
     checkbutton $w.top.query.c1 -text "RPN query" -anchor w -variable RPNCheck
@@ -1396,6 +1461,7 @@ proc protocol-setup {target} {
 
     # Ok-cancel
     bottom-buttons $w [list {Ok} [list protocol-setup-action $target] \
+            {Delete} [list protocol-setup-delete $target] \
             {Cancel} [list destroy $w]] 0   
 }
 
@@ -1448,7 +1514,6 @@ proc cascade-target-list {} {
     global profile
     
     foreach sub [winfo children .top.target.m.clist] {
-        puts "deleting $sub"
         destroy $sub
     }
     .top.target.m.clist delete 0 last
@@ -1514,10 +1579,43 @@ proc query-new {} {
     frame $w.top.index
     pack $w.top.index \
             -side top -anchor e -pady 2 
-    entry-fields $w.top {index} \
+    entry-fields $w.top index \
             {{Query Name:}} \
             query-new-action {destroy .query-new}
     top-down-ok-cancel $w query-new-action 1
+}
+
+proc query-delete-action {queryNo} {
+    global queryTypes
+    global queryButtons
+    global queryInfo
+    global settingsChanged
+
+    set settingsChanged 1
+
+    set queryTypes [lreplace $queryTypes $queryNo $queryNo]
+    set queryButtons [lreplace $queryButtons $queryNo $queryNo]
+    set queryInfo [lreplace $queryInfo $queryNo $queryNo]
+    destroy .query-delete
+    cascade-query-list
+}
+
+proc query-delete {queryNo} {
+    global queryTypes
+
+    set w .query-delete
+
+    toplevel $w
+    place-force $w .
+    top-down-window $w
+    set n [lindex $queryTypes $queryNo]
+
+    label $w.top.warning -bitmap warning
+    message $w.top.quest -text "Are you sure you want to delete the \
+query type $n ?"  -aspect 200
+    pack $w.top.warning $w.top.quest -side left -expand yes -padx 10 -pady 5
+    bottom-buttons $w [list {Ok} [list query-delete-action $queryNo] \
+                            {Cancel} [list destroy $w]] 1
 }
 
 proc cascade-query-list {} {
@@ -1535,6 +1633,12 @@ proc cascade-query-list {} {
     $w.clist delete 0 last
     foreach n $queryTypes {
         $w.clist add command -label $n -command [list query-select $i]
+        incr i
+    }
+    set i 0
+    $w.dlist delete 0 last
+    foreach n $queryTypes {
+        $w.dlist add command -label $n -command [list query-delete $i]
         incr i
     }
 }
@@ -1595,9 +1699,10 @@ proc alert {ask} {
     place-force $w .
     top-down-window $w
 
-    message $w.top.message -text $ask
+    label $w.top.warning -bitmap warning
+    message $w.top.message -text $ask -aspect 200
 
-    pack $w.top.message -side left -pady 6 -padx 20 -expand yes -fill x
+    pack $w.top.warning $w.top.message -side left -pady 5 -padx 10 -expand yes
   
     set alertAnswer 0
     top-down-ok-cancel $w {alert-action} 1
@@ -1690,13 +1795,14 @@ proc listbuttonv {button var names} {
 }
 
 proc query-add-index-action {queryNo} {
-    set w .setup-query
+    set w .query-setup
 
     global queryInfoTmp
     global queryButtonsTmp
 
-    lappend queryInfoTmp [list [.query-add-index.top.index.entry get] {}]
-
+    set newI [.query-add-index.top.index.entry get]
+    lappend queryInfoTmp [list $newI {}]
+    $w.top.index insert end $newI
     destroy .query-add-index
     #destroy $w.top.lines
     #frame $w.top.lines -relief ridge -border 2
@@ -1705,7 +1811,7 @@ proc query-add-index-action {queryNo} {
 }
 
 proc query-add-line {queryNo} {
-    set w .setup-query
+    set w .query-setup
 
     global queryInfoTmp
     global queryButtonsTmp
@@ -1719,7 +1825,7 @@ proc query-add-line {queryNo} {
 }
 
 proc query-del-line {queryNo} {
-    set w .setup-query
+    set w .query-setup
 
     global queryInfoTmp
     global queryButtonsTmp
@@ -1737,14 +1843,14 @@ proc query-add-index {queryNo} {
     set w .query-add-index
 
     toplevel $w
-    place-force $w .setup-query
+    place-force $w .query-setup
     top-down-window $w
     frame $w.top.index
     pack $w.top.index \
             -side top -anchor e -pady 2 
     entry-fields $w.top {index} \
             {{Index Name:}} \
-            [list query-add-index-action $queryNo] {destroy .query-add-index}
+            [list query-add-index-action $queryNo] [list destroy $w]
     top-down-ok-cancel $w [list query-add-index-action $queryNo] 1
 }
 
@@ -1761,7 +1867,7 @@ proc query-setup-action {queryNo} {
             $queryInfoTmp]
     set queryButtons [lreplace $queryButtons $queryNo $queryNo \
             $queryButtonsTmp]
-    destroy .setup-query
+    destroy .query-setup
 }
 
 proc activate-e-index {value no i} {
@@ -1929,6 +2035,7 @@ proc use-attr {init} {
         set lno [lindex [$w.top.use.list curselection] 0]
         set i [expr $lno+$lno+1]
         set useTmpValue [lindex $attr $i]
+        puts "useTmpValue=$useTmpValue"
     }
 }
 
@@ -1945,6 +2052,9 @@ proc index-setup-action {oldAttr queryNo indexNo} {
 
     use-attr 0
 
+    puts "index-setup-action"
+    puts "queryNo $queryNo"
+    puts "indexNo $indexNo"
     if {$useTmpValue > 0} {
         lappend attr "1=$useTmpValue"
     }
@@ -1963,6 +2073,7 @@ proc index-setup-action {oldAttr queryNo indexNo} {
     if {$completenessTmpValue > 0} {
         lappend attr "6=$completenessTmpValue"
     }
+    puts "new attr $attr"
     set queryInfoTmp [lreplace $queryInfoTmp $indexNo $indexNo $attr]
     destroy .index-setup
 }
@@ -2084,15 +2195,32 @@ proc index-setup {attr queryNo indexNo} {
 
 proc query-edit-index {queryNo} {
     global queryInfoTmp
-    global queryIndexTmp
 
-    set attr [lindex $queryInfoTmp $queryIndexTmp]
-    puts "Editing $attr"
-    index-setup $attr $queryNo $queryIndexTmp
+    set i [lindex [.query-setup.top.index curselection] 0]
+    if {$i == ""} {
+        return
+    }
+    set attr [lindex $queryInfoTmp $i]
+    puts "Editing no $i $attr"
+    index-setup $attr $queryNo $i
+}
+
+proc query-delete-index {queryNo} {
+    global queryInfoTmp
+    global queryButtonsTmp
+    set w .query-setup
+
+    set i [lindex [$w.top.index curselection] 0]
+    if {$i == ""} {
+        return
+    }
+    set queryInfoTmp [lreplace $queryInfoTmp $i $i]
+    index-lines $w.top.lines 0 $queryButtonsTmp $queryInfoTmp activate-e-index
+    $w.top.index delete $i
 }
     
 proc query-setup {queryNo} {
-    set w .setup-query
+    set w .query-setup
 
     global queryTypes
     global queryButtons
@@ -2106,7 +2234,7 @@ proc query-setup {queryNo} {
     set queryInfoTmp [lindex $queryInfo $queryNo]
     set queryButtonsTmp [lindex $queryButtons $queryNo]
 
-    toplevelG $w
+    toplevel $w
 
     wm minsize $w 0 0
     wm title $w "Query setup $queryName"
@@ -2121,13 +2249,29 @@ proc query-setup {queryNo} {
 
     pack $w.top.lines -side left -pady 6 -padx 6 -fill y
 
+    # Indexes
+
+    listbox $w.top.index -yscrollcommand [list $w.top.scroll set]
+    scrollbar $w.top.scroll -orient vertical -border 1 \
+        -command [list $w.top.index yview]
+
+    pack $w.top.index -side left -fill both -expand yes -padx 2 -pady 2
+    pack $w.top.scroll -side right -fill y -padx 2 -pady 2
+
+    $w.top.index select from 0
+    $w.top.index select to 0
+
+    foreach x $queryInfoTmp {
+        $w.top.index insert end [lindex $x 0]
+    }
     # Ok-cancel
     bottom-buttons $w [list \
             {Ok} [list query-setup-action $queryNo] \
-            {Add index} [list query-add-index $queryNo] \
-            {Edit index} [list query-edit-index $queryNo] \
             {Add line} [list query-add-line $queryNo] \
             {Delete line} [list query-del-line $queryNo] \
+            {Add index} [list query-add-index $queryNo] \
+            {Edit index} [list query-edit-index $queryNo] \
+            {Delete index} [list query-delete-index $queryNo] \
             {Cancel} [list destroy $w]] 0
 }
 
@@ -2325,22 +2469,25 @@ menu .top.options.m
 .top.options.m add cascade -label "Format" -menu .top.options.m.formats
 
 menu .top.options.m.query
-.top.options.m.query add cascade -label "Choose query" \
+.top.options.m.query add cascade -label "Select" \
         -menu .top.options.m.query.clist
-.top.options.m.query add cascade -label "Edit query" \
+.top.options.m.query add cascade -label "Edit" \
         -menu .top.options.m.query.slist
-.top.options.m.query add command -label "Define query" \
+.top.options.m.query add command -label "New" \
         -command {query-new}
+.top.options.m.query add cascade -label "Delete" \
+        -menu .top.options.m.query.dlist
 
 menu .top.options.m.query.slist
 menu .top.options.m.query.clist
+menu .top.options.m.query.dlist
 cascade-query-list
 
 menu .top.options.m.formats
 set i 0
 foreach f $displayFormats {
-    .top.options.m.formats add radiobutton -label $f \
-            -command [list set-display-format $i]
+    .top.options.m.formats add radiobutton -label $f -value $i \
+            -command [list set-display-format $i] -variable displayFormat
     incr i
 }
 

@@ -1,5 +1,5 @@
 # Setup file
-set hotTargets { ztest {AT&T server} RLG {A new server} dranet LOC Penn DANBIB Aleph CARL OCLC IREG Innovative CNIDR CLSI AULS Nsrtest                                                        }
+set hotTargets {   ztest {AT&T server} RLG {A new server} dranet LOC Penn DANBIB Aleph CARL OCLC IREG Innovative CNIDR CLSI AULS Nsrtest                                                          }
 set {profile(CNIDR)} {CNIDR Kudzu.cnidr.org 5556 {} 16384 8192 tcpip {Book ERIC} 1 {} {} z39v2 1}
 set {profile(Penn)} {{Penn State's Library} 128.118.88.200 210 {} 16384 8192 tcpip CATALOG 1 {} {} z39v2 2}
 set {profile(A new server)} {{A completely new server} dtbsun.dtv.dk 9999 {} 16384 8192 tcpip dummy {} {} {} z39v2 20}
@@ -18,6 +18,6 @@ set {profile(Innovative)} {{Innovatives server: demo.iii.com} demo.iii.com 210 {
 set {profile(CLSI)} {CLSI inet-gw.clsi.uc.geac.com 210 {} 16384 8192 tcpip Cl 1 {} {} z39v2 13}
 set {profile(AULS)} {{Acadia university} auls.acadiau.ca 210 {} 16384 8192 tcpip AULS 1 {} {} z39v2 14}
 set {profile(dranet)} {dranet dranet.dra.com 210 {} 16384 16384 tcpip drewdb 1 {} {} z39v2 15}
-set queryTypes {Simple}
-set queryButtons { { {I 0} {I 1} {I 2} } }
-set queryInfo { { {Title {1=4}} {Author {1=1}} {Subject {1=21}} {Any {1=1016}} } }
+set queryTypes {Simple aaaaaaa}
+set queryButtons {{ {I 0} {I 1} {I 2} } {{I 0} {I 1}}}
+set queryInfo {{ {Title {1=4}} {Author {1=1}} {Subject {1=21}} {Any {1=1016}}} {{Title 1=4} {Year 1=30}}}
