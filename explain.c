@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: explain.c,v $
- * Revision 1.4  1996-08-22 13:39:31  adam
+ * Revision 1.5  1996-08-23 11:59:47  adam
+ * Bug fix: infinite look in ir_oid.
+ *
+ * Revision 1.4  1996/08/22  13:39:31  adam
  * More work on explain.
  *
  * Revision 1.3  1996/08/21  13:32:50  adam
@@ -279,6 +282,7 @@ static int ir_oid (IrExpArg *iea,
         sprintf (buf, "%c%d", first, *p);
         Tcl_AppendResult (iea->interp, buf, NULL);
         first = '.';
+        p++;
     }
     return ir_match_end (name, iea, argi);
 }
