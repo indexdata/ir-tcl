@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.66  1995-08-29 15:30:13  adam
+# Revision 1.67  1995-09-20 14:35:19  adam
+# Minor changes.
+#
+# Revision 1.66  1995/08/29  15:30:13  adam
 # Work on GRS records.
 #
 # Revision 1.65  1995/08/24  15:39:09  adam
@@ -449,11 +452,11 @@ proc top-down-window {w} {
 
 proc top-down-ok-cancel {w ok-action g} {
     frame $w.bot.left -relief sunken -border 1
-    pack $w.bot.left -side left -expand yes -ipadx 2 -ipady 2 -padx 4 -pady 4
-    button $w.bot.left.ok -width 5 -text {Ok} \
+    pack $w.bot.left -side left -expand yes -ipadx 2 -ipady 2 -padx 1 -pady 1
+    button $w.bot.left.ok -width 4 -text {Ok} \
             -command ${ok-action}
-    pack $w.bot.left.ok -expand yes -ipadx 2 -ipady 2 -padx 3 -pady 3
-    button $w.bot.cancel -width 6 -text {Cancel} \
+    pack $w.bot.left.ok -expand yes -ipadx 1 -ipady 1 -padx 2 -pady 2
+    button $w.bot.cancel -width 5 -text {Cancel} \
             -command [list destroy $w]
     pack $w.bot.cancel -side left -expand yes    
 
@@ -468,16 +471,16 @@ proc bottom-buttons {w buttonList g} {
     set l [llength $buttonList]
 
     frame $w.bot.$i -relief sunken -border 1
-    pack $w.bot.$i -side left -expand yes -padx 4 -pady 4
+    pack $w.bot.$i -side left -expand yes -padx 2 -pady 2
     button $w.bot.$i.ok -text [lindex $buttonList $i] \
             -command [lindex $buttonList [expr $i+1]]
-    pack $w.bot.$i.ok -expand yes -ipadx 2 -ipady 2 -padx 2 -pady 2 -side left
+    pack $w.bot.$i.ok -expand yes -padx 2 -pady 2 -side left
 
     incr i 2
     while {$i < $l} {
         button $w.bot.$i -text [lindex $buttonList $i] \
                 -command [lindex $buttonList [expr $i+1]]
-        pack $w.bot.$i -expand yes -ipadx 2 -ipady 2 -padx 2 -pady 2 -side left
+        pack $w.bot.$i -expand yes -padx 2 -pady 2 -side left
         incr i 2
     }
     if {$g} {
@@ -700,11 +703,12 @@ proc about-origin {} {
     label $w.top.a.logo -bitmap @${libdir}/bitmaps/book1 
     pack $w.top.a.irtcl $w.top.a.logo -side left -expand yes
 
-    set i [z39 implementationName]
+    set i unknown
+    catch {set i [z39 implementationName]}
     label $w.top.p.in -text "Implementation name: $i"
-    set i [z39 implementationId]
+    catch {set i [z39 implementationId]}
     label $w.top.p.ii -text "Implementation id: $i"
-    set i [z39 implementationVersion]
+    catch {set i [z39 implementationVersion]}
     label $w.top.p.iv -text "Implementation version: $i"
 
     pack $w.top.p.in $w.top.p.ii $w.top.p.iv -side top -anchor nw
@@ -1820,7 +1824,7 @@ proc protocol-setup {target} {
     }
 
     # Databases ....
-    pack $w.top.databases -side left -pady 4 -padx 4 -expand yes -fill both
+    pack $w.top.databases -side left -pady 2 -padx 2 -expand yes -fill both
 
     label $w.top.databases.label -text "Databases"
     button $w.top.databases.add -text "Add" \
@@ -1828,10 +1832,10 @@ proc protocol-setup {target} {
     button $w.top.databases.delete -text "Delete" \
             -command [list delete-database $target]
     if {! [tk4]} {
-        listbox $w.top.databases.list -geometry 20x6 \
+        listbox $w.top.databases.list -geometry 14x6 \
                 -yscrollcommand "$w.top.databases.scroll set"
     } else {
-        listbox $w.top.databases.list -width 20 \
+        listbox $w.top.databases.list -width 14 -height 5\
                 -yscrollcommand "$w.top.databases.scroll set"
     }
     scrollbar $w.top.databases.scroll -orient vertical -border 1
@@ -1850,7 +1854,7 @@ proc protocol-setup {target} {
     }
 
     # Transport ...
-    pack $w.top.cs-type -pady 4 -padx 4 -side top -fill x
+    pack $w.top.cs-type -pady 2 -padx 2 -side top -fill x
     
     label $w.top.cs-type.label -text "Transport" 
     radiobutton $w.top.cs-type.tcpip -text "TCP/IP" -anchor w \
@@ -1859,10 +1863,10 @@ proc protocol-setup {target} {
             -variable csRadioType -value mosi
     
     pack $w.top.cs-type.label $w.top.cs-type.tcpip $w.top.cs-type.mosi \
-            -padx 4 -side top -fill x
+            -padx 2 -side top -fill x
 
     # Protocol ...
-    pack $w.top.protocol -pady 4 -padx 4 -side top -fill x
+    pack $w.top.protocol -pady 2 -padx 2 -side top -fill x
     
     label $w.top.protocol.label -text "Protocol" 
     radiobutton $w.top.protocol.z39v2 -text "Z39.50" -anchor w \
@@ -1871,10 +1875,10 @@ proc protocol-setup {target} {
             -variable protocolRadioType -value SR
     
     pack $w.top.protocol.label $w.top.protocol.z39v2 $w.top.protocol.sr \
-            -padx 4 -side top -fill x
+            -padx 2 -side top -fill x
 
     # Query ...
-    pack $w.top.query -pady 4 -padx 4 -side top -fill x
+    pack $w.top.query -pady 2 -padx 2 -side top -fill x
 
     label $w.top.query.label -text "Query support"
     checkbutton $w.top.query.c1 -text "RPN query" -anchor w -variable RPNCheck
@@ -1883,7 +1887,7 @@ proc protocol-setup {target} {
 
     pack $w.top.query.label -side top 
     pack $w.top.query.c1 $w.top.query.c2 $w.top.query.c3 \
-            -padx 4 -side top -fill x
+            -padx 2 -side top -fill x
 
     # Ok-cancel
     bottom-buttons $w [list {Ok} [list protocol-setup-action $target] \
@@ -2082,8 +2086,9 @@ proc save-geometry {} {
     
     set windowGeometry(.) [wm geometry .]
 
-    set f [open "~/.clientrc.tcl" w]
-
+    if {[catch {set f [open ~/.clientrc.tcl w]}]} {
+        return
+    } 
     puts $f "set hotTargets \{ $hotTargets \}"
     puts $f "set textWrap $textWrap"
     puts $f "set displayFormat $displayFormat"
@@ -3056,16 +3061,16 @@ pack .top.help -side right
 
 index-lines .lines 1 $queryButtonsFind [lindex $queryInfo 0] activate-index
 
-button .mid.search -width 7 -text {Search} -command {search-request 0} \
+button .mid.search -text Search -command {search-request 0} \
         -state disabled
-button .mid.scan -width 7 -text {Scan} \
+button .mid.scan -text Scan \
         -command scan-request -state disabled 
-button .mid.present -width 7 -text {Present} -command [list present-more 10] \
+button .mid.present -text {Present} -command [list present-more 10] \
         -state disabled
 
-button .mid.clear -width 7 -text {Clear} -command index-clear
+button .mid.clear -text Clear -command index-clear
 pack .mid.search .mid.scan .mid.present .mid.clear -side left \
-        -fill y -padx 4 -pady 2
+        -fill y -pady 1
 
 text .data.record -height 2 -width 20 -wrap none \
         -yscrollcommand [list .data.scroll set] -wrap $textWrap
@@ -3087,7 +3092,7 @@ if {! $monoFlag} {
 }
 .data.record tag configure marc-data -foreground black
 
-button .bot.logo  -bitmap @${libdir}/bitmaps/book1 -command cancel-operation
+button .bot.logo -bitmap @${libdir}/bitmaps/book1 -command cancel-operation
 if {[tk4]} {
     .bot.logo configure -takefocus 0
 }
@@ -3108,7 +3113,7 @@ pack .bot.a.target -side top -anchor nw -padx 2 -pady 2
 pack .bot.a.status .bot.a.set .bot.a.message \
         -side left -padx 2 -pady 2 -ipadx 1 -ipady 1
 
-ir z39
+catch {ir z39}
 #z39 logLevel all
 show-logo 1
 
