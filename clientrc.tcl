@@ -2,7 +2,7 @@
 set {profile(Penn)} {{Penn State's Library} 128.118.88.200 210 {} 16384 8192 tcpip CATALOG 1 {} {} Z39 2}
 set {profile(ztest)} {{test server} localhost 9999 {} 16384 4096 tcpip dummy 1 {} {} Z39 3}
 set {profile(madison)} {{University of Wisconsin-Madison} z3950.adp.wisc.edu 210 {} 16384 8192 tcpip madison 1 {} {} Z39 22}
-set {profile(Default)} {{} {} {210} {} 16384 8192 tcpip {} {} {} {} {} 24}
+set {profile(Default)} {{} {} {210} {} 16384 8192 tcpip {} {} {} {} {} 25}
 set {profile(RLG)} {{Research Libraries group} rlg.stanford.edu 210 {} 4096 4096 tcpip {BKS AMC MAPS MDF REC SCO SER VIM NAF SAF AUT CATALOG ABI AVI DSA EIP FLP HAP HST NPA PAI PRA WLI} 1 {} {} Z39 5}
 set {profile(AT&T server)} {{AT&T Z39 Server} z3950.research.att.com 210 {} 16384 8192 tcpip Default {} {} {} Z39 21}
 set {profile(LOC)} {{Library of Congress} IBM2.LOC.gov 2210 {} 16384 16384 tcpip {BOOKS NAMES} 1 {} 0 Z39 6}
@@ -12,6 +12,7 @@ set {profile(CARL)} {{CARL systems} Z3950.carl.org 210 {} 16384 8192 tcpip {ACC 
 set {profile(CLSI)} {CLSI inet-gw.clsi.us.geac.com 210 {} 16384 8192 tcpip cl_default 1 {} {} Z39 13}
 set {profile(Innovative)} {{Innovatives server: demo.iii.com} demo.iii.com 210 {} 16384 8192 tcpip DEFAULT 1 {} {} Z39 12}
 set {profile(AULS)} {{Acadia university} auls.acadiau.ca 210 {} 16384 8192 tcpip AULS 1 {} {} Z39 14}
+set {profile(Europagate)} {{Europagate Z39/SR gateway} dagwood.ucd.ie 210 <<denmark>> 16384 8192 tcpip danbib 1 {} 1 Z39 24}
 set {profile(dranet)} {dranet dranet.dra.com 210 {} 16384 16384 tcpip drewdb 1 {} {} Z39 15}
 set queryTypes {Simple phrase}
 set queryButtons {{ {I 0} {I 1} {I 2} } {{I 0} {I 1} {I 0}}}

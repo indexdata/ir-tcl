@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.48  1995-06-20 08:07:23  adam
+# Revision 1.49  1995-06-20 14:16:42  adam
+# More work on cancel mechanism.
+#
+# Revision 1.48  1995/06/20  08:07:23  adam
 # New setting: failInfo.
 # Working on better cancel mechanism.
 #
@@ -180,7 +183,6 @@ set settingsChanged 0
 set setNo 0
 set lastSetNo 0
 set cancelFlag 0
-set searchEnable 0
 set scanEnable 0
 set fullMarcSeq 0
 set displayFormat 1
@@ -351,9 +353,9 @@ proc cancel-operation {} {
     global busy
     global delayRequest
 
-    set cancelFlag 1
-    set delayRequest {}
     if {$busy} {
+        set cancelFlag 1
+        set delayRequest {}
         show-status Cancel 0 1
     }
 }
@@ -395,7 +397,6 @@ proc show-logo {v1} {
         
 proc show-status {status b sb} {
     global busy
-    global searchEnable
     global scanEnable
     global setOffset
     global setMax
@@ -428,7 +429,6 @@ proc show-status {status b sb} {
             .scan-window.bot.2 configure -state normal
             .scan-window.bot.4 configure -state normal
         }
-        set searchEnable 1
     } else {
         .top.service configure -state disabled
         .mid.search configure -state disabled
@@ -439,7 +439,6 @@ proc show-status {status b sb} {
             .scan-window.bot.2 configure -state disabled
             .scan-window.bot.4 configure -state disabled
         }
-        set searchEnable 0
     }
 }
 
@@ -874,26 +873,26 @@ proc init-response {} {
     }
 }
 
-proc search-request {} {
+proc search-request {bflag} {
     global setNo
     global profile
     global hostid
     global busy
     global cancelFlag
-    global searchEnable
     global delayRequest
 
     set target $hostid
 
     dputs "search-request"
-    if {$searchEnable < 0} {
-        dputs "searchEnable == 0"
+    show-message {}
+    if {!$bflag && $busy} {
+        dputs "busy: search-request ignored"
         return
     }
     if {$cancelFlag} {
         dputs "cancelFlag"
         show-status {Searching} 1 0
-        set delayRequest search-request
+        set delayRequest {search-request 1}
         return
     }
     set delayRequest {} 
@@ -941,6 +940,17 @@ proc scan-request {} {
     global curIndexEntry
     global queryButtonsFind
     global queryInfoFind
+    global cancelFlag
+    global delayRequest
+
+    dputs "scan-request"
+    if {$cancelFlag} {
+        dputs "cancelFlag"
+        show-status {Scanning} 1 0
+        set delayRequest scan-request
+        return
+    }
+    set delayRequest {} 
 
     set target $hostid
     set scanView 0
@@ -1020,6 +1030,7 @@ proc scan-term-h {attr} {
 
 proc scan-response {attr start toget} {
     global cancelFlag
+    global delayRequest
     global scanTerm
     global scanView
 
@@ -1032,8 +1043,15 @@ proc scan-response {attr start toget} {
     dputs toget=$toget
 
     if {![winfo exists .scan-window]} {
+        if {$cancelFlag} {
+            set cancelFlag 0
+            dputs "Handling cancel"
+            if {$delayRequest != ""} {
+                eval $delayRequest
+            }
+            return
+        }
         show-status {Ready} 0 1
-        set cancelFlag 0
         return
     }
     set nScanTerm [$w.top.entry get]
@@ -1075,10 +1093,14 @@ proc scan-response {attr start toget} {
         }
     }
     if {$cancelFlag} {
-        show-status {Ready} 0 1
+        dputs "Handling cancel"
         set cancelFlag 0
+        if {$delayRequest != ""} {
+            eval $delayRequest
+        }
         return
     }
+    set delayRequest {}
     if {$toget > 0 && $m > 1 && $m < $toget} {
         set ntoget [expr $toget - $m + 1]
         dputs ntoget=$ntoget
@@ -1117,6 +1139,17 @@ proc scan-response {attr start toget} {
 
 proc scan-down {attr} {
     global scanView
+    global cancelFlag
+    global delayRequest
+
+    dputs {scan-down}
+    if {$cancelFlag} {
+        dputs "cancelFlag"
+        show-status {Scanning down} 1 0
+        set delayRequest [list scan-down $attr]
+        return
+    }
+    set delayRequest {} 
 
     set w .scan-window
     set scanView [expr $scanView + 5]
@@ -1137,6 +1170,17 @@ proc scan-down {attr} {
 
 proc scan-up {attr} {
     global scanView
+    global cancelFlag
+    global delayRequest
+
+    dputs {scan-up}
+    if {$cancelFlag} {
+        dputs "cancelFlag"
+        show-status {Scanning up} 1 0
+        set delayRequest [list scan-up $attr]
+        return
+    }
+    set delayRequest {} 
 
     set w .scan-window
     set scanView [expr $scanView - 5]
@@ -1166,7 +1210,7 @@ proc search-response {} {
         dputs "Handling cancel"
         set cancelFlag 0
         if {$delayRequest != ""} {
-            $delayRequest
+            eval $delayRequest
         }
         return
     }
@@ -1209,7 +1253,7 @@ proc present-more {number} {
     dputs "present-more"
     if {$cancelFlag} {
         show-status {Retrieving} 1 0
-        set delayRequest [list present-request $number]
+        set delayRequest "present-more $number"
         return
     }
     set delayRequest {}
@@ -1293,19 +1337,19 @@ proc present-response {} {
     global cancelFlag
     global delayRequest
 
-    if {$cancelFlag} {
-        dputs "Handling cancel"
-        set cancelFlag 0
-        if {$delayRequest != ""} {
-            $delayRequest
-        }
-        return
-    }
     dputs "In present-response"
     set no [z39.$setNo numberOfRecordsReturned]
     dputs "Returned $no records, setOffset $setOffset"
     add-title-lines $setNo $no $setOffset
     set setOffset [expr $setOffset + $no]
+    if {$cancelFlag} {
+        dputs "Handling cancel"
+        set cancelFlag 0
+        if {$delayRequest != ""} {
+            eval $delayRequest
+        }
+        return
+    }
     set status [z39.$setNo responseStatus]
     if {[lindex $status 0] == "NSD"} {
         show-status {Ready} 0 1
@@ -2562,7 +2606,7 @@ proc index-lines {w realOp buttonInfo queryInfo handle} {
                 pack $w.$i -side top -fill x -padx 2 -pady 2
                 bind $w.$i.e <Left> [list left-cursor $w.$i.e]
                 bind $w.$i.e <Right> [list right-cursor $w.$i.e]
-                bind $w.$i.e <Return> search-request
+                bind $w.$i.e <Return> {search-request 0}
             }
         } else {
             pack $w.$i.l -side left
@@ -2675,7 +2719,7 @@ menu .top.service.m.present
         -command [list present-more 10]
 .top.service.m.present add command -label "All" \
         -command [list present-more {}]
-.top.service.m add command -label "Search" -command {search-request}
+.top.service.m add command -label "Search" -command {search-request 0}
 .top.service.m add command -label "Scan" -command {scan-request}
 
 .top.service configure -state disabled
@@ -2734,7 +2778,7 @@ pack .top.help -side right
 
 index-lines .lines 1 $queryButtonsFind [lindex $queryInfo 0] activate-index
 
-button .mid.search -width 7 -text {Search} -command search-request \
+button .mid.search -width 7 -text {Search} -command {search-request 0} \
         -state disabled
 button .mid.scan -width 7 -text {Scan} \
         -command scan-request -state disabled 
