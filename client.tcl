@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.8  1995-03-17 15:45:00  adam
+# Revision 1.9  1995-03-17 18:26:16  adam
+# Non-blocking i/o used now. Database names popup as cascade items.
+#
+# Revision 1.8  1995/03/17  15:45:00  adam
 # Improved target/database setup.
 #
 # Revision 1.7  1995/03/16  17:54:03  adam
@@ -130,7 +133,7 @@ proc show-full-marc {no} {
         pack  $w.top -side top -fill both -expand yes
         pack  $w.bot -fill both
 
-        text $w.top.record -width 60 -height 10 \
+        text $w.top.record -width 60 -height 10 -wrap word \
                 -yscrollcommand [list $w.top.s set]
         scrollbar $w.top.s -command [list $w.top.record yview]
 
@@ -238,6 +241,8 @@ proc define-target-action {} {
 proc open-target {target base} {
     global profile
 
+    .top.target.m disable 0
+    .top.target.m enable 1
     z39 disconnect
     z39 comstack [lindex $profile($target) 6]
     # z39 idAuthentication [lindex $profile($target) 3]
@@ -375,16 +380,34 @@ proc present-response {} {
     }
 }
 
+proc left-cursor {w} {
+    set i [$w index insert]
+    if {$i > 0} {
+        incr i -1
+        $w icursor $i
+    }
+}
+
+proc right-cursor {w} {
+    set i [$w index insert]
+    incr i
+    $w icursor $i
+}
+
 proc bind-fields {list returnAction escapeAction} {
     set max [expr [llength $list]-1]
     for {set i 0} {$i < $max} {incr i} {
         bind [lindex $list $i] <Return> $returnAction
         bind [lindex $list $i] <Escape> $escapeAction
         bind [lindex $list $i] <Tab> [list focus [lindex $list [expr $i+1]]]
+        bind [lindex $list $i] <Left> [list left-cursor [lindex $list $i]]
+        bind [lindex $list $i] <Right> [list right-cursor [lindex $list $i]]
     }
     bind [lindex $list $i] <Return> $returnAction
     bind [lindex $list $i] <Escape> $escapeAction
     bind [lindex $list $i] <Tab>    [list focus [lindex $list 0]]
+    bind [lindex $list $i] <Left> [list left-cursor [lindex $list $i]]
+    bind [lindex $list $i] <Right> [list right-cursor [lindex $list $i]]
     focus [lindex $list 0]
 }
 
@@ -395,7 +418,7 @@ proc entry-fields {parent list tlist returnAction escapeAction} {
         set label ${parent}.${field}.label
         set entry ${parent}.${field}.entry
         label $label -text [lindex $tlist $i] -anchor e
-        entry $entry -width 26 -relief sunken
+        entry $entry -width 28 -relief sunken
         pack $label -side left
         pack $entry -side right
         lappend alist $entry
@@ -431,6 +454,8 @@ proc close-target {} {
     show-target {None}
     show-status {Not connected} 0
     show-message {}
+    .top.target.m disable 1
+    .top.target.m enable 0
 }
 
 proc protocol-setup-action {target} {
@@ -768,6 +793,8 @@ menu .top.target.m
 .top.target.m add separator
 set-target-hotlist
 
+.top.target.m disable 1
+
 menu .top.target.m.clist
 menu .top.target.m.slist
 cascade-target-list
@@ -789,6 +816,9 @@ pack .top.help -side right
 label .mid.searchlabel -text {Search:}
 entry .mid.searchentry -width 40 -relief sunken
 
+bind .mid.searchentry <Left> {left-cursor .mid.searchentry}
+bind .mid.searchentry <Right> {right-cursor .mid.searchentry}
+
 listbox .data.list -yscrollcommand {.data.scroll set}
 scrollbar .data.scroll -orient vertical -border 1
 pack .data.list -side left -fill both -expand yes
@@ -806,4 +836,3 @@ bind .data.list <Double-Button-1> {set indx [.data.list nearest %y]
 show-full-marc $indx}
 
 ir z39
-z39 comstack tcpip

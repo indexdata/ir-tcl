@@ -3,7 +3,10 @@
  * (c) Index Data 1995
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.12  1995-03-17 15:45:00  adam
+ * Revision 1.13  1995-03-17 18:26:17  adam
+ * Non-blocking i/o used now. Database names popup as cascade items.
+ *
+ * Revision 1.12  1995/03/17  15:45:00  adam
  * Improved target/database setup.
  *
  * Revision 1.11  1995/03/16  17:54:03  adam
@@ -72,6 +75,9 @@ typedef struct {
 
     char *buf_in;
     int  len_in;
+
+    char *sbuf;
+    int  slen;
 
     ODR odr_in;
     ODR odr_out;
@@ -299,8 +305,7 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
     Z_APDU apdu, *apdup;
     IRObj *p = obj;
     Z_InitRequest req;
-    char *sbuf;
-    int slen;
+    int r;
 
     req.referenceId = 0;
     req.options = &p->options;
@@ -325,13 +330,19 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
         odr_reset (p->odr_out);
         return TCL_ERROR;
     }
-    sbuf = odr_getbuf (p->odr_out, &slen);
-    if (cs_put (p->cs_link, sbuf, slen) < 0)
-    {
+    p->sbuf = odr_getbuf (p->odr_out, &p->slen);
+    if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
+    {     
         interp->result = "cs_put failed in init";
         return TCL_ERROR;
     }
-    printf("Sent initializeRequest (%d bytes).\n", slen);
+    else if (r == 1)
+    {
+        ir_select_add_write (cs_fileno(p->cs_link), p);
+        printf("Sent part of initializeRequest (%d bytes).\n", p->slen);
+    }
+    else
+        printf("Sent whole initializeRequest (%d bytes).\n", p->slen);
     return TCL_OK;
 }
 
@@ -515,12 +526,12 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
     if (cs_type (p->cs_link) == tcpip_type)
     {
         cs_close (p->cs_link);
-        p->cs_link = cs_create (tcpip_type, 1);
+        p->cs_link = cs_create (tcpip_type, 0);
     }
     else if (cs_type (p->cs_link) == mosi_type)
     {
         cs_close (p->cs_link);
-        p->cs_link = cs_create (mosi_type, 1);
+        p->cs_link = cs_create (mosi_type, 0);
     }
     else
     {
@@ -539,10 +550,11 @@ static int do_comstack (void *obj, Tcl_Interp *interp,
     char *cs_type = NULL;
     if (argc == 3)
     {
+        cs_close (((IRObj*) obj)->cs_link);
         if (!strcmp (argv[2], "tcpip"))
-            ((IRObj *)obj)->cs_link = cs_create (tcpip_type, 1);
+            ((IRObj *)obj)->cs_link = cs_create (tcpip_type, 0);
         else if (!strcmp (argv[2], "mosi"))
-            ((IRObj *)obj)->cs_link = cs_create (mosi_type, 1);
+            ((IRObj *)obj)->cs_link = cs_create (mosi_type, 0);
         else
         {
             interp->result = "wrong comstack type";
@@ -677,7 +689,7 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     }
     if (!(obj = ir_malloc (interp, sizeof(*obj))))
         return TCL_ERROR;
-    obj->cs_link = cs_create (tcpip_type, 1);
+    obj->cs_link = cs_create (tcpip_type, 0);
 
     obj->maximumRecordSize = 32768;
     obj->preferredMessageSize = 4096;
@@ -748,8 +760,7 @@ static int do_search (void *o, Tcl_Interp *interp,
     Odr_oct ccl_query;
     IRSetObj *obj = o;
     IRObj *p = obj->parent;
-    char *sbuf;
-    int slen;
+    int r;
 
     p->child = o;
     if (argc != 3)
@@ -815,13 +826,21 @@ static int do_search (void *o, Tcl_Interp *interp,
         odr_reset (p->odr_out);
         return TCL_ERROR;
     } 
-    sbuf = odr_getbuf (p->odr_out, &slen);
-    if (cs_put (p->cs_link, sbuf, slen) < 0)
+    p->sbuf = odr_getbuf (p->odr_out, &p->slen);
+    if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
     {
         interp->result = "cs_put failed in init";
         return TCL_ERROR;
     }
-    printf ("Search request\n");
+    else if (r == 1)
+    {
+        ir_select_add_write (cs_fileno(p->cs_link), p);
+        printf("Sent part of searchRequest (%d bytes).\n", p->slen);
+    }
+    else
+    {
+        printf ("Whole search request\n");
+    }
     return TCL_OK;
 }
 
@@ -1072,8 +1091,7 @@ static int do_present (void *o, Tcl_Interp *interp,
     Z_PresentRequest req;
     int start;
     int number;
-    char *sbuf;
-    int slen;
+    int r;
 
     if (argc >= 3)
     {
@@ -1109,13 +1127,23 @@ static int do_present (void *o, Tcl_Interp *interp,
         odr_reset (p->odr_out);
         return TCL_ERROR;
     } 
-    sbuf = odr_getbuf (p->odr_out, &slen);
-    if (cs_put (p->cs_link, sbuf, slen) < 0)
+    p->sbuf = odr_getbuf (p->odr_out, &p->slen);
+    if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
     {
         interp->result = "cs_put failed in init";
         return TCL_ERROR;
     }
-    printf ("Present request, start=%d, num=%d\n", start, number);
+    else if (r == 1)
+    {
+        ir_select_add_write (cs_fileno(p->cs_link), p);
+        printf ("Part of present request, start=%d, num=%d (%d bytes)\n",
+                start, number, p->slen);
+    }
+    else
+    {
+        printf ("Whole present request, start=%d, num=%d (%d bytes)\n",
+                start, number, p->slen);
+    }
     return TCL_OK;
 }
 
@@ -1341,7 +1369,10 @@ static void ir_presentResponse (void *o, Z_PresentResponse *presrs)
     }
 }
 
-void ir_select_proc (ClientData clientData)
+/*
+ * ir_select_read: handle incoming packages
+ */
+void ir_select_read (ClientData clientData)
 {
     IRObj *p = clientData;
     Z_APDU *apdu;
@@ -1384,6 +1415,25 @@ void ir_select_proc (ClientData clientData)
     } while (cs_more (p->cs_link));    
 }
 
+/*
+ * ir_select_write: handle outgoing packages - not yet written.
+ */
+void ir_select_write (ClientData clientData)
+{
+    IRObj *p = clientData;
+    int r;
+    
+    if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
+    {   
+        printf ("select write fail\n");
+        cs_close (p->cs_link);
+    }
+    else if (r == 0)            /* remove select bit */
+    {
+        ir_select_remove_write (cs_fileno (p->cs_link), p);
+    }
+}
+
 /* ------------------------------------------------------- */
 
 /*
@@ -1397,3 +1447,5 @@ int ir_tcl_init (Tcl_Interp *interp)
     		       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
     return TCL_OK;
 }
+
+
