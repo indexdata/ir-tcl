@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.107  1998-06-10 13:00:46  adam
+ * Revision 1.108  1998-10-12 11:48:08  adam
+ * Removed printf call.
+ *
+ * Revision 1.107  1998/06/10 13:00:46  adam
  * Added ir-version command.
  *
  * Revision 1.106  1998/05/20 12:25:35  adam
@@ -3338,7 +3341,6 @@ static int do_scanLine (void *obj, Tcl_Interp *interp, int argc, char **argv)
                           " position\"", NULL);
         return TCL_ERROR;
     }
-    printf ("argv[2]=%s\n", argv[2]);
     if (Tcl_GetInt (interp, argv[2], &i) == TCL_ERROR)
         return TCL_ERROR;
     if (!p->entries_flag || !p->entries || i >= p->num_entries || i < 0)
