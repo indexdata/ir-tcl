@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.90  1996-06-27 14:21:00  adam
+ * Revision 1.91  1996-07-03 13:31:11  adam
+ * The xmalloc/xfree functions from YAZ are used to manage memory.
+ *
+ * Revision 1.90  1996/06/27  14:21:00  adam
  * Yet another Windows port.
  *
  * Revision 1.89  1996/06/11  15:27:15  adam
@@ -369,14 +372,14 @@ static void delete_IR_record (IrTcl_RecordList *rl)
         default:
             break;
         }
-        free (rl->u.dbrec.buf);
+        xfree (rl->u.dbrec.buf);
         break;
     case Z_NamePlusRecord_surrogateDiagnostic:
         ir_deleteDiags (&rl->u.surrogateDiagnostics.list,
                         &rl->u.surrogateDiagnostics.num);
         break;
     }
-    free (rl->elements);
+    xfree (rl->elements);
 }
 
 static IrTcl_RecordList *new_IR_record (IrTcl_SetObj *setobj, 
@@ -425,7 +428,7 @@ int ir_tcl_eval (Tcl_Interp *interp, const char *command)
               interp->result);
     }
     Tcl_FreeResult (interp);
-    free (tmp);
+    xfree (tmp);
     return r;
 }
 
@@ -477,7 +480,7 @@ static void delete_IR_records (IrTcl_SetObj *setobj)
     {
         delete_IR_record (rl);
         rl1 = rl->next;
-        free (rl);
+        xfree (rl);
     }
     setobj->record_list = NULL;
 }
@@ -583,7 +586,7 @@ static void set_referenceId (ODR o, Z_ReferenceId **dst, const char *src)
 
 static void get_referenceId (char **dst, Z_ReferenceId *src)
 {
-    free (*dst);
+    xfree (*dst);
     if (!src)
     {
         *dst = NULL;
@@ -887,7 +890,7 @@ static int do_implementationName (void *obj, Tcl_Interp *interp,
         return ir_tcl_strdel (interp, &p->implementationName);
     if (argc == 3)
     {
-        free (p->implementationName);
+        xfree (p->implementationName);
         if (ir_tcl_strdup (interp, &p->implementationName, argv[2])
             == TCL_ERROR)
             return TCL_ERROR;
@@ -996,10 +999,10 @@ static int do_idAuthentication (void *obj, Tcl_Interp *interp,
 
     if (argc >= 3 || argc == -1)
     {
-        free (p->idAuthenticationOpen);
-        free (p->idAuthenticationGroupId);
-        free (p->idAuthenticationUserId);
-        free (p->idAuthenticationPassword);
+        xfree (p->idAuthenticationOpen);
+        xfree (p->idAuthenticationGroupId);
+        xfree (p->idAuthenticationUserId);
+        xfree (p->idAuthenticationPassword);
     }
     if (argc >= 3 || argc <= 0)
     {
@@ -1136,7 +1139,7 @@ void ir_tcl_disconnect (IrTcl_Obj *p)
     if (p->hostname)
     {
         logf(LOG_DEBUG, "Closing connection to %s", p->hostname);
-        free (p->hostname);
+        xfree (p->hostname);
         p->hostname = NULL;
         ir_select_remove_write (cs_fileno (p->cs_link), p);
         ir_select_remove (cs_fileno (p->cs_link), p);
@@ -1196,7 +1199,7 @@ static int do_comstack (void *o, Tcl_Interp *interp,
         return ir_tcl_strdel (interp, &obj->comstackType);
     else if (argc == 3)
     {
-        free (obj->comstackType);
+        xfree (obj->comstackType);
         if (ir_tcl_strdup (interp, &obj->comstackType, argv[2]) == TCL_ERROR)
             return TCL_ERROR;
     }
@@ -1257,7 +1260,7 @@ static int do_callback (void *obj, Tcl_Interp *interp,
         return ir_tcl_strdel (interp, &p->callback);
     if (argc == 3)
     {
-        free (p->callback);
+        xfree (p->callback);
         if (argv[2][0])
         {
             if (ir_tcl_strdup (interp, &p->callback, argv[2]) == TCL_ERROR)
@@ -1286,7 +1289,7 @@ static int do_failback (void *obj, Tcl_Interp *interp,
         return ir_tcl_strdel (interp, &p->failback);
     else if (argc == 3)
     {
-        free (p->failback);
+        xfree (p->failback);
         if (argv[2][0])
         {
             if (ir_tcl_strdup (interp, &p->failback, argv[2]) == TCL_ERROR)
@@ -1315,7 +1318,7 @@ static int do_initResponse (void *obj, Tcl_Interp *interp,
         return ir_tcl_strdel (interp, &p->initResponse);
     if (argc == 3)
     {
-        free (p->initResponse);
+        xfree (p->initResponse);
         if (argv[2][0])
         {
             if (ir_tcl_strdup (interp, &p->initResponse, argv[2]) == TCL_ERROR)
@@ -1402,8 +1405,8 @@ static int do_databaseNames (void *obj, Tcl_Interp *interp,
     if (argc == -1)
     {
         for (i=0; i<p->num_databaseNames; i++)
-            free (p->databaseNames[i]);
-        free (p->databaseNames);
+            xfree (p->databaseNames[i]);
+        xfree (p->databaseNames);
     }
     if (argc <= 0)
     {
@@ -1420,8 +1423,8 @@ static int do_databaseNames (void *obj, Tcl_Interp *interp,
     if (p->databaseNames)
     {
         for (i=0; i<p->num_databaseNames; i++)
-            free (p->databaseNames[i]);
-        free (p->databaseNames);
+            xfree (p->databaseNames[i]);
+        xfree (p->databaseNames);
     }
     p->num_databaseNames = argc - 2;
     p->databaseNames =
@@ -1466,7 +1469,7 @@ static int do_queryType (void *obj, Tcl_Interp *interp,
         return ir_tcl_strdel (interp, &p->queryType);
     if (argc == 3)
     {
-        free (p->queryType);
+        xfree (p->queryType);
         if (ir_tcl_strdup (interp, &p->queryType, argv[2]) == TCL_ERROR)
             return TCL_ERROR;
     }
@@ -1558,7 +1561,7 @@ static int do_referenceId (void *obj, Tcl_Interp *interp,
         return ir_tcl_strdel (interp, &p->referenceId);
     if (argc == 3)
     {
-        free (p->referenceId);
+        xfree (p->referenceId);
         if (ir_tcl_strdup (interp, &p->referenceId, argv[2]) == TCL_ERROR)
             return TCL_ERROR;
     }
@@ -1581,13 +1584,13 @@ static int do_preferredRecordSyntax (void *obj, Tcl_Interp *interp,
     }
     else if (argc == -1)
     {
-        free (p->preferredRecordSyntax);
+        xfree (p->preferredRecordSyntax);
         p->preferredRecordSyntax = NULL;
         return TCL_OK;
     }
     if (argc == 3)
     {
-        free (p->preferredRecordSyntax);
+        xfree (p->preferredRecordSyntax);
         p->preferredRecordSyntax = NULL;
         if (argv[2][0] && (p->preferredRecordSyntax = 
                            ir_tcl_malloc (sizeof(*p->preferredRecordSyntax))))
@@ -1620,7 +1623,7 @@ static int do_elementSetNames (void *obj, Tcl_Interp *interp,
         return ir_tcl_strdel (interp, &p->elementSetNames);
     if (argc == 3)
     {
-        free (p->elementSetNames);
+        xfree (p->elementSetNames);
         if (ir_tcl_strdup (interp, &p->elementSetNames, argv[2]) == TCL_ERROR)
             return TCL_ERROR;
     }
@@ -1645,7 +1648,7 @@ static int do_smallSetElementSetNames (void *obj, Tcl_Interp *interp,
         return ir_tcl_strdel (interp, &p->smallSetElementSetNames);
     if (argc == 3)
     {
-        free (p->smallSetElementSetNames);
+        xfree (p->smallSetElementSetNames);
         if (ir_tcl_strdup (interp, &p->smallSetElementSetNames,
                            argv[2]) == TCL_ERROR)
             return TCL_ERROR;
@@ -1671,7 +1674,7 @@ static int do_mediumSetElementSetNames (void *obj, Tcl_Interp *interp,
         return ir_tcl_strdel (interp, &p->mediumSetElementSetNames);
     if (argc == 3)
     {
-        free (p->mediumSetElementSetNames);
+        xfree (p->mediumSetElementSetNames);
         if (ir_tcl_strdup (interp, &p->mediumSetElementSetNames,
                            argv[2]) == TCL_ERROR)
             return TCL_ERROR;
@@ -1776,7 +1779,7 @@ static void ir_obj_delete (ClientData clientData)
     odr_destroy (obj->odr_in);
     odr_destroy (obj->odr_out);
     odr_destroy (obj->odr_pr);
-    free (obj);
+    xfree (obj);
 }
 
 /* 
@@ -2028,7 +2031,7 @@ static int do_searchResponse (void *o, Tcl_Interp *interp,
         return ir_tcl_strdel (interp, &obj->searchResponse);
     if (argc == 3)
     {
-        free (obj->searchResponse);
+        xfree (obj->searchResponse);
         if (argv[2][0])
         {
             if (ir_tcl_strdup (interp, &obj->searchResponse, argv[2])
@@ -2058,7 +2061,7 @@ static int do_presentResponse (void *o, Tcl_Interp *interp,
         return ir_tcl_strdel (interp, &obj->presentResponse);
     if (argc == 3)
     {
-        free (obj->presentResponse);
+        xfree (obj->presentResponse);
         if (argv[2][0])
         {
             if (ir_tcl_strdup (interp, &obj->presentResponse, argv[2])
@@ -2145,7 +2148,7 @@ static int do_setName (void *o, Tcl_Interp *interp,
         return ir_tcl_strdel (interp, &obj->setName);
     if (argc == 3)
     {
-        free (obj->setName);
+        xfree (obj->setName);
         if (ir_tcl_strdup (interp, &obj->setName, argv[2])
             == TCL_ERROR)
             return TCL_ERROR;
@@ -2275,7 +2278,7 @@ static int do_recordElements (void *o, Tcl_Interp *interp,
     }
     if (argc == 3)
     {
-        free (obj->recordElements);
+        xfree (obj->recordElements);
         return ir_tcl_strdup (NULL, &obj->recordElements, 
                               (*argv[2] ? argv[2] : NULL));
     }
@@ -2672,7 +2675,7 @@ static void ir_set_obj_delete (ClientData clientData)
 
     ir_tcl_method (NULL, -1, NULL, tabs, NULL);
 
-    free (p);
+    xfree (p);
 }
 
 /*
@@ -2893,7 +2896,7 @@ static int do_scanResponse (void *o, Tcl_Interp *interp,
         return ir_tcl_strdel (interp, &obj->scanResponse);
     if (argc == 3)
     {
-        free (obj->scanResponse);
+        xfree (obj->scanResponse);
         if (argv[2][0])
         {
             if (ir_tcl_strdup (interp, &obj->scanResponse, argv[2])
@@ -3100,7 +3103,7 @@ static void ir_scan_obj_delete (ClientData clientData)
     tabs[1].tab = NULL;
 
     ir_tcl_method (NULL, -1, NULL, tabs, NULL);
-    free (obj);
+    xfree (obj);
 }
 
 /* 
@@ -3152,13 +3155,13 @@ static void ir_initResponse (void *obj, Z_InitResponse *initrs)
 
     get_referenceId (&p->set_inher.referenceId, initrs->referenceId);
 
-    free (p->targetImplementationId);
+    xfree (p->targetImplementationId);
     ir_tcl_strdup (p->interp, &p->targetImplementationId,
                initrs->implementationId);
-    free (p->targetImplementationName);
+    xfree (p->targetImplementationName);
     ir_tcl_strdup (p->interp, &p->targetImplementationName,
                initrs->implementationName);
-    free (p->targetImplementationVersion);
+    xfree (p->targetImplementationVersion);
     ir_tcl_strdup (p->interp, &p->targetImplementationVersion,
                initrs->implementationVersion);
 
@@ -3168,7 +3171,7 @@ static void ir_initResponse (void *obj, Z_InitResponse *initrs)
     memcpy (&p->options, initrs->options, sizeof(initrs->options));
     memcpy (&p->protocolVersion, initrs->protocolVersion,
             sizeof(initrs->protocolVersion));
-    free (p->userInformationField);
+    xfree (p->userInformationField);
     p->userInformationField = NULL;
     if (initrs->userInformationField)
     {
@@ -3192,8 +3195,8 @@ static void ir_deleteDiags (IrTcl_Diagnostic **dst_list, int *dst_num)
 {
     int i;
     for (i = 0; i<*dst_num; i++)
-        free (dst_list[i]->addinfo);
-    free (*dst_list);
+        xfree (dst_list[i]->addinfo);
+    xfree (*dst_list);
     *dst_list = NULL;
     *dst_num = 0;
 }
@@ -3410,7 +3413,7 @@ static void ir_scanResponse (void *o, Z_ScanResponse *scanrs,
         scanobj->positionOfTerm = -1;
     logf (LOG_DEBUG, "positionOfTerm=%d", scanobj->positionOfTerm);
 
-    free (scanobj->entries);
+    xfree (scanobj->entries);
     scanobj->entries = NULL;
 
     ir_deleteDiags (&scanobj->nonSurrogateDiagnosticList,
@@ -3627,10 +3630,10 @@ static void ir_select_read (ClientData clientData)
             ir_tcl_eval (p->interp, apdu_call);
         else if (rq->callback)
             ir_tcl_eval (p->interp, rq->callback);
-        free (rq->buf_out);
-        free (rq->callback);
-        free (rq->object_name);
-        free (rq);
+        xfree (rq->buf_out);
+        xfree (rq->callback);
+        xfree (rq->object_name);
+        xfree (rq);
         odr_reset (p->odr_in);
         if (p->ref_count == 1)
         {
@@ -3690,7 +3693,7 @@ static int ir_select_write (ClientData clientData)
     {
         logf (LOG_DEBUG, "cs_put write fail");
         p->ref_count = 2;
-        free (rq->buf_out);
+        xfree (rq->buf_out);
         rq->buf_out = NULL;
         ir_tcl_disconnect (p);
         if (p->failback)
@@ -3705,7 +3708,7 @@ static int ir_select_write (ClientData clientData)
         logf (LOG_DEBUG, "Write completed");
         p->state = IR_TCL_R_Waiting;
         ir_select_remove_write (cs_fileno (p->cs_link), p);
-        free (rq->buf_out);
+        xfree (rq->buf_out);
         rq->buf_out = NULL;
     }
     return 1;

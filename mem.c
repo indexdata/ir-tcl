@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: mem.c,v $
- * Revision 1.2  1995-08-29 15:30:15  adam
+ * Revision 1.3  1996-07-03 13:31:14  adam
+ * The xmalloc/xfree functions from YAZ are used to manage memory.
+ *
+ * Revision 1.2  1995/08/29  15:30:15  adam
  * Work on GRS records.
  *
  * Revision 1.1  1995/08/04  11:32:40  adam
@@ -26,7 +29,7 @@
  */
 void *ir_tcl_malloc (size_t n)
 {
-    void *p = malloc (n);
+    void *p = xmalloc (n);
     if (!p)
     {
         logf (LOG_FATAL, "Out of memory. %ld bytes requested", (long) n);
@@ -48,7 +51,7 @@ int ir_tcl_strdup (Tcl_Interp *interp, char** p, const char *s)
         return TCL_OK;
     }
     len = strlen(s)+1;
-    *p = malloc (len);
+    *p = xmalloc (len);
     if (!*p)
     {
         if (!interp) 
@@ -68,7 +71,7 @@ int ir_tcl_strdup (Tcl_Interp *interp, char** p, const char *s)
  */
 int ir_tcl_strdel (Tcl_Interp *interp, char **p)
 {
-    free (*p);
+    xfree (*p);
     *p = NULL;
     return TCL_OK;
 }

@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.32  1996-03-20 13:54:05  adam
+ * Revision 1.33  1996-07-03 13:31:13  adam
+ * The xmalloc/xfree functions from YAZ are used to manage memory.
+ *
+ * Revision 1.32  1996/03/20  13:54:05  adam
  * The Tcl_File structure is only manipulated in the Tk-event interface
  * in tkinit.c.
  *
@@ -152,6 +155,7 @@
 #include <proto.h>
 #include <oid.h>
 #include <diagbib1.h>
+#include <xmalloc.h>
 
 #include "ir-tcl.h"
 

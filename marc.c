@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: marc.c,v $
- * Revision 1.8  1995-11-14 16:48:00  adam
+ * Revision 1.9  1996-07-03 13:31:13  adam
+ * The xmalloc/xfree functions from YAZ are used to manage memory.
+ *
+ * Revision 1.8  1995/11/14  16:48:00  adam
  * Bug fix: record extraction in line mode merged lines with same tag.
  *
  * Revision 1.7  1995/11/09  15:24:02  adam
@@ -111,11 +114,11 @@ char *ir_tcl_fread_marc (FILE *inf, size_t *size)
     *size = atoi_n (length, 5);
     if (*size <= 6)
         return NULL;
-    if (!(buf = malloc (*size+1)))
+    if (!(buf = xmalloc (*size+1)))
         return NULL;
     if (fread (buf+5, 1, *size-5, inf) != (*size-5))
     {
-        free (buf);
+        xfree (buf);
 	return NULL;
     }
     memcpy (buf, length, 5);
@@ -223,7 +226,7 @@ int ir_tcl_get_marc (Tcl_Interp *interp, const char *buf,
 	    }
             if (marc_compare (identifier, argv[6])==0)
             {
-                char *data = malloc (i-i0+1);
+                char *data = xmalloc (i-i0+1);
              
                 memcpy (data, buf+i0, i-i0);
                 data[i-i0] = '\0';
@@ -249,7 +252,7 @@ int ir_tcl_get_marc (Tcl_Interp *interp, const char *buf,
                 }
                 else
                     Tcl_AppendElement (interp, data);
-                free (data);
+                xfree (data);
             }
 	}
         if (mode == 'l' && *ptag)

@@ -6,7 +6,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: queue.c,v $
- * Revision 1.10  1996-06-03 09:04:24  adam
+ * Revision 1.11  1996-07-03 13:31:14  adam
+ * The xmalloc/xfree functions from YAZ are used to manage memory.
+ *
+ * Revision 1.10  1996/06/03  09:04:24  adam
  * Changed a few logf calls.
  *
  * Revision 1.9  1996/03/20  13:54:05  adam
@@ -125,7 +128,7 @@ int ir_tcl_send_q (IrTcl_Obj *p, IrTcl_Request *rp, const char *msg)
         logf (LOG_DEBUG, "Send %s (%d bytes) fd=%d", msg, rp->len_out,
               cs_fileno(p->cs_link));
         p->state = IR_TCL_R_Waiting;
-        free (rp->buf_out);
+        xfree (rp->buf_out);
         rp->buf_out = NULL;
     }
     return TCL_OK;
@@ -138,11 +141,11 @@ void ir_tcl_del_q (IrTcl_Obj *p)
     p->state = IR_TCL_R_Idle;
     for (rp = p->request_queue; rp; rp = rp1)
     {
-        free (rp->object_name);
-        free (rp->callback);
-        free (rp->buf_out);
+        xfree (rp->object_name);
+        xfree (rp->callback);
+        xfree (rp->buf_out);
         rp1 = rp->next;
-        free (rp);
+        xfree (rp);
     }
     p->request_queue = NULL;
 }

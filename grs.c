@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: grs.c,v $
- * Revision 1.7  1996-06-05 09:26:20  adam
+ * Revision 1.8  1996-07-03 13:31:10  adam
+ * The xmalloc/xfree functions from YAZ are used to manage memory.
+ *
+ * Revision 1.7  1996/06/05  09:26:20  adam
  * Bug fix: the change above introduced an error.
  *
  * Revision 1.6  1996/06/05  08:59:23  adam
@@ -59,22 +62,22 @@ void ir_tcl_grs_del (IrTcl_GRS_Record **grs_record)
         case Z_StringOrNumeric_numeric:
             break;
         default:
-            free (e->tagVal.str);
+            xfree (e->tagVal.str);
         }
         switch (e->dataWhich)
         {
         case Z_ElementData_octets:
-            free (e->tagData.octets.buf);
+            xfree (e->tagData.octets.buf);
             break;
         case Z_ElementData_numeric:
             break;
         case Z_ElementData_date:
-            free (e->tagData.str);
+            xfree (e->tagData.str);
             break;            
         case Z_ElementData_ext:
             break;
         case Z_ElementData_string:
-	    free (e->tagData.str);
+	    xfree (e->tagData.str);
             break;
         case Z_ElementData_trueOrFalse:
         case Z_ElementData_oid:
@@ -89,8 +92,8 @@ void ir_tcl_grs_del (IrTcl_GRS_Record **grs_record)
             break;
         }
     }
-    free ((*grs_record)->entries);
-    free (*grs_record);
+    xfree ((*grs_record)->entries);
+    xfree (*grs_record);
     *grs_record = NULL;
 }
 
