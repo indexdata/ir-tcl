@@ -4,7 +4,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.25  1995-04-17 09:37:17  adam
+ * Revision 1.26  1995-04-18 16:11:51  adam
+ * First version of graphical Scan. Some work on query-by-form.
+ *
+ * Revision 1.25  1995/04/17  09:37:17  adam
  * Further development of scan.
  *
  * Revision 1.24  1995/04/11  14:16:42  adam
@@ -1923,10 +1926,12 @@ static void ir_scanResponse (void *o, Z_ScanResponse *scanrs)
 		case Z_Entry_termInfo:
 		    if (ze->u.termInfo->term->which == Z_Term_general)
 		    {
-                        scanobj->entries[i].u.term.buf =
-			    malloc (1+ze->u.termInfo->term->u.general->len);
-			strcpy (scanobj->entries[i].u.term.buf, 
-			        ze->u.termInfo->term->u.general->buf);
+                        int l = ze->u.termInfo->term->u.general->len;
+                        scanobj->entries[i].u.term.buf = malloc (1+l);
+			memcpy (scanobj->entries[i].u.term.buf, 
+			        ze->u.termInfo->term->u.general->buf,
+                                l);
+                        scanobj->entries[i].u.term.buf[l] = '\0';
 		    }
 		    else
                         scanobj->entries[i].u.term.buf = NULL;

@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.18  1995-04-10 10:50:22  adam
+# Revision 1.19  1995-04-18 16:11:50  adam
+# First version of graphical Scan. Some work on query-by-form.
+#
+# Revision 1.18  1995/04/10  10:50:22  adam
 # Result-set name defaults to suffix of ir-set name.
 # Started working on scan. Not finished at this point.
 #
@@ -68,11 +71,18 @@ set hostid Default
 set settingsChanged 0
 set setNo 0
 
+set queryTypes {Simple}
+set queryButtons { { {I 0} {I 1} {I 2} } }
+set queryInfo { { {Title ti} {Author au} {Subject sh} {Any any} } }
+
 wm minsize . 300 250
 
 if {[file readable "~/.tk-c"]} {
     source "~/.tk-c"
 }
+
+set queryButtonsFind [lindex $queryButtons 0]
+set queryInfoFind [lindex $queryInfo 0]
 
 proc top-down-window {w} {
     frame $w.top -relief raised -border 1
@@ -91,6 +101,34 @@ proc top-down-ok-cancel {w ok-action g} {
             -command "destroy $w"
     pack $w.bot.cancel -side left -expand yes    
 
+    if {$g} {
+        # Grab ...
+        grab $w
+        tkwait window $w
+    }
+}
+
+proc top-down-ok-cancelx {w buttonList g} {
+    set i 0
+    set l [llength $buttonList]
+
+    frame $w.bot.$i -relief sunken -border 1
+    pack $w.bot.$i -side left -expand yes -padx 5 -pady 5
+    button $w.bot.$i.ok -text [lindex $buttonList $i] \
+            -command [lindex $buttonList [expr $i+1]]
+    pack $w.bot.$i.ok -expand yes -padx 3 -pady 3 -side left
+
+    incr i 2
+    while {$i < $l} {
+        button $w.bot.$i -text [lindex $buttonList $i] \
+                -command [lindex $buttonList [expr $i+1]]
+        pack $w.bot.$i -expand yes -padx 3 -pady 3 -side left
+        incr i 2
+    }
+    button $w.bot.cancel -width 6 -text {Cancel} \
+            -command "destroy $w"
+    pack $w.bot.cancel -side left -expand yes    
+    
     if {$g} {
         # Grab ...
         grab $w
@@ -305,7 +343,6 @@ proc open-target {target base} {
     set hostid $target
     .top.target.m disable 0
     .top.target.m enable 1
-    .top.search configure -state normal
 }
 
 proc close-target {} {
@@ -319,6 +356,8 @@ proc close-target {} {
     .top.target.m disable 1
     .top.target.m enable 0
     .top.search configure -state disabled
+    .mid.search configure -state disabled
+    .mid.scan configure -state disabled
 }
 
 proc load-set-action {} {
@@ -373,8 +412,9 @@ proc init-request {} {
 
 proc init-response {} {
     show-status {Ready} 0
-    bind .mid.searchentry <Return> search-request
-    focus .mid.searchentry
+    .top.search configure -state normal
+    .mid.search configure -state normal
+    .mid.scan configure -state normal
 }
 
 proc search-request {} {
@@ -384,8 +424,13 @@ proc search-request {} {
 
     set target $hostid
 
+    set query [index-query]
+    if {$query==""} {
+        return
+    }
     incr setNo
     ir-set z39.$setNo
+
 
     if {[lindex $profile($target) 10]} {
         z39.$setNo setName $setNo
@@ -399,8 +444,55 @@ proc search-request {} {
         z39 query ccl
     }
     z39 callback {search-response}
-    z39.$setNo search [.mid.searchentry get]
+    z39.$setNo search $query
     show-status {Search} 1
+}
+
+proc scan-request {} {
+    set w .scan-window
+
+    global profile
+    global hostid
+
+    set target $hostid
+
+    ir-scan z39.scan
+
+    z39 callback {scan-response}
+    if {![winfo exists $w]} {
+        toplevel $w
+        
+        wm title $w "Scan"
+        
+        wm minsize $w 200 200
+
+        top-down-window $w
+        
+        listbox $w.top.list -yscrollcommand [list $w.top.scroll set] \
+                -font fixed -geometry 50x14
+        scrollbar $w.top.scroll -orient vertical -border 1
+        pack $w.top.list -side left -fill both -expand yes
+        pack $w.top.scroll -side right -fill y
+        $w.top.scroll config -command [list $w.top.list yview]
+
+        top-down-ok-cancelx $w [list {Close} [list destroy $w]] 0 
+    }
+    z39.scan scan 0
+    
+    show-status {Scan} 1
+}
+
+proc scan-response {} {
+    set w .scan-window
+    set m [z39.scan numberOfEntriesReturned]
+    puts $m
+    for {set i 0} {$i < $m} {incr i} {
+        set term [lindex [z39.scan scanLine $i] 1]
+        set nostr [format "%7d" [lindex [z39.scan scanLine $i] 2]]
+
+        $w.top.list insert end "$nostr $term"
+    }
+    show-status {Ready} 0
 }
 
 proc search-response {} {
@@ -466,7 +558,7 @@ proc add-title-lines {setno no offset} {
         set o [expr $i + $offset]
         set title [lindex [z39.$setno recordMarc $o field 245 * a] 0]
         set year  [lindex [z39.$setno recordMarc $o field 260 * c] 0]
-        set nostr [format "%3d" $o]
+        set nostr [format "%5d" $o]
         .data.list insert end "$nostr $title - $year"
     }
 }
@@ -548,20 +640,14 @@ proc define-target-dialog {} {
     set w .target-define
 
     toplevel $w
-
     place-force $w .
-
     top-down-window $w
-
     frame $w.top.target
-
     pack $w.top.target \
             -side top -anchor e -pady 2 
-
     entry-fields $w.top {target} \
             {{Target:}} \
             {define-target-action} {destroy .target-define}
-    
     top-down-ok-cancel $w {define-target-action} 1
 }
 
@@ -842,10 +928,33 @@ proc cascade-target-list {} {
     }
 }
 
+proc cascade-query-list {} {
+    global queryTypes
+
+    set i 0
+    .top.query.m.slist delete 0 last
+    foreach n $queryTypes {
+        .top.query.m.slist add command -label $n \
+                -command [list query-setup $i]
+        incr i
+    }
+
+    set i 0
+    .top.query.m.clist delete 0 last
+    foreach n $queryTypes {
+        .top.query.m.clist add command -label $n \
+                -command [list query-select $i]
+        incr i
+    }
+}
+
 proc save-settings {} {
     global hotTargets 
     global profile
     global settingsChanged
+    global queryTypes
+    global queryButtons
+    global queryInfo
 
     set f [open "~/.tk-c" w]
     puts $f "# Setup file"
@@ -856,6 +965,18 @@ proc save-settings {} {
         puts -nonewline $f $profile($n)
         puts $f "\}"
     }
+    puts -nonewline $f "set queryTypes \{" 
+    puts -nonewline $f $queryTypes
+    puts $f "\}"
+    
+    puts -nonewline $f "set queryButtons \{" 
+    puts -nonewline $f $queryButtons
+    puts $f "\}"
+    
+    puts -nonewline $f "set queryInfo \{"
+    puts -nonewline $f $queryInfo
+    puts $f "\}"
+    
     close $f
     set settingsChanged 0
 }
@@ -896,13 +1017,389 @@ proc exit-action {} {
     destroy .
 }
 
+proc listbuttonaction {w name h user i} {
+    $w configure -text [lindex $name 0]
+    $h [lindex $name 1] $user $i
+}
+    
+proc listbuttonx {button no names handle user} {
+    if {[winfo exists $button]} {
+        $button configure -text [lindex [lindex $names $no] 0]
+        ${button}.m delete 0 last
+    } else {
+        menubutton $button -text [lindex [lindex $names $no] 0] \
+                -width 10 -menu ${button}.m -relief raised -border 1
+        menu ${button}.m
+    }
+    set i 0
+    foreach name $names {
+        ${button}.m add command -label [lindex $name 0] \
+                -command [list listbuttonaction ${button} $name \
+                $handle $user $i]
+        incr i
+    }
+}
+
+proc listbutton {button no names} {
+    menubutton $button -text [lindex $names $no] -width 10 -menu ${button}.m \
+            -relief raised -border 1
+    menu ${button}.m
+    foreach name $names {
+        ${button}.m add command -label $name \
+                -command [list ${button} configure -text $name]
+    }
+}
+
+proc query-add-index-action {queryNo} {
+    set w .setup-query-$queryNo
+
+    global queryInfoTmp
+    global queryButtonsTmp
+
+    lappend queryInfoTmp [list [.query-add-index.top.index.entry get] {}]
+
+    destroy .query-add-index
+    #destroy $w.top.lines
+    #frame $w.top.lines -relief ridge -border 2
+    index-lines $w.top.lines 0 $queryButtonsTmp $queryInfoTmp activate-e-index
+    #pack $w.top.lines -side left -pady 6 -padx 6 -fill y
+}
+
+proc query-add-line {queryNo} {
+    set w .setup-query-$queryNo
+
+    global queryInfoTmp
+    global queryButtonsTmp
+
+    lappend queryButtonsTmp {I 0}
+
+    #destroy $w.top.lines
+    #frame $w.top.lines -relief ridge -border 2
+    index-lines $w.top.lines 0 $queryButtonsTmp $queryInfoTmp activate-e-index
+    #pack $w.top.lines -side left -pady 6 -padx 6 -fill y
+}
+
+proc query-del-line {queryNo} {
+    set w .setup-query-$queryNo
+
+    global queryInfoTmp
+    global queryButtonsTmp
+
+    set l [llength $queryButtonsTmp]
+    if {$l <= 0} {
+        return
+    }
+    incr l -1
+    set queryButtonsTmp [lreplace $queryButtonsTmp $l $l]
+    index-lines $w.top.lines 0 $queryButtonsTmp $queryInfoTmp activate-e-index
+}
+
+proc query-add-index {queryNo} {
+    set w .query-add-index
+
+    toplevel $w
+    place-force $w .setup-query-$queryNo
+    top-down-window $w
+    frame $w.top.index
+    pack $w.top.index \
+            -side top -anchor e -pady 2 
+    entry-fields $w.top {index} \
+            {{Index Name:}} \
+            [list query-add-index-action $queryNo] {destroy .query-add-index}
+    top-down-ok-cancel $w [list query-add-index-action $queryNo] 1
+}
+
+proc query-setup-action {queryNo} {
+    global queryButtons
+    global queryInfo
+    global queryButtonsTmp
+    global queryInfoTmp
+    global queryButtonsFind
+    global queryInfoFind
+
+    set queryInfo [lreplace $queryInfo $queryNo $queryNo \
+            $queryInfoTmp]
+    set queryButtons [lreplace $queryButtons $queryNo $queryNo \
+            $queryButtonsTmp]
+    set queryInfoFind $queryInfoTmp
+    set queryButtonsFind $queryButtonsTmp
+
+    puts $queryInfo
+    puts $queryButtons
+    destroy .setup-query-$queryNo
+
+    index-lines .lines 1 $queryButtonsFind $queryInfoFind activate-index
+}
+
+proc activate-e-index {value no i} {
+    global queryButtonsTmp
+    
+    puts $queryButtonsTmp
+    set queryButtonsTmp [lreplace $queryButtonsTmp $no $no [list I $i]]
+    puts $queryButtonsTmp
+    puts "value $value"
+    puts "no $no"
+    puts "i $i"
+}
+
+proc activate-index {value no i} {
+    global queryButtonsFind
+
+    set queryButtonsFind [lreplace $queryButtonsFind $no $no [list I $i]]
+
+    puts "queryButtonsFind $queryButtonsFind"
+    puts "value $value"
+    puts "no $no"
+    puts "i $i"
+}
+
+proc query-setup {queryNo} {
+    set w .setup-query-$queryNo
+    global queryTypes
+    set queryTypes {Simple}
+    global queryButtons
+    global queryInfo
+    global queryButtonsTmp
+    global queryInfoTmp
+
+    set queryName [lindex $queryTypes $queryNo]
+    set queryInfoTmp [lindex $queryInfo $queryNo]
+    set queryButtonsTmp [lindex $queryButtons $queryNo]
+
+    #set queryButtons { {I 0 I 1 I 2} }
+    #set queryInfo { { {Title ti} {Author au} {Subject sh} } }
+
+    toplevel $w
+
+    wm title $w "Query setup $queryName"
+    place-force $w .
+
+    top-down-window $w
+
+    frame $w.top.lines -relief ridge -border 2
+    frame $w.top.use -relief ridge -border 2
+    frame $w.top.relation -relief ridge -border 2
+    frame $w.top.position -relief ridge -border 2
+    frame $w.top.structure -relief ridge -border 2
+    frame $w.top.truncation -relief ridge -border 2
+    frame $w.top.completeness -relief ridge -border 2
+
+    # Index Lines
+
+    index-lines $w.top.lines 0 $queryButtonsTmp $queryInfoTmp activate-e-index
+
+    pack $w.top.lines -side left -pady 6 -padx 6 -fill y
+
+    # Use Attributes
+    pack $w.top.use -side left -pady 6 -padx 6 -fill y
+
+    label $w.top.use.label -text "Use"
+    listbox $w.top.use.list -geometry 20x10 \
+            -yscrollcommand "$w.top.use.scroll set"
+    scrollbar $w.top.use.scroll -orient vertical -border 1
+    pack $w.top.use.label -side top -fill x \
+            -padx 2 -pady 2
+    pack $w.top.use.list -side left -fill both -expand yes \
+            -padx 2 -pady 2
+    pack $w.top.use.scroll -side right -fill y \
+            -padx 2 -pady 2
+    $w.top.use.scroll config -command "$w.top.use.list yview"
+
+    foreach u {{Personal name} {Corporate name}} {
+        $w.top.use.list insert end $u
+    }
+    # Relation Attributes
+    pack $w.top.relation -pady 6 -padx 6 -side top
+
+    label $w.top.relation.label -text "Relation" -width 18
+    
+    listbutton $w.top.relation.b 0\
+            {{None} {Less than} {Greater than or equal} \
+            {Equal} {Greater than or equal} {Greater than} {Not equal} \
+            {Phonetic} \
+            {Stem} {Relevance} {AlwaysMatches}}
+    
+    pack $w.top.relation.label $w.top.relation.b -fill x 
+
+    # Position Attributes
+    pack $w.top.position -pady 6 -padx 6 -side top
+
+    label $w.top.position.label -text "Position" -width 18
+
+    listbutton $w.top.position.b 0 {{None} {First in field} {First in subfield}
+    {Any position in field}}
+    
+    pack $w.top.position.label $w.top.position.b -fill x
+
+    # Structure Attributes
+
+    pack $w.top.structure -pady 6 -padx 6 -side top
+    
+    label $w.top.structure.label -text "Structure" -width 18
+
+    listbutton $w.top.structure.b 0 {{None} {Phrase} {Word} {Key} {Year}
+    {Date (norm)} {Word list} {Date (un-norm)} {Name (norm)} {Date (un-norm)}
+    {Structure} {urx} {free-form} {doc-text} {local-number} {string}
+    {numeric string}}
+
+    pack $w.top.structure.label $w.top.structure.b -fill x
+
+    # Truncation Attributes
+
+    pack $w.top.truncation -pady 6 -padx 6 -side top
+    
+    label $w.top.truncation.label -text "Truncation" -width 18
+
+    listbutton $w.top.truncation.b 0 {{Auto} {Right} {Left} {Left and right} \
+            {No truncation} {Process #} {Re-1} {Re-2}}
+    pack $w.top.truncation.label $w.top.truncation.b -fill x
+
+    # Completeness Attributes
+
+    pack $w.top.completeness -pady 6 -padx 6 -side top
+    
+    label $w.top.completeness.label -text "Truncation" -width 18
+
+    listbutton $w.top.completeness.b 0 {{None} {Incomplete subfield} \
+            {Complete subfield} {Complete field}}
+    pack $w.top.completeness.label $w.top.completeness.b -fill x
+
+    # Ok-cancel
+    top-down-ok-cancelx $w [list \
+            {Ok} [list query-setup-action $queryNo] \
+            {Add index} [list query-add-index $queryNo] \
+            {Add line} [list query-add-line $queryNo] \
+            {Delete line} [list query-del-line $queryNo]] 0
+}
+
+proc index-clear {} {
+    global queryButtonsFind
+
+    set i 0
+    foreach b $queryButtonsFind {
+        .lines.$i.e delete 0 end
+        incr i
+    }
+}
+    
+proc index-query {} {
+    global queryButtonsFind
+    global queryInfoFind
+
+    set i 0
+    set qs {}
+
+    foreach b $queryButtonsFind {
+        set term [string trim [.lines.$i.e get]]
+        if {$term != ""} {
+            set attr [lindex [lindex $queryInfoFind [lindex $b 1]] 1]
+            if {$qs != ""} {
+                set qs "${qs} and "
+            }
+            if {$attr != ""} {
+                set qs "${qs}${attr}="
+            }
+            set qs "${qs}(${term})"
+        }
+        incr i
+    }
+    puts "qs=  $qs"
+    return $qs
+}
+
+proc index-lines {w realOp buttonInfo queryInfo handle} {
+    set i 0
+    foreach b $buttonInfo {
+        if {! [winfo exists $w.$i]} {
+            frame $w.$i -background white -border 1
+        }
+        listbuttonx $w.$i.l [lindex $b 1] $queryInfo $handle $i
+
+        if {! [winfo exists $w.$i.e]} {
+            if {$realOp} {
+                entry $w.$i.e -width 32 -relief sunken
+            }
+            pack $w.$i.l -side left
+            if {$realOp} {
+                pack $w.$i.e -side left -fill x -expand yes
+            }
+            pack $w.$i -side top -fill x -padx 2 -pady 2
+        }
+        if {$realOp} {
+            bind $w.$i.e <Left> [list left-cursor $w.$i.e]
+            bind $w.$i.e <Right> [list right-cursor $w.$i.e]
+            bind $w.$i.e <Return> search-request
+        }
+        incr i
+    }
+    set j $i
+    while {[winfo exists $w.$j]} {
+        destroy $w.$j
+        incr j
+    }
+    if {! $realOp} {
+        return
+    }
+    set j 0
+    incr i -1
+    while {$j < $i} {
+        set k [expr $j+1]
+        bind $w.$j.e <Tab> "focus $w.$k.e \n
+        $w.$k configure -background red \n
+        $w.$j configure -background white"
+        set j $k
+    }
+    if {$i >= 0} {
+        bind $w.$i.e <Tab> "focus $w.0.e \n
+        $w.0 configure -background red \n
+        $w.$i configure -background white"
+        focus $w.0.e
+        $w.0 configure -background red
+    }
+}
+
+proc search-fields {w buttondefs} {
+    set i 0
+    foreach buttondef $buttondefs {
+        frame $w.$i -background white
+        
+        listbutton $w.$i.l 0 $buttondef
+        entry $w.$i.e -width 32 -relief sunken
+        
+        pack $w.$i.l -side left
+        pack $w.$i.e -side left -fill x -expand yes
+
+        pack $w.$i -side top -fill x -padx 2 -pady 2
+
+        bind $w.$i.e <Left> [list left-cursor $w.$i.e]
+        bind $w.$i.e <Right> [list right-cursor $w.$i.e]
+
+        incr i
+    }
+    set j 0
+    incr i -1
+    while {$j < $i} {
+        set k [expr $j+1]
+        bind $w.$j.e <Tab> "focus $w.$k.e \n
+        $w.$k configure -background red \n
+        $w.$j configure -background white"
+        set j $k
+    }
+    bind $w.$i.e <Tab> "focus $w.0.e \n
+        $w.0 configure -background red \n
+        $w.$i configure -background white"
+    focus $w.0.e
+    $w.0 configure -background red
+}
+
 frame .top  -border 1 -relief raised
+frame .lines  -border 1 -relief raised
 frame .mid  -border 1 -relief raised
 frame .data -border 1 -relief raised
 frame .bot  -border 1 -relief raised
-pack .top .mid -side top -fill x
-pack .data      -side top -fill both -expand yes
-pack .bot      -fill x
+pack .top .lines .mid -side top -fill x
+pack .data -side top -fill both -expand yes
+pack .bot -fill x
 
 menubutton .top.file -text "File" -underline 0 -menu .top.file.m
 menu .top.file.m
@@ -940,25 +1437,34 @@ menu .top.search.m.present
 .top.search.m.present add command -label "All" -command [list present-more {}]
 .top.search configure -state disabled
 
+menubutton .top.query -text "Query" -underline 0 -menu .top.query.m
+menu .top.query.m
+.top.query.m add cascade -label "Choose" -menu .top.query.m.clist
+.top.query.m add command -label "Define" -command {new-query-dialog}
+.top.query.m add cascade -label "Edit" -menu .top.query.m.slist
+menu .top.query.m.clist
+menu .top.query.m.slist
+cascade-query-list
+
 menubutton .top.help -text "Help" -menu .top.help.m
 menu .top.help.m
 
 .top.help.m add command -label "Help on help" -command {puts "Help on help"}
 .top.help.m add command -label "About" -command {puts "About"}
 
-pack .top.file .top.target .top.search -side left
+pack .top.file .top.target .top.query .top.search -side left
 pack .top.help -side right
 
-label .mid.searchlabel -text {Search:}
-entry .mid.searchentry -width 32 -relief sunken
-pack .mid.searchlabel  -side left
-pack .mid.searchentry -side left -fill x -expand yes
+index-lines .lines 1 $queryButtonsFind [lindex $queryInfo 0] activate-index
 
-focus .mid.searchentry
-bind .mid.searchentry <Left> {left-cursor .mid.searchentry}
-bind .mid.searchentry <Right> {right-cursor .mid.searchentry}
+button .mid.search -width 6 -text {Search} -command search-request \
+        -state disabled
+button .mid.scan -width 6 -text {Scan} -command scan-request \
+        -state disabled
+button .mid.clear -width 6 -text {Clear} -command index-clear
+pack .mid.search .mid.scan .mid.clear -side left -padx 5 -pady 3
 
-listbox .data.list -yscrollcommand {.data.scroll set}
+listbox .data.list -yscrollcommand {.data.scroll set} -font fixed
 scrollbar .data.scroll -orient vertical -border 1
 pack .data.list -side left -fill both -expand yes
 pack .data.scroll -side right -fill y
