@@ -1,7 +1,7 @@
 .\" Copyright (c) 1995, 1996 Index Data
 .\" All rights reserved.
-.\" $Id: ir-set.n,v 1.4 1997-04-13 19:01:44 adam Exp $
-.TH ir-set N  "24 June 1996" "IrTcl" "IR Set"
+.\" $Id: ir-set.n,v 1.5 2002-09-16 22:16:10 adam Exp $
+.TH ir-set n  "24 June 1996" "IrTcl" "IR Set"
 .SH NAME
 ir-set \- IR  set
 .SH SYNOPSIS

@@ -75,7 +75,7 @@ stamp-install: stamp-build
 binary-indep: build install
 	dh_testdir
 	dh_testroot
-	dh_installdocs -p ir-tcl-doc doc/
+	dh_installdocs -p ir-tcl-doc doc/*.html doc/*.txt doc/*.ps
 	dh_installchangelogs -p ir-tcl-doc
 	dh_link -p ir-tcl-doc
 	dh_strip -p ir-tcl-doc
@@ -102,8 +102,12 @@ binary-arch: build install
 	dh_compress -a
 	dh_fixperms -a
 
-	dh_installdeb -p irtcl
-	# dh_undocumented -p ir-tcl.1
+	dh_installdeb -p ir-tcl
+	for i in doc/*.n; do \
+		m=`echo $$i|sed 's/\.n/.3tcl/g'`; \
+		cp $$i $$m; \
+	done
+	dh_installman -p ir-tcl doc/*.3tcl
 	dh_shlibdeps -p ir-tcl
 
 	dh_gencontrol -p ir-tcl
