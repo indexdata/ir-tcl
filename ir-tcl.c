@@ -3,7 +3,12 @@
  * (c) Index Data 1995
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.7  1995-03-14 17:32:29  adam
+ * Revision 1.8  1995-03-15 08:25:16  adam
+ * New method presentStatus to check for error on present. Misc. cleanup
+ * of IRRecordList manipulations. Full MARC record presentation in
+ * search.tcl.
+ *
+ * Revision 1.7  1995/03/14  17:32:29  adam
  * Presentation of full Marc record in popup window.
  *
  * Revision 1.6  1995/03/12  19:31:55  adam
@@ -83,8 +88,8 @@ typedef struct IRRecordList_ {
             Iso2709Rec rec;
         } marc;
         struct {
-            int code;
-            char *add_info;
+            int  condition;
+            char *addinfo;
         } diag;
     } u;
     struct IRRecordList_ *next;
@@ -97,6 +102,9 @@ typedef struct IRSetObj_ {
     int number;
     int numberOfRecordsReturned;
     Z_Records *z_records;
+    int which;
+    int condition;
+    char *addinfo;
     IRRecordList *record_list;
 } IRSetObj;
 
@@ -107,6 +115,49 @@ typedef struct {
 } IRMethod;
 
 static int do_disconnect (void *obj,Tcl_Interp *interp, int argc, char **argv);
+
+static IRRecordList *new_IR_record (IRSetObj *setobj, int no, int which)
+{
+    IRRecordList *rl;
+
+    for (rl = setobj->record_list; rl; rl = rl->next)
+    {
+        if (no == rl->no)
+        {
+            switch (rl->which)
+            {
+            case Z_NamePlusRecord_databaseRecord:
+                iso2709_rm (rl->u.marc.rec);
+                break;
+            case Z_NamePlusRecord_surrogateDiagnostic:
+                free (rl->u.diag.addinfo);
+                rl->u.diag.addinfo = NULL;
+                break;
+            }
+            break;
+        }
+    }
+    if (!rl)
+    {
+        rl = malloc (sizeof(*rl));
+        assert (rl);
+        rl->next = setobj->record_list;
+        rl->no = no;
+        setobj->record_list = rl;
+    }
+    rl->which = which;
+    return rl;
+}
+
+static IRRecordList *find_IR_record (IRSetObj *setobj, int no)
+{
+    IRRecordList *rl;
+
+    for (rl = setobj->record_list; rl; rl = rl->next)
+        if (no == rl->no)
+            return rl;
+    return NULL;
+}
 
 /*
  * get_parent_info: Returns information about parent object.
@@ -843,14 +894,14 @@ static int get_marc_lines (Tcl_Interp *interp, Iso2709Rec rec,
         for (field = dir->fields; field; field = field->next)
         {
             if (!field->identifier)
-                Tcl_AppendResult (interp, "{{} ", NULL);
+                Tcl_AppendResult (interp, "{{}", NULL);
             else
             {
                 if (argc > 6 && marc_cmp (field->identifier, argv[6]))
                     continue;
-                Tcl_AppendResult (interp, "{", field->identifier, " ", NULL);
+                Tcl_AppendResult (interp, "{", field->identifier, NULL);
             }
-            Tcl_AppendResult (interp, "{", field->data, "}", NULL);
+            Tcl_AppendElement (interp, field->data);
             Tcl_AppendResult (interp, "} ", NULL);
         }
         Tcl_AppendResult (interp, "}} ", NULL);
@@ -874,11 +925,7 @@ static int do_recordType (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     if (Tcl_GetInt (interp, argv[2], &offset)==TCL_ERROR)
         return TCL_ERROR;
-    for (rl = obj->record_list; rl; rl = rl->next)
-    {
-        if (rl->no == offset)
-            break;
-    }
+    rl = find_IR_record (obj, offset);
     if (!rl)
         return TCL_OK;
     switch (rl->which)
@@ -888,9 +935,6 @@ static int do_recordType (void *o, Tcl_Interp *interp, int argc, char **argv)
         break;
     case Z_NamePlusRecord_surrogateDiagnostic:
         interp->result = "surrogateDiagnostic";
-        break;
-    default:
-        interp->result = "unknown";
         break;
     }
     return TCL_OK;
@@ -913,11 +957,7 @@ static int do_recordDiag (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     if (Tcl_GetInt (interp, argv[2], &offset)==TCL_ERROR)
         return TCL_ERROR;
-    for (rl = obj->record_list; rl; rl = rl->next)
-    {
-        if (rl->no == offset)
-            break;
-    }
+    rl = find_IR_record (obj, offset);
     if (!rl)
     {
         Tcl_AppendResult (interp, "No record at #", argv[2], NULL);
@@ -928,12 +968,10 @@ static int do_recordDiag (void *o, Tcl_Interp *interp, int argc, char **argv)
         Tcl_AppendResult (interp, "No Diagnostic record at #", argv[2], NULL);
         return TCL_ERROR;
     }
-    sprintf (buf, "%d ", rl->u.diag.code);
-    Tcl_AppendResult (interp, buf, NULL);
-    if (rl->u.diag.add_info)
-        Tcl_AppendElement (interp, rl->u.diag.add_info);
-    else
-        Tcl_AppendElement (interp, "");
+    sprintf (buf, "%d", rl->u.diag.condition);
+    Tcl_AppendResult (interp, buf, " {", 
+                      (rl->u.diag.addinfo ? rl->u.diag.addinfo : ""),
+                      "}", NULL);
     return TCL_OK;
 }
 
@@ -953,9 +991,7 @@ static int do_recordMarc (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     if (Tcl_GetInt (interp, argv[2], &offset)==TCL_ERROR)
         return TCL_ERROR;
-    for (rl = obj->record_list; rl; rl = rl->next)
-        if (rl->no == offset)
-            break;
+    rl = find_IR_record (obj, offset);
     if (!rl)
     {
         Tcl_AppendResult (interp, "No record at #", argv[2], NULL);
@@ -975,6 +1011,30 @@ static int do_recordMarc (void *o, Tcl_Interp *interp, int argc, char **argv)
         Tcl_AppendResult (interp, "field/line expected", NULL);
         return TCL_ERROR;
     }
+}
+
+/*
+ * do_presentStatus: Return present status (after present response)
+ */
+static int do_presentStatus (void *o, Tcl_Interp *interp, 
+                             int argc, char **argv)
+{
+    IRSetObj *obj = o;
+    char buf[28];
+
+    switch (obj->which)
+    {
+    case Z_Records_DBOSD:
+    	Tcl_AppendResult (interp, "DBOSD", NULL);
+        break;
+    case Z_Records_NSD:
+        sprintf (buf, "NSD %d", obj->condition);
+        Tcl_AppendResult (interp, buf, " {", 
+                          (obj->addinfo ? obj->addinfo : ""), 
+                          "}", NULL);
+        break;
+    }
+    return TCL_OK;
 }
 
 /*
@@ -1068,24 +1128,7 @@ static int do_loadFile (void *o, Tcl_Interp *interp,
         rec = iso2709_cvt (buf);
         if (!rec)
             break;
-        for (rl = setobj->record_list; rl; rl = rl->next)
-        {
-            if (no == rl->no)
-            {
-                if (rl->which == Z_NamePlusRecord_databaseRecord)
-                    iso2709_rm (rl->u.marc.rec);
-                break;
-            }
-        }
-        if (!rl)
-        {
-            rl = malloc (sizeof(*rl));
-            assert (rl);
-            rl->next = setobj->record_list;
-            rl->no = no;
-            setobj->record_list = rl;
-        }
-        rl->which = Z_NamePlusRecord_databaseRecord;
+        rl = new_IR_record (setobj, no, Z_NamePlusRecord_databaseRecord);
         rl->u.marc.rec = rec;
         no++;
     }
@@ -1109,6 +1152,7 @@ static int ir_set_obj_method (ClientData clientData, Tcl_Interp *interp,
     { 0, "recordType",              do_recordType },
     { 0, "recordMarc",              do_recordMarc },
     { 0, "recordDiag",              do_recordDiag },
+    { 0, "presentStatus",           do_presentStatus },
     { 0, "loadFile",                do_loadFile },
     { 0, NULL, NULL}
     };
@@ -1149,6 +1193,7 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
         return TCL_ERROR;
     obj->z_records = NULL;
     obj->record_list = NULL;
+    obj->addinfo = NULL;
     obj->parent = (IRObj *) parent_info.clientData;
     Tcl_CreateCommand (interp, argv[1], ir_set_obj_method,
                        (ClientData) obj, ir_set_obj_delete);
@@ -1203,18 +1248,20 @@ static void ir_presentResponse (void *o, Z_PresentResponse *presrs)
     printf ("Received presentResponse\n");
     if (zrs)
     {
+        setobj->which = zrs->which;
         if (zrs->which == Z_Records_NSD)
         {
-            setobj->numberOfRecordsReturned = 0;
+            const char *addinfo;
+
             printf ("They are diagnostic!!!\n");
-            /*            
-               char buf[16];
-               sprintf (buf, "%d", *zrs->u.nonSurrogateDiagnostic->condition);
-               Tcl_AppendResult (interp, "Diagnostic message: ", buf,
-               " : ",
-               zrs->u.nonSurrogateDiagnostic->addinfo, NULL);
-               return TCL_ERROR;
-               */
+
+            setobj->numberOfRecordsReturned = 0;
+            setobj->condition = *zrs->u.nonSurrogateDiagnostic->condition;
+            free (setobj->addinfo);
+            setobj->addinfo = NULL;
+            addinfo = zrs->u.nonSurrogateDiagnostic->addinfo;
+            if (addinfo && (setobj->addinfo = malloc (strlen(addinfo) + 1)))
+                strcpy (setobj->addinfo, addinfo);
             return;
         }
         else
@@ -1227,31 +1274,20 @@ static void ir_presentResponse (void *o, Z_PresentResponse *presrs)
             printf ("Got %d records\n", setobj->numberOfRecordsReturned);
             for (offset = 0; offset<setobj->numberOfRecordsReturned; offset++)
             {
-                int no = setobj->start + offset;
-                
-                for (rl = setobj->record_list; rl; rl = rl->next)
-                {
-                    if (no == rl->no)
-                    {
-                        if (rl->which == Z_NamePlusRecord_databaseRecord)
-                            iso2709_rm (rl->u.marc.rec);
-                        break;
-                    }
-                }
-                if (!rl)
-                {
-                    rl = malloc (sizeof(*rl));
-                    assert (rl);
-                    rl->next = setobj->record_list;
-                    rl->no = no;
-                    setobj->record_list = rl;
-                }
-                rl->which = zrs->u.databaseOrSurDiagnostics->
-                            records[offset]->which;
+                rl = new_IR_record (setobj, setobj->start + offset,
+                                    zrs->u.databaseOrSurDiagnostics->
+                                    records[offset]->which);
                 if (rl->which == Z_NamePlusRecord_surrogateDiagnostic)
                 {
-                    rl->u.diag.code = 0;
-                    rl->u.diag.add_info = NULL;
+                    Z_DiagRec *diagrec;
+
+                    diagrec = zrs->u.databaseOrSurDiagnostics->
+                              records[offset]->u.surrogateDiagnostic;
+
+                    rl->u.diag.condition = *diagrec->condition;
+                    if (diagrec->addinfo && (rl->u.diag.addinfo =
+                        malloc (strlen (diagrec->addinfo)+1)))
+                        strcpy (rl->u.diag.addinfo, diagrec->addinfo);
                 }
                 else
                 {
