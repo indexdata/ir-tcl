@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.62  1995-10-18 17:20:33  adam
+ * Revision 1.63  1995-11-13 09:55:39  adam
+ * Multiple records at a position in a result-set with differnt
+ * element specs.
+ *
+ * Revision 1.62  1995/10/18  17:20:33  adam
  * Work on target setup in client.tcl.
  *
  * Revision 1.61  1995/10/18  16:42:42  adam
@@ -244,14 +248,17 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
                           int argc, char **argv);
 
 static IrTcl_RecordList *new_IR_record (IrTcl_SetObj *setobj, 
-                                        int no, int which)
+                                        int no, int which, 
+					const char *elements)
 {
     IrTcl_RecordList *rl;
 
     for (rl = setobj->record_list; rl; rl = rl->next)
     {
-        if (no == rl->no)
+        if (no == rl->no && (!rl->elements || !elements ||
+                             !strcmp(elements, rl->elements)))
         {
+            free (rl->elements);
             switch (rl->which)
             {
             case Z_NamePlusRecord_databaseRecord:
@@ -274,6 +281,7 @@ static IrTcl_RecordList *new_IR_record (IrTcl_SetObj *setobj,
         setobj->record_list = rl;
     }
     rl->which = which;
+    ir_tcl_strdup (NULL, &rl->elements, elements);
     return rl;
 }
 
@@ -348,7 +356,9 @@ static IrTcl_RecordList *find_IR_record (IrTcl_SetObj *setobj, int no)
     IrTcl_RecordList *rl;
 
     for (rl = setobj->record_list; rl; rl = rl->next)
-        if (no == rl->no)
+        if (no == rl->no && 
+            (!setobj->recordElements || !rl->elements || 
+             !strcmp (setobj->recordElements, rl->elements)))
             return rl;
     return NULL;
 }
@@ -1876,7 +1886,7 @@ static int do_type (void *o, Tcl_Interp *interp, int argc, char **argv)
         delete_IR_records (obj);
 	return TCL_OK;
     }
-    if (argc < 3)
+    if (argc != 3)
     {
         sprintf (interp->result, "wrong # args");
         return TCL_ERROR;
@@ -1919,7 +1929,7 @@ static int do_recordType (void *o, Tcl_Interp *interp, int argc, char **argv)
     {
 	return TCL_OK;
     }
-    if (argc < 3)
+    if (argc != 3)
     {
         sprintf (interp->result, "wrong # args");
         return TCL_ERROR;
@@ -1936,6 +1946,33 @@ static int do_recordType (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     Tcl_AppendElement (interp, (char*)
                        IrTcl_getRecordSyntaxStr (rl->u.dbrec.type));
+    return TCL_OK;
+}
+
+/*
+ * set record elements (for record extraction)
+ */
+static int do_recordElements (void *o, Tcl_Interp *interp,
+                              int argc, char **argv)
+{
+    IrTcl_SetObj *obj = o;
+
+    if (argc == 0)
+    {
+        obj->recordElements = NULL;
+	return TCL_OK;
+    }
+    else if (argc == -1)
+        return ir_tcl_strdel (NULL, &obj->recordElements);
+    if (argc > 2)
+    {
+        sprintf (interp->result, "wrong # args");
+        return TCL_ERROR;
+    }
+    if (argc == 2)
+        return ir_tcl_strdup (NULL, &obj->recordElements, 
+                              (*argv[1] ? argv[1] : NULL));
+    Tcl_AppendResult (interp, obj->recordElements, NULL);
     return TCL_OK;
 }
 
@@ -1977,7 +2014,7 @@ static int do_diag (void *o, Tcl_Interp *interp, int argc, char **argv)
 
     if (argc <= 0)
         return TCL_OK;
-    if (argc < 3)
+    if (argc != 3)
     {
         sprintf (interp->result, "wrong # args");
         return TCL_ERROR;
@@ -2042,7 +2079,7 @@ static int do_getSutrs (void *o, Tcl_Interp *interp, int argc, char **argv)
 
     if (argc <= 0)
         return TCL_OK;
-    if (argc < 3)
+    if (argc != 3)
     {
         sprintf (interp->result, "wrong # args");
         return TCL_ERROR;
@@ -2236,7 +2273,7 @@ static int do_loadFile (void *o, Tcl_Interp *interp,
 
     if (argc <= 0)
         return TCL_OK;
-    if (argc < 3)
+    if (argc != 3)
     {
         interp->result = "wrong # args";
         return TCL_ERROR;
@@ -2251,7 +2288,7 @@ static int do_loadFile (void *o, Tcl_Interp *interp,
     {
         IrTcl_RecordList *rl;
 
-        rl = new_IR_record (setobj, no, Z_NamePlusRecord_databaseRecord);
+        rl = new_IR_record (setobj, no, Z_NamePlusRecord_databaseRecord, "F");
         rl->u.dbrec.type = VAL_USMARC;
         rl->u.dbrec.buf = buf;
 	rl->u.dbrec.size = size;
@@ -2276,6 +2313,7 @@ static IrTcl_Method ir_set_method_tab[] = {
     { 0, "getSutrs",                do_getSutrs },
     { 0, "getGrs",                  do_getGrs },
     { 0, "recordType",              do_recordType },
+    { 0, "recordElements",          do_recordElements },
     { 0, "diag",                    do_diag },
     { 0, "responseStatus",          do_responseStatus },
     { 0, "loadFile",                do_loadFile },
@@ -2806,7 +2844,8 @@ static void ir_handleDiags (IrTcl_Diagnostic **dst_list, int *dst_num,
     }
 }
 
-static void ir_handleRecords (void *o, Z_Records *zrs, IrTcl_SetObj *setobj)
+static void ir_handleRecords (void *o, Z_Records *zrs, IrTcl_SetObj *setobj,
+                              const char *elements)
 {
     IrTcl_Obj *p = o;
 
@@ -2827,7 +2866,8 @@ static void ir_handleRecords (void *o, Z_Records *zrs, IrTcl_SetObj *setobj)
         {
             rl = new_IR_record (setobj, setobj->start + offset,
                                 zrs->u.databaseOrSurDiagnostics->
-                                records[offset]->which);
+                                records[offset]->which,
+				elements);
             if (rl->which == Z_NamePlusRecord_surrogateDiagnostic)
             {
                 ir_handleDiags (&rl->u.surrogateDiagnostics.list,
@@ -2925,7 +2965,14 @@ static void ir_searchResponse (void *o, Z_SearchResponse *searchrs,
     logf (LOG_DEBUG, "Search response %d, %d hits", 
           setobj->searchStatus, setobj->resultCount);
     if (zrs)
-        ir_handleRecords (o, zrs, setobj);
+    {
+        const char *es;
+        if (setobj->resultCount <= setobj->set_inher.smallSetUpperBound)
+            es = setobj->set_inher.smallSetElementSetNames;
+        else 
+            es = setobj->set_inher.mediumSetElementSetNames;
+        ir_handleRecords (o, zrs, setobj, es);
+    }
     else
         setobj->recordFlag = 0;
 }
@@ -2946,7 +2993,7 @@ static void ir_presentResponse (void *o, Z_PresentResponse *presrs,
     get_referenceId (&setobj->set_inher.referenceId, presrs->referenceId);
     setobj->nextResultSetPosition = *presrs->nextResultSetPosition;
     if (zrs)
-        ir_handleRecords (o, zrs, setobj);
+        ir_handleRecords (o, zrs, setobj, setobj->set_inher.elementSetNames);
     else
     {
         setobj->recordFlag = 0;

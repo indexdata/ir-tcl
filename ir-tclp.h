@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.18  1995-10-18 16:42:44  adam
+ * Revision 1.19  1995-11-13 09:55:46  adam
+ * Multiple records at a position in a result-set with differnt
+ * element specs.
+ *
+ * Revision 1.18  1995/10/18  16:42:44  adam
  * New settings: smallSetElementSetNames and mediumSetElementSetNames.
  *
  * Revision 1.17  1995/10/16  17:00:56  adam
@@ -208,6 +212,7 @@ typedef struct IrTcl_GRS_Record_ {
 
 typedef struct IrTcl_RecordList_ {
     int no;
+    char *elements;
     int which;
     union {
         struct {
@@ -236,6 +241,7 @@ typedef struct IrTcl_SetObj_ {
     int         number;
     int         numberOfRecordsReturned;
     char       *setName;
+    char       *recordElements;
     int         recordFlag;
     int         which;
     int         nonSurrogateDiagnosticNum;

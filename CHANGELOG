@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.6 1995-10-16 17:00:51 adam Exp $
+$Id: CHANGELOG,v 1.7 1995-11-13 09:55:34 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -51,4 +51,7 @@ $Id: CHANGELOG,v 1.6 1995-10-16 17:00:51 adam Exp $
 
 08/28/95 Release of ir-tcl-1.0b2
 ------------------------------------------------------
-10/16/95 New setting: ElementSetNames.
+10/16/95 New setting: ElementSetNames
+
+11/12/95:New setting: recordElements. This is used to get a record at
+         a position with a given element specification.
