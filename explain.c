@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: explain.c,v $
- * Revision 1.6  1997-05-14 06:57:14  adam
+ * Revision 1.7  1997-08-28 20:17:36  adam
+ * Fixed small bug.
+ *
+ * Revision 1.6  1997/05/14 06:57:14  adam
  * Adopted to use YAZ with C++ support.
  *
  * Revision 1.5  1996/08/23 11:59:47  adam
@@ -1509,7 +1512,7 @@ static int ir_AttributeOccurrence (IrExpArg *iea,
     ir_oid (iea, p->attributeSet, "attributeSet", argi);
     ir_integer (iea, p->attributeType, "attributeType", argi);
     ir_null (iea, p->mustBeSupplied, "mustBeSupplied", argi);
-    ir_choice (iea, arm, &p->which, p->attributeValues->anyOrNone, argi);
+    ir_choice (iea, arm, &p->which, p->attributeValues.anyOrNone, argi);
     return ir_match_end (name, iea, argi);
 }
 
