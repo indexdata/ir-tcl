@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.17 1996-06-05 08:59:22 adam Exp $
+$Id: CHANGELOG,v 1.18 1996-06-05 09:26:19 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -83,7 +83,7 @@ $Id: CHANGELOG,v 1.17 1996-06-05 08:59:22 adam Exp $
 20/02/96 Identification of record syntaxes, etc. are handled by the YAZ
          oid utilities.
 
-29/05/96 Set function getGrs enhanced so that specific elements can be
+05/06/96 Set function getGrs enhanced so that specific elements can be
          extracted by (<tagType>,<tagVal>) - pairs.
 
 

@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: grs.c,v $
- * Revision 1.6  1996-06-05 08:59:23  adam
+ * Revision 1.7  1996-06-05 09:26:20  adam
+ * Bug fix: the change above introduced an error.
+ *
+ * Revision 1.6  1996/06/05  08:59:23  adam
  * Changed syntax of element specs in GRS-1 retrieval.
  *
  * Revision 1.5  1996/05/29  20:28:08  adam
@@ -184,7 +187,7 @@ static int ir_tcl_get_grs_r (Tcl_Interp *interp, IrTcl_GRS_Record *grs_record,
             else
             {
                 if (*cp0 == '(')
-                    cp++;
+                    cp0++;
                 if (atoi(cp0) == e->tagType) 
                 {
                     if (e->tagWhich == Z_StringOrNumeric_numeric)
@@ -194,7 +197,11 @@ static int ir_tcl_get_grs_r (Tcl_Interp *interp, IrTcl_GRS_Record *grs_record,
                     }
                     else
                     {
-                        if (!strcmp (cp1+1, e->tagVal.str))
+                        int len = strlen(cp1+1);
+                        if (cp1[len] == ')')
+                            len--;
+                        if (len && strlen(e->tagVal.str) == len &&
+                            !memcmp (cp1+1, e->tagVal.str, len))
                             yes = 1;
                     }
                 }
