@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: grs.c,v $
- * Revision 1.1  1995-08-29 15:38:34  adam
+ * Revision 1.2  1995-09-20 11:37:01  adam
+ * Configure searches for tk4.1 and tk7.5.
+ * Work on GRS.
+ *
+ * Revision 1.1  1995/08/29  15:38:34  adam
  * Added grs.c. new version.
  *
  */
@@ -49,10 +53,42 @@ void ir_tcl_read_grs (Z_GenericRecord *r, IrTcl_GRS_Record **grs_record)
             ir_tcl_strdup (NULL, &e->tagVal.str, t->tagValue->u.string);
         e->dataWhich = t->content->which;
 
-        if (t->content->which == Z_ElementData_subtree)
-            ir_tcl_read_grs (t->content->u.subtree, &e->tagData.sub);
-        else if (t->content->which == Z_ElementData_string)
+        switch (t->content->which)
+        {
+        case Z_ElementData_octets:
+            e->tagData.octets.len = t->content->u.octets->len;
+            e->tagData.octets.buf = ir_tcl_malloc (t->content->u.octets->len);
+            memcpy (e->tagData.octets.buf, t->content->u.octets->buf, 
+                    t->content->u.octets->len);
+            break;
+        case Z_ElementData_numeric:
+            e->tagData.num = *t->content->u.numeric;
+            break;
+        case Z_ElementData_date:
             ir_tcl_strdup (NULL, &e->tagData.str, t->content->u.string);
+            break;            
+        case Z_ElementData_ext:
+            break;
+        case Z_ElementData_string:
+            ir_tcl_strdup (NULL, &e->tagData.str, t->content->u.string);
+            break;
+        case Z_ElementData_trueOrFalse:
+            e->tagData.bool = *t->content->u.trueOrFalse;
+            break;
+        case Z_ElementData_oid:
+            break;
+        case Z_ElementData_intUnit:
+            break;
+        case Z_ElementData_elementNotThere:
+        case Z_ElementData_elementEmpty:
+        case Z_ElementData_noDataRequested:
+            break;
+        case Z_ElementData_diagnostic:
+            break;
+        case Z_ElementData_subtree:
+            ir_tcl_read_grs (t->content->u.subtree, &e->tagData.sub);
+            break;
+        }
     }
 }
 
@@ -65,8 +101,6 @@ static int ir_tcl_get_grs_r (Tcl_Interp *interp, IrTcl_GRS_Record *grs_record,
 
     if (argno >= argc)
     {
-        Tcl_AppendResult (interp, "{ ", NULL);
-
         for (i = 0; i<grs_record->noTags; i++, e++)
         {
 
@@ -76,29 +110,62 @@ static int ir_tcl_get_grs_r (Tcl_Interp *interp, IrTcl_GRS_Record *grs_record,
 
             if (e->tagWhich == Z_StringOrNumeric_numeric)
             {
-                Tcl_AppendElement (interp, "N");
+                Tcl_AppendResult (interp, " numeric ", NULL);
                 sprintf (tmpbuf, "%d", e->tagVal.num);
                 Tcl_AppendElement (interp, tmpbuf);
             }
             else
             {
-                Tcl_AppendResult (interp, " S ", NULL);
+                Tcl_AppendResult (interp, " string ", NULL);
                 Tcl_AppendElement (interp, e->tagVal.str);
             }
-            if (e->dataWhich == Z_ElementData_subtree)
+            switch (e->dataWhich)
             {
-                Tcl_AppendResult (interp, " R ", NULL);
+            case Z_ElementData_octets:
+                Tcl_AppendResult (interp, " octets {} ", NULL);
+                break;
+            case Z_ElementData_numeric:
+                Tcl_AppendResult (interp, " numeric {} ", NULL);
+                break;
+            case Z_ElementData_date:
+                Tcl_AppendResult (interp, " date {} ", NULL);
+                break;
+            case Z_ElementData_ext:
+                Tcl_AppendResult (interp, " ext {} ", NULL);
+                break;
+            case Z_ElementData_string:
+                Tcl_AppendResult (interp, " string ", NULL);
+                Tcl_AppendElement (interp, e->tagData.str );
+                break;
+            case Z_ElementData_trueOrFalse:
+                Tcl_AppendResult (interp, " bool ",
+                                  e->tagData.bool ? "1" : "0", " ", NULL);
+                break;
+            case Z_ElementData_oid:
+                Tcl_AppendResult (interp, " oid {} ", NULL);
+                break;
+            case Z_ElementData_intUnit:
+                Tcl_AppendResult (interp, " intUnit {} ", NULL);
+                break;
+            case Z_ElementData_elementNotThere:
+                Tcl_AppendResult (interp, " notThere {} ", NULL);
+                break;
+            case Z_ElementData_elementEmpty:
+                Tcl_AppendResult (interp, " empty {} ", NULL);
+                break;
+            case Z_ElementData_noDataRequested:
+                Tcl_AppendResult (interp, " notRequested {} ", NULL);
+                break;
+            case Z_ElementData_diagnostic:
+                Tcl_AppendResult (interp, " diagnostic {} ", NULL);
+                break;
+            case Z_ElementData_subtree:
+                Tcl_AppendResult (interp, " subtree { ", NULL);
                 ir_tcl_get_grs_r (interp, e->tagData.sub, argc, argv, argno+1);
+                Tcl_AppendResult (interp, " } ", NULL);
+                break;
             }
-            else
-            {
-                Tcl_AppendElement (interp, "S");
-                if (e->tagData.str)
-                    Tcl_AppendElement (interp, e->tagData.str );
-                else
-                    Tcl_AppendResult (interp, " {} ", NULL);
-            }
-            Tcl_AppendResult (interp, " }", NULL);
+            Tcl_AppendResult (interp, " } ", NULL);
         }
     }
     return TCL_OK;

@@ -2,7 +2,7 @@
 # (c) Index Data 1995
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.17 1995-08-29 15:38:33 adam Exp $
+# $Id: Makefile.in,v 1.18 1995-09-20 11:37:00 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -30,9 +30,10 @@ CC=@CC@
 XLIB=@XLIBSW@
 XINCLUDE=@XINCLUDES@
 
-# Tcl/Tk libraries
+# Tcl/Tk libraries and include files
 TCLLIB=@TCLLIB@
 TKLIB=@TKLIB@
+TCLINCLUDE=@TCLINCLUDE@
 
 # MOSI directory with libmosi.a and source
 MOSILIB=@MOSILIB@
@@ -41,7 +42,7 @@ MOSILIB=@MOSILIB@
 YAZLIB=$(YAZDIR)/lib/libyaz.a $(MOSILIB) $(YAZDIR)/lib/libutil.a
 
 # All include paths
-INCLUDE=-I$(YAZDIR)/include $(XINCLUDE) -I$(MOSIDIR) -I/usr/local/include
+INCLUDE=-I$(YAZDIR)/include $(XINCLUDE) -I$(MOSIDIR) $(TCLINCLUDE)
 
 # All command line options except CFLAGS
 DEFS=-DCCL2RPN=0 @DEFS@ -DMOSI=@MOSI@ -DIRTCLDIR=\"$(IRTCLDIR)\" \

@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.15  1995-08-29 15:30:15  adam
+ * Revision 1.16  1995-09-20 11:37:01  adam
+ * Configure searches for tk4.1 and tk7.5.
+ * Work on GRS.
+ *
+ * Revision 1.15  1995/08/29  15:30:15  adam
  * Work on GRS records.
  *
  * Revision 1.14  1995/08/04  11:32:40  adam
@@ -177,6 +181,12 @@ struct GRS_Record_entry {
     union {
         struct IrTcl_GRS_Record_ *sub;
         char *str;
+        struct {
+            int len;
+            char *buf;
+        } octets;
+        int num;
+        int bool;
     } tagData;
 };
 

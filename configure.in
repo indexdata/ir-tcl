@@ -1,7 +1,7 @@
 dnl IR toolkit for tcl/tk
 dnl (c) Index Data 1995
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.9 1995-08-28 12:21:21 adam Exp $
+dnl $Id: configure.in,v 1.10 1995-09-20 11:37:01 adam Exp $
 AC_INIT(ir-tcl.h)
 CC=${CC-cc}
 AC_SUBST(CC)
@@ -20,14 +20,22 @@ fi
 AC_CHECK_FUNC(gethostbyname, , AC_CHECK_LIB(nsl, main, [LIBS="$LIBS -lnsl"]))
 AC_STDC_HEADERS
 AC_SUBST(TCLLIB)
-AC_CHECK_LIB(tcl, Tcl_Eval, tclFound=1, tclFound=0, -lm)
-if test "$tclFound" = 1; then
-    TCLLIB=-ltcl 
-elif test -r /usr/local/lib/libtcl7.4.a; then
-    TCLLIB=/usr/local/lib/libtcl7.4.a
-else
-    TCLLIB=/usr/local/lib/libtcl.a
-fi
+AC_SUBST(TKLIB)
+AC_SUBST(TCLINCLUDE)
+TCLLIB=-ltcl
+TKLIB=-ltk
+TCLINCLUDE=" # -I.. Tcl/Tk include path"
+for i in .a 7.4.a 7.5.a; do
+	if test -r /usr/local/lib/libtcl$i; then
+		TCLLIB=/usr/local/lib/libtcl$i
+		TCLINCLUDE=-I/usr/local/include
+	fi
+done
+for i in .a 4.0.a 4.1.a; do
+	if test -r /usr/local/lib/libtk$i; then
+		TKLIB=/usr/local/lib/libtk$i
+	fi
+done
 AC_SUBST(YAZDIR)
 AC_SUBST(MOSI)
 AC_SUBST(MOSILIB)
@@ -127,13 +135,4 @@ if test "$XLIBSW" = nope ; then
     XLIBSW=-lX11
 fi
 AC_SUBST(XLIBSW)
-AC_SUBST(TKLIB)
-AC_CHECK_LIB(tk, main, tkFound=1, tkFound=0, $TCLLIB $XLIBSW -lm)
-if test "$tkFound" = 1; then
-    TKLIB=-ltk
-elif test -r /usr/local/lib/libtk4.0.a; then
-    TKLIB=/usr/local/lib/libtk4.0.a
-else
-    TKLIB=/usr/local/lib/libtk.a
-fi
 AC_OUTPUT(Makefile)
