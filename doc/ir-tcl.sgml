@@ -1,7 +1,7 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id
+  $Id: ir-tcl.sgml,v 1.2 1995-05-30 08:09:27 adam Exp $
 -->
 
 <article>
@@ -421,66 +421,68 @@ Table ref{tab:irsearchrequest} lists settings that affect the search.
 Setting the <tt/databaseNames/ is mandatory. All other settings
 have reasonable defaults.
 
-</article>
-
-\begin{table}[htbf]
-\begin{tabular}{l|l|p{8cm}}
-Setting & Value & Description \\\hline
-databaseNames        & list    & database-names \\
-smallSetUpperBound   & integer & small set upper bound \\
-largeSetLowerBound   & integer & large set lower bound \\
-mediumSetPresentNumber & integer & medium set present number \\
-replaceIndicator     & boolean & replace-indicator \\
-setName                 & string  & name of result set \\
-queryType               & rpn     & query type-1 \\
-                        & ccl     & query type-2 \\
-preferredRecordSyntax   & string & preferred record syntax. 
-See table ref{tab:recordtypes} on page \pageref{tab:recordtypes} \\
-smallSetElementSetNames  & string  & small-set-element-set names \\
-mediumSetElementSetNames & string  & medium-set-element-set names \\
-searchResponse          & list    & Search-response Tcl script \\
-callback                & list    & General response Tcl script. Only used
-if searchResponse is not specified \\
-\end{tabular}
-\caption{Search request settings}
-\label{tab:irsearchrequest}
-\end{table}
+<descrip>
+<tag><tt>databaseNames </tt><em>list</em></tag>
+ database-names 
+<tag><tt>smallSetUpperBound </tt><em>integer</em></tag>
+ small set upper bound 
+<tag><tt>largeSetLowerBound </tt><em>integer</em></tag>
+ large set lower bound 
+<tag><tt>mediumSetPresentNumber </tt><em>integer</em></tag>
+ medium set present number 
+<tag><tt>replaceIndicator </tt><em>boolean</em></tag>
+ replace-indicator 
+<tag><tt>setName </tt><em>string</em></tag>
+ name of result set 
+<tag><tt>queryType rpn|ccl</tt></tag>
+ query type-1 or query type-2 
+<tag><tt>preferredRecordSyntax </tt><em>string</em></tag>
+ preferred record syntax. See table ref{tab:recordtypes} on page 
+ pageref{tab:recordtypes} 
+<tag><tt>smallSetElementSetNames </tt><em>string</em></tag>
+ small-set-element-set names 
+<tag><tt>mediumSetElementSetNames </tt><em>string</em></tag>
+ medium-set-element-set names 
+<tag><tt>searchResponse </tt><em>list</em></tag>
+ Search-response Tcl script
+<tag><tt>callback </tt><em>list</em></tag>
+ General response Tcl script. Only used if searchResponse is not specified 
+</descrip>
 
 The search-response handler, specified by the <tt/callback/ - or
 the <tt/searchResponse/ setting, 
 should read some of the settings shown in table ref{tab:irsearchresponse}.
 
-\begin{table}[htbf]
-\begin{tabular}{l|l|p{8cm}}
-Setting & Value & Description \\\hline
-searchStatus            & boolean & search-status \\
-responseStatus          & list    & response status information \\
-resultCount             & integer & result-count \\
-numberOfRecordsReturned & integer & number of records retrieved \\
-\end{tabular}
-\caption{Search response settings}
-\label{tab:irsearchresponse}
-\end{table}
+<descrip>
+<tag><tt>searchStatus </tt><em>boolean</em></tag>
+ search-status 
+<tag><tt>responseStatus </tt><em>list</em></tag>
+ response status information 
+<tag><tt>resultCount </tt><em>integer</em></tag>
+ result-count
+<tag><tt>numberOfRecordsReturned </tt><em>integer</em></tag>
+ number of records retrieved 
+</descrip>
 
 The <tt/responseStatus/ signals one of three conditions which
 is indicated by the value of the first item in the list:
 
-\begin{description}
-\item[NSD] indicates that the target has returned one or more non-surrogate
-diagnostic messages. The <tt/NSD/ item is followed by a list with
-all non-surrogate messages. Each non-surrogate message consists
+<descrip>
+<tag><tt>NSD</tt></tag> indicates that the target has returned one or 
+more non-surrogate diagnostic messages. The <tt/NSD/ item is followed by 
+a list with all non-surrogate messages. Each non-surrogate message consists
 of three items. The first item of the three items is the error
 code (integer); the next item is a textual representation of the error
 code in plain english; the third item is additional information, possibly
 empty if no additional information was returned by the target.
 
-\item[DBOSD] indicates a successful operation where the
+<tag><tt>DBOSD</tt></tag> indicates a successful operation where the
 target has returned one or more records. Each record may be
 either a database record or a surrogate diagnostic.
 
-\item[OK] indicates a successful operation --- no records are
+<tag><tt>OK</tt></tag> indicates a successful operation - no records are
 returned from the target. 
-\end{description}
+</descrip>
 
 <bf/Example/
 We continue with the multiple-targets example. 
@@ -558,19 +560,17 @@ is the number of records requested --- defaults to 10.
 The settings which could be modified before a <tt/present/
 action are shown in table ref{tab:irpresentrequest}.
 
-\begin{table}[htbf]
-\begin{tabular}{l|l|p{8cm}}
-Setting & Value & Description \\\hline
-preferredRecordSyntax   & string & preferred record syntax. 
-See table ref{tab:recordtypes} on page \pageref{tab:recordtypes} \\
-elementSetElementSetNames & string  & element-set names \\
-presentResponse         & list    & Present-response Tcl script \\
-callback                & list    & General response Tcl script. Only used
-if presentResponse is not specified \\
-\end{tabular}
-\caption{Present request settings}
-\label{tab:irpresentrequest}
-\end{table}
+<descrip>
+<tag><tt>preferredRecordSyntax </tt><em>string</em></tag>
+ preferred record syntax. See table ref{tab:recordtypes} on page 
+ pageref{tab:recordtypes} 
+<tag><tt>elementSetElementSetNames </tt><em>string</em></tag>
+ element-set names 
+<tag><tt>presentResponse </tt><em>list</em></tag>
+ Present-response Tcl script 
+<tag><tt>callback </tt><em>list</em></tag>
+ General response Tcl script. Only used if presentResponse is not specified 
+</descrip>
 
 The present-response handler should inspect the settings
 shown in table ref{tab:irpresentresponse}. 
@@ -580,17 +580,16 @@ settings were also used in the search-response case.
 As in the search-response case, records returned from the
 target are stored in the result set object.
 
-\begin{table}[htbf]
-\begin{tabular}{l|l|p{8cm}}
-Setting & Value & Description \\\hline
-presentStatus           & boolean & present-status \\
-responseStatus          & list    & Response status information \\
-numberOfRecordsReturned & integer & number of records returned \\
-nextResultSetPosition   & integer & next result set position \\
-\end{tabular}
-\caption{Present response settings}
-\label{tab:irpresentresponse}
-\end{table}
+<descrip>
+<tag><tt>presentStatus </tt><em>boolean</em></tag>
+ present-status 
+<tag><tt>responseStatus </tt><em>list</em></tag>
+ Response status information 
+<tag><tt>numberOfRecordsReturned </tt><em>integer</em></tag>
+ number of records returned 
+<tag><tt>nextResultSetPosition </tt><em>integer</em></tag>
+ next result set position
+</descrip>
 
 <sect1>Records
 
@@ -620,25 +619,18 @@ In the second case, database record, the <tt/recordType/ action should
 be used. It returns the record type at the given position.
 Some record types are shown in table ref{tab:recordtypes}.
 
-\begin{table}[htbf]
-\begin{center}
-\begin{tabular}{c}
-Type \\\hline
-UNIMARC \\
-INTERMARC \\ 
-CCF \\
-USMARC \\
-UKMARC \\
-NORMARC \\
-LIBRISMARC \\
-DANMARC \\
-FINMARC \\
-SUTRS \\
-\end{tabular}
-\end{center}
-\caption{Record types}
-\label{tab:recordtypes}
-\end{table}
+<descrip>
+<tag>UNIMARC</tag> UNIMARC
+<tag>INTERMARC</tag> INTERMARC
+<tag>CCF </tag> CCF
+<tag>USMARC</tag> USMARC
+<tag>UKMARC</tag> UKMARK
+<tag>NORMARC</tag> NORMARC
+<tag>LIBRISMARC</tag> LIBRISMARC
+<tag>DANMARC</tag> DANMARC
+<tag>FINMARC</tag> FINMARC
+<tag>SUTRS</tag> SUBTRS
+</descrip>
 
 <bf/Example/
 We continue our search-response example. In the case,
@@ -810,13 +802,9 @@ record.
 <p>
 <em/To be written/
 
-\appendix
-\pagebreak
-
 <sect>References
 
 <p>
-\label{sec:references}
 
 <itemize>
 <item> <bf/Ousterhout, John K./:
