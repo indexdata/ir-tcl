@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.66  1995-11-28 17:26:39  adam
+ * Revision 1.67  1996-01-03 09:00:51  adam
+ * Updated to use new version of Yaz (names changed to avoid C++ conflict).
+ *
+ * Revision 1.66  1995/11/28  17:26:39  adam
  * Removed Carriage return from ir-tcl.c!
  * Removed misc. debug logs.
  *
@@ -1683,7 +1686,7 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
     obj->start = 1;
 
     bib1.proto = p->protocol_type;
-    bib1.class = CLASS_ATTSET;
+    bib1.oclass = CLASS_ATTSET;
     bib1.value = VAL_BIB1;
 
     set_referenceId (p->odr_out, &req->referenceId,
@@ -1704,7 +1707,7 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
         struct oident ident;
 
         ident.proto = p->protocol_type;
-        ident.class = CLASS_RECSYN;
+        ident.oclass = CLASS_RECSYN;
         ident.value = *obj->set_inher.preferredRecordSyntax;
         logf (LOG_DEBUG, "Preferred record syntax is %d", ident.value);
         req->preferredRecordSyntax = odr_oiddup (p->odr_out, 
@@ -2257,7 +2260,7 @@ static int do_present (void *o, Tcl_Interp *interp, int argc, char **argv)
         struct oident ident;
 
         ident.proto = p->protocol_type;
-        ident.class = CLASS_RECSYN;
+        ident.oclass = CLASS_RECSYN;
         ident.value = *obj->set_inher.preferredRecordSyntax;
         logf (LOG_DEBUG, "Preferred record syntax is %d", ident.value);
         req->preferredRecordSyntax = odr_oiddup (p->odr_out, 
@@ -2516,7 +2519,7 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
 
     bib1.proto = p->protocol_type;
-    bib1.class = CLASS_ATTSET;
+    bib1.oclass = CLASS_ATTSET;
     bib1.value = VAL_BIB1;
 
     apdu = zget_APDU (p->odr_out, Z_APDU_scanRequest);
