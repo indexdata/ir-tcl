@@ -4,7 +4,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.19  1995-03-28 12:45:23  adam
+ * Revision 1.20  1995-03-29 16:07:09  adam
+ * Bug fix: Didn't use setName in present request.
+ *
+ * Revision 1.19  1995/03/28  12:45:23  adam
  * New ir method failback: called on disconnect/protocol error.
  * New ir set/get method: protocol: SR / Z3950.
  * Simple popup and disconnect when failback is invoked.
@@ -1265,7 +1268,9 @@ static int do_present (void *o, Tcl_Interp *interp,
     apdu.u.presentRequest = &req;
     req.referenceId = 0;
     /* sprintf(setstring, "%d", setnumber); */
-    req.resultSetId = "Default";
+
+    req.resultSetId = obj->setName ? obj->setName : "Default";
+    
     req.resultSetStartPoint = &start;
     req.numberOfRecordsRequested = &number;
     req.elementSetNames = 0;
