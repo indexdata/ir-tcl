@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.67  1996-01-03 09:00:51  adam
+ * Revision 1.68  1996-01-04 11:05:22  adam
+ * New setting: PDUType - returns type of last PDU returned from the target.
+ * Fixed a bug in configure/Makefile.
+ *
+ * Revision 1.67  1996/01/03  09:00:51  adam
  * Updated to use new version of Yaz (names changed to avoid C++ conflict).
  *
  * Revision 1.66  1995/11/28  17:26:39  adam
@@ -993,6 +997,7 @@ static int do_connect (void *obj, Tcl_Interp *interp,
             do_disconnect (p, NULL, 2, NULL);
             return TCL_ERROR;
         }
+        p->pduType = "connect";
         ir_select_add (cs_fileno (p->cs_link), p);
         if (r == 1)
         {
@@ -1022,6 +1027,7 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
     if (argc == 0)
     {
         p->state = IR_TCL_R_Idle;
+        p->pduType = NULL;
         p->hostname = NULL;
         p->cs_link = NULL;
         return TCL_OK;
@@ -1096,10 +1102,28 @@ static int do_logLevel (void *o, Tcl_Interp *interp,
 
 
 /*
+ * do_pduType: Return type of last PDU received
+ */
+static int do_pduType (void *obj, Tcl_Interp *interp,
+                       int argc, char **argv)
+{
+    IrTcl_Obj *p = obj;
+
+    if (argc <= 0)
+    {
+        p->pduType = NULL;
+        return TCL_OK;
+    }
+    Tcl_AppendElement (interp, p->pduType ? p->pduType : "");
+    return TCL_OK;
+}
+
+
+/*
  * do_callback: add callback
  */
 static int do_callback (void *obj, Tcl_Interp *interp,
-                          int argc, char **argv)
+                        int argc, char **argv)
 {
     IrTcl_Obj *p = obj;
 
@@ -1500,7 +1524,6 @@ static int do_mediumSetElementSetNames (void *obj, Tcl_Interp *interp,
     return TCL_OK;
 }
 
-
 static IrTcl_Method ir_method_tab[] = {
 { 1, "comstack",                    do_comstack },
 { 1, "protocol",                    do_protocol },
@@ -1508,6 +1531,7 @@ static IrTcl_Method ir_method_tab[] = {
 { 0, "failInfo",                    do_failInfo },
 { 0, "logLevel",                    do_logLevel },
 
+{ 0, "PDUType",                     do_pduType },
 { 1, "connect",                     do_connect },
 { 0, "protocolVersion",             do_protocolVersion },
 { 1, "preferredMessageSize",        do_preferredMessageSize },
@@ -3213,17 +3237,21 @@ void ir_select_read (ClientData clientData)
             switch(apdu->which)
             {
             case Z_APDU_initResponse:
+                p->pduType = "init";
                 ir_initResponse (p, apdu->u.initResponse);
                 break;
             case Z_APDU_searchResponse:
+                p->pduType = "search";
                 ir_searchResponse (p, apdu->u.searchResponse,
                                    (IrTcl_SetObj *) cmd_info.clientData);
                 break;
             case Z_APDU_presentResponse:
+                p->pduType = "present";
                 ir_presentResponse (p, apdu->u.presentResponse,
                                     (IrTcl_SetObj *) cmd_info.clientData);
                 break;
             case Z_APDU_scanResponse:
+                p->pduType = "scan";
                 ir_scanResponse (p, apdu->u.scanResponse, 
                                  (IrTcl_ScanObj *) cmd_info.clientData);
                 break;

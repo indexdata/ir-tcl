@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.19  1995-11-13 09:55:46  adam
+ * Revision 1.20  1996-01-04 11:05:23  adam
+ * New setting: PDUType - returns type of last PDU returned from the target.
+ * Fixed a bug in configure/Makefile.
+ *
+ * Revision 1.19  1995/11/13  09:55:46  adam
  * Multiple records at a position in a result-set with differnt
  * element specs.
  *
@@ -150,6 +154,7 @@ typedef struct {
     char       *userInformationField;
 
     char       *hostname;
+    char       *pduType;
    
     char       *buf_in;
     int         len_in;

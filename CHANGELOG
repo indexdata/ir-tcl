@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.7 1995-11-13 09:55:34 adam Exp $
+$Id: CHANGELOG,v 1.8 1996-01-04 11:05:20 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -55,3 +55,5 @@ $Id: CHANGELOG,v 1.7 1995-11-13 09:55:34 adam Exp $
 
 11/12/95:New setting: recordElements. This is used to get a record at
          a position with a given element specification.
+
+04/01/96:New setting: PDUType. Returns type of last PDU returned.
