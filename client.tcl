@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.13  1995-03-21 17:27:26  adam
+# Revision 1.14  1995-03-22 16:07:55  adam
+# Minor changes.
+#
+# Revision 1.13  1995/03/21  17:27:26  adam
 # Short-hand keys in setup.
 #
 # Revision 1.12  1995/03/21  13:41:03  adam
@@ -258,7 +261,9 @@ proc connect-response {target} {
 
 proc open-target {target base} {
     global profile
+    global hostid
 
+    set hostid $target
     .top.target.m disable 0
     .top.target.m enable 1
     z39 disconnect
@@ -303,6 +308,7 @@ proc load-set-action {} {
 proc load-set {} {
     set w .load-set
 
+    set oldFocus [focus]
     toplevel $w
 
     place-force $w .
@@ -318,6 +324,7 @@ proc load-set {} {
             {load-set-action} {destroy .load-set}
     
     top-down-ok-cancel $w {load-set-action} 1
+    focus $oldFocus
 }
 
 proc init-request {} {
@@ -337,10 +344,23 @@ proc init-response {} {
 
 proc search-request {} {
     global setNo
+    global profile
+    global hostid
+
+    set target $hostid
 
     incr setNo
     ir-set z39.$setNo
 
+    if {[lindex $profile($target) 10]} {
+        z39.$setNo setName $setNo
+    }
+    if {[lindex $profile($target) 8]} {
+        z39 query rpn
+    }
+    if {[lindex $profile($target) 9]} {
+        z39 query ccl
+    }
     z39 callback {search-response}
     z39.$setNo search [.mid.searchentry get]
     show-status {Search} 1
@@ -498,6 +518,9 @@ proc protocol-setup-action {target} {
     global profile
     global csRadioType
     global settingsChanged
+    global RPNCheck
+    global CCLCheck
+    global ResultSetCheck
 
     set w .setup-${target}.top
 
@@ -516,7 +539,10 @@ proc protocol-setup-action {target} {
             [$w.maximumRecordSize.entry get] \
             [$w.preferredMessageSize.entry get] \
             $csRadioType \
-            $b]
+            $b \
+            $RPNCheck \
+            $CCLCheck \
+            $ResultSetCheck ]
 
     cascade-target-list
     puts $profile($target)
@@ -580,6 +606,9 @@ proc protocol-setup {target} {
 
     global profile
     global csRadioType
+    global RPNCheck
+    global CCLCheck
+    global ResultSetCheck
 
     toplevel $w
 
@@ -627,6 +656,10 @@ proc protocol-setup {target} {
     $w.top.idAuthentication.entry insert 0 [lindex $profile($target) 3]
     $w.top.maximumRecordSize.entry insert 0 [lindex $profile($target) 4]
     $w.top.preferredMessageSize.entry insert 0 [lindex $profile($target) 5]
+    set csRadioType [lindex $profile($target) 6]
+    set RPNCheck [lindex $profile($target) 8]
+    set CCLCheck [lindex $profile($target) 9]
+    set ResultSetCheck [lindex $profile($target) 10]
 
     # Databases ....
     pack $w.top.databases -side left -pady 6 -padx 6 -expand yes -fill x
@@ -652,10 +685,8 @@ proc protocol-setup {target} {
     foreach b [lindex $profile($target) 7] {
         $w.top.databases.list insert end $b
     }
-    
-    # Transport ...
-    set csRadioType [lindex $profile($target) 6]
 
+    # Transport ...
     pack $w.top.cs-type -pady 6 -padx 6 -side top
     
     label $w.top.cs-type.label -text "Transport" 
@@ -671,14 +702,15 @@ proc protocol-setup {target} {
     pack $w.top.query -pady 6 -padx 6 -side top
 
     label $w.top.query.label -text "Query support" -anchor e
-    checkbutton $w.top.query.c1 -text "CCL query"   
-    checkbutton $w.top.query.c2 -text "RPN query"
-    checkbutton $w.top.query.c3 -text "Result sets"
+    checkbutton $w.top.query.c1 -text "RPN query" -variable RPNCheck
+    checkbutton $w.top.query.c2 -text "CCL query" -variable CCLCheck
+    checkbutton $w.top.query.c3 -text "Result sets" -variable ResultSetCheck
 
     pack $w.top.query.label -side top 
     pack $w.top.query.c1 $w.top.query.c2 $w.top.query.c3 \
             -padx 4 -side top -fill x
 
+    # Ok-cancel
     top-down-ok-cancel $w [list protocol-setup-action $target] 0
 }
 
