@@ -1,15 +1,15 @@
 dnl IR toolkit for tcl/tk
 dnl (c) Index Data 1996
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.15 1996-03-27 17:00:08 adam Exp $
+dnl $Id: configure.in,v 1.16 1996-06-06 10:46:00 adam Exp $
 AC_INIT(ir-tcl.h)
 CC=${CC-cc}
 dnl ------ Substitutions
 AC_SUBST(CC)
 AC_SUBST(TCLLIB)
 AC_SUBST(TKLIB)
-AC_SUBST(TCLINCLUDE)
-AC_SUBST(TKINCLUDE)
+AC_SUBST(TCLINC)
+AC_SUBST(TKINC)
 AC_SUBST(YAZDIR)
 AC_SUBST(MOSI)
 AC_SUBST(MOSIDIR)
@@ -76,7 +76,7 @@ if test -r ${tryprefix}/lib/tclConfig.sh; then
 		TCLLIB=${TCL_PREFIX}/lib/${TCL_LIB_FILE}
 	fi
 	TCLLIB="${TCLLIB} ${TCL_LIBS}"
-	TCLINCLUDE=-I${TCL_PREFIX}/include
+	TCLINC=-I${TCL_PREFIX}/include
 	RANLIB=$TCL_RANLIB
 	AC_MSG_RESULT($TCL_VERSION)
 else
@@ -102,7 +102,7 @@ else
 	if test "$TCL_VERSION" = nope; then
 		AC_MSG_WARN(Didn't find Tcl)
 		TCLLIB=-ltcl
-		TCLINCLUDE=" # -I.. Tcl/Tk include path"
+		TCLINC=" # -I.. Tcl/Tk include path"
 	else
 		if test "$TCL_VERSION" = ""; then
 			AC_MSG_RESULT(7.3)
@@ -110,7 +110,7 @@ else
 			AC_MSG_RESULT($TCL_VERSION)
 		fi
 		TCLLIB=${tryprefix}/lib/libtcl${TCL_VERSION}.a
-		TCLINCLUDE=-I${tryprefix}/include
+		TCLINC=-I${tryprefix}/include
 	fi
 	TCLLIB="${TCLLIB} ${LIBS} -lm"
 fi
@@ -119,7 +119,7 @@ if test -r ${tryprefix}/lib/tkConfig.sh; then
 	AC_MSG_CHECKING(for Tk)
 	source ${tryprefix}/lib/tkConfig.sh
 	AC_MSG_RESULT($TK_VERSION)
-	TKINCLUDE=${TK_XINCLUDES}
+	TKINC=${TK_XINCLUDES}
 	TKLIB="${TK_PREFIX}/lib/${TK_LIB_FILE} ${TK_LIBS}"
 else
 	AC_MSG_CHECKING(for Tk)
@@ -198,7 +198,7 @@ else
 		echo "Warning:  couldn't find the X11 library archive.  Using -lX11."
 		XLIBSW=-lX11
 	fi
-	TKINCLUDE=$XINCLUDE
+	TKINC=$XINCLUDE
 	TKLIB="${TKLIB} ${XLIBSW} ${TCLLIB}"
 fi
 AC_OUTPUT(Makefile)
