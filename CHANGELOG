@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.19 1996-06-24 16:24:28 adam Exp $
+$Id: CHANGELOG,v 1.20 1996-07-25 14:02:20 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -88,3 +88,5 @@ $Id: CHANGELOG,v 1.19 1996-06-24 16:24:28 adam Exp $
 
 24/06/96 Quick reference man pages added: ir-assoc, ir-set and ir-scan.
 
+16/07/96 Release of ir-tcl-1.2
+------------------------------------------------------
