@@ -1,7 +1,7 @@
 dnl IR toolkit for tcl/tk
 dnl (c) Index Data 1996-2001
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.32 2001-12-03 18:52:06 adam Exp $
+dnl $Id: configure.in,v 1.33 2001-12-03 19:23:07 adam Exp $
 AC_INIT(ir-tcl.h)
 dnl ------ Substitutions
 AC_SUBST(CC)
@@ -53,7 +53,10 @@ if test "x$tclconfig" = xNONE; then
 		prefix=/usr/local
 	fi
         tclconfig=${prefix}/lib
+        IRCLIENT_SHELL=${prefix}/bin/wish
         prefix=${saveprefix}
+else
+        IRCLIENT_SHELL=/usr/bin/wish
 fi
 AC_MSG_CHECKING(for Tcl)
 if test -f ${tclconfig}/tclConfig.sh; then

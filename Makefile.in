@@ -1,7 +1,7 @@
 # IR toolkit for tcl/tk
 # (c) Index Data 1995-1999
 # See the file LICENSE for details.
-# $Id: Makefile.in,v 1.56 2001-12-03 18:52:06 adam Exp $
+# $Id: Makefile.in,v 1.57 2001-12-03 19:23:07 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -109,7 +109,7 @@ install: @ALL_SPEC@
 	@if [ -f ir-tk ]; then \
 		$(INSTALL_PROGRAM) ir-tk $(BUILD)$(BINDIR); \
 	fi
-	@echo "#! $(BINDIR)/@IRCLIENT_SHELL@ -f" >head.bak; \
+	@echo "#! @IRCLIENT_SHELL@ -f" >head.bak; \
 	cat head.bak client.tcl| sed "s,^set libdir LIBDIR,set libdir $(IRTCLDIR)," >client.bak; \
 	$(INSTALL_PROGRAM) client.bak $(BUILD)$(BINDIR)/irclient; \
 	if [ -f $(BUILD)$(IRTCLDIR)/irtdb.tcl ]; then \
