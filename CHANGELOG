@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.4 1995-08-24 15:33:01 adam Exp $
+$Id: CHANGELOG,v 1.5 1995-08-28 12:50:51 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -43,8 +43,10 @@ $Id: CHANGELOG,v 1.4 1995-08-24 15:33:01 adam Exp $
 06/30/95 The interpretation of MARC records is a little less strict, i.e.
          a larger set of records are treated as being MARC.
 
-08/04/95 Request queue implemented. 
+08/04/95 Requests are queued when responses are pending.
 
-08/24/95 Modified to work with new version of yaz 1.0b3
+08/24/95 Modified to work with yaz 1.0b3
 
-08/24/95 Release of ir-tcl-1.0b2
+08/24/95 IrTcl works with tk4.0 and tcl7.4.
+
+08/28/95 Release of ir-tcl-1.0b2
