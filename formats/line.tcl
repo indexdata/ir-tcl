@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: line.tcl,v $
-# Revision 1.14  1997-11-19 11:22:10  adam
+# Revision 1.15  1997-11-24 11:34:38  adam
+# Using odr_nullval() instead of ODR_NULLVAL when appropriate.
+#
+# Revision 1.14  1997/11/19 11:22:10  adam
 # Object identifiers can be accessed in GRS-1 records.
 #
 # Revision 1.13  1996/04/12 12:25:27  adam
@@ -57,6 +60,7 @@ proc display-grs-line {w r i} {
     if {[tk4]} {
         set start [$w index insert]
     }
+    set head Untitled
     foreach e $r {
         if {![tk4]} {
             for {set j 0} {$j < $i} {incr j} {
@@ -75,12 +79,13 @@ proc display-grs-line {w r i} {
 		}
 	    }
 	    if {[lindex $e 3] == "string"} {
-		insertWithTags $w [lindex $e 4] marc-text
+                set head [lindex $e 4]
 	    }
-            insertWithTags $w "\n"
             break
 	}
     }
+    insertWithTags $w $head marc-text
+    insertWithTags $w "\n"
     if {[tk4]} {
         $w tag configure indent$i \
                 -lmargin1 [expr $i * 10] \

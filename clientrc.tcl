@@ -587,7 +587,7 @@ set profile(ztest9999,smallSetUpperBound) 0
 set profile(ztest9999,targetInfoName) {}
 set profile(ztest9999,timeDefine) 878567355
 set profile(ztest9999,timeLastExplain) {}
-set profile(ztest9999,timeLastInit) 879437957
+set profile(ztest9999,timeLastInit) 880111094
 set profile(ztest9999,welcomeMessage) {}
 set profile(ztest9999,windowNumber) 7
 set queryTypes {Simple phrase}
