@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.79  1995-10-18 16:42:37  adam
+# Revision 1.80  1995-10-18 17:20:32  adam
+# Work on target setup in client.tcl.
+#
+# Revision 1.79  1995/10/18  16:42:37  adam
 # New settings: smallSetElementSetNames and mediumSetElementSetNames.
 #
 # Revision 1.78  1995/10/18  15:45:36  quinn
@@ -1829,11 +1832,11 @@ proc protocol-setup {target} {
     global CCLCheck
     global ResultSetCheck
     
-    set b 0
-    while {[winfo exists .setup-$b]} {
-        incr b
+    set bno 0
+    while {[winfo exists .setup-$bno]} {
+        incr bno
     }
-    set w .setup-$b
+    set w .setup-$bno
 
     toplevelG $w
 
@@ -1959,7 +1962,57 @@ proc protocol-setup {target} {
     # Ok-cancel
     bottom-buttons $w [list {Ok} [list protocol-setup-action $target $w] \
             {Delete} [list protocol-setup-delete $target $w] \
+            {Advanced} [list advanced-setup $target $bno] \
             {Cancel} [list destroy $w]] 0   
+}
+
+
+proc advanced-setup {target b} {
+    global profile
+
+    set w .advanced-setup-$b
+    
+    toplevelG $w
+    
+    wm title $w "Advanced setup $target"
+    
+    top-down-window $w
+    
+    if {$target == ""} {
+        set target Default
+    }
+    dputs target
+    dputs $profile($target)
+    
+    frame $w.top.largeSetLowerBound
+    frame $w.top.smallSetUpperBound
+    frame $w.top.mediumSetPresentNumber
+    frame $w.top.presentChunk
+    frame $w.top.maximumRecordSize
+    frame $w.top.preferredMessageSize
+
+    pack $w.top.largeSetLowerBound $w.top.smallSetUpperBound \
+            $w.top.mediumSetPresentNumber $w.top.presentChunk \
+            $w.top.maximumRecordSize $w.top.preferredMessageSize \
+            -side top -anchor e -pady 2
+    
+    entry-fields $w.top {largeSetLowerBound smallSetUpperBound \
+            mediumSetPresentNumber presentChunk maximumRecordSize \
+            preferredMessageSize} \
+            {{Large Set Lower Bound:} {Small Set Upper Bound:} \
+            {Medium Set Present Number:} {Present Chunk:} \
+            {Maximum Record Size:} {Preferred Message Size:}} \
+            [list advanced-setup-action $target $b] [list destroy $w]
+    
+    bottom-buttons $w [list {Ok} [list advanced-setup-action $target $b] \
+            {Cancel} [list destroy $w]] 0   
+}
+
+proc advanced-setup-action {target b} {
+    set w .advanced-setup-$b
+
+    dputs "advanced-setup-action"
+    destroy $w
 }
 
 proc database-select-action {} {

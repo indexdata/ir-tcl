@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.61  1995-10-18 16:42:42  adam
+ * Revision 1.62  1995-10-18 17:20:33  adam
+ * Work on target setup in client.tcl.
+ *
+ * Revision 1.61  1995/10/18  16:42:42  adam
  * New settings: smallSetElementSetNames and mediumSetElementSetNames.
  *
  * Revision 1.60  1995/10/18  15:43:31  adam
@@ -1411,7 +1414,7 @@ static int do_elementSetNames (void *obj, Tcl_Interp *interp,
 }
 
 /*
- * do_smallSetElementSetNames: Set/Get element Set Names
+ * do_smallSetElementSetNames: Set/Get small Set Element Set Names
  */
 static int do_smallSetElementSetNames (void *obj, Tcl_Interp *interp,
                                int argc, char **argv)
@@ -1437,7 +1440,7 @@ static int do_smallSetElementSetNames (void *obj, Tcl_Interp *interp,
 }
 
 /*
- * do_mediumSetElementSetNames: Set/Get element Set Names
+ * do_mediumSetElementSetNames: Set/Get medium Set Element Set Names
  */
 static int do_mediumSetElementSetNames (void *obj, Tcl_Interp *interp,
                                int argc, char **argv)
