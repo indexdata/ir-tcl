@@ -1,14 +1,14 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.27 1998-01-30 13:30:50 adam Exp $
+  $Id: ir-tcl.sgml,v 1.28 1998-01-30 16:45:58 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference 
 <author><htmlurl url="http://www.indexdata.dk/" name="Index Data">,
 <tt><htmlurl url="mailto:info@indexdata.dk" name="info@indexdata.dk"></tt>
-<date>$Revision: 1.27 $
+<date>$Revision: 1.28 $
 <abstract>
 This document describes IrTcl -- an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
@@ -195,13 +195,13 @@ which demonstates an example of a user interface for the Z39.50/SR protocols.
 At first the script was relatively small but it has grown since the 
 beginning. At present it is about 3000 lines. 
 
-To start the client using a dynamic library use:
+To start the client with dynamic library support use:
 <tscreen><verb>
 $ wish -f client.tcl
 </verb></tscreen>
 
 Note: Substitute the real name for the wish interpreter above, for
-version 8.0 it probably called <tt/wish8.0/.
+version 8.0 it is probably called <tt/wish8.0/.
 
 To start the client without dynamic library support use:
 <tscreen><verb>
