@@ -1,9 +1,8 @@
 dnl IR toolkit for tcl/tk
 dnl (c) Index Data 1996-1999
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.26 1999-12-10 10:24:00 adam Exp $
+dnl $Id: configure.in,v 1.27 2000-02-04 08:47:43 adam Exp $
 AC_INIT(ir-tcl.h)
-CC=${CC-cc}
 dnl ------ Substitutions
 AC_SUBST(CC)
 AC_SUBST(TCLLIB)
@@ -26,44 +25,11 @@ AC_ARG_WITH(build-root, [  --with-buildroot        RPM Build root],[build_root=$
 dnl
 dnl ------ Preliminary settings
 AC_PROG_INSTALL
-AC_STDC_HEADERS
-if test "$ac_cv_header_stdc" = no; then
-	AC_MSG_WARN(Your system doesn't seem to support ANSI C)
-fi
-dnl
-dnl ------ Look for Yaz
-dnl See if user specified location of yaz-config; otherwise
-dnl use ../yaz if is a directory (internal development); otherwise
-dnl use yaz-config found in PATH.
-yazconfig=NONE
-yazpath=NONE
-AC_ARG_WITH(yazconfig, [  --with-yazconfig        Path for yaz-config], [yazpath=$withval])
-if test "x$yazpath" != "xNONE"; then
-        yazconfig=$yazpath/yaz-config
-else
-        for i in ../yaz* ../yaz; do
-                if test -d $i; then
-                        if test -r $i/include/yaz/yaz-version.h; then
-                                yazconfig=$i/yaz-config
-                        fi
-                fi
-        done
-        if test "x$yazconfig" = "xNONE"; then
-                AC_PATH_PROG(yazconfig, yaz-config, NONE)
-        fi
-fi
-AC_MSG_CHECKING(for YAZ)
-if test -r $yazconfig; then
-        . $yazconfig
-        AC_MSG_RESULT($yazconfig)
-else
-        AC_MSG_RESULT(Not found)
-fi
 dnl
 dnl ------ look for Tcl
 tclconfig=NONE
 tryprefix=NONE
-AC_ARG_WITH(tclconfig, [  --with-tclconfig        Path for tclConfig.sh/tkConfig.sh], [tclconfig=$withval])
+AC_ARG_WITH(tclconfig, [  --with-tclconfig=DIR    tclConfig.sh/tkConfig.sh in DIR (example /usr/lib)], [tclconfig=$withval])
 if test "x$tclconfig" = xNONE; then
         saveprefix=${prefix}
 	AC_PREFIX_PROGRAM(tclsh)
@@ -102,7 +68,9 @@ if test -r ${tclconfig}/tclConfig.sh; then
 	SHLIB_IRTCL=irtcl${TCL_SHLIB_SUFFIX}
 	ALL_SPEC="irtcl${TCL_SHLIB_SUFFIX} libirtcl.a"
 	AC_MSG_RESULT($TCL_VERSION)
+	CC=$TCL_CC
 else
+	AC_PROG_CC
         SHLIB_CFLAGS=""
 	SHLIB_LD="shared-linker"
 	SHLIB_SUFFIX=""
@@ -133,6 +101,35 @@ else
 	ALL_SPEC="ir-tcl ir-tk"
 fi
 dnl 
+dnl ------ Look for Yaz
+dnl See if user specified location of yaz-config; otherwise
+dnl use ../yaz if is a directory (internal development); otherwise
+dnl use yaz-config found in PATH.
+yazconfig=NONE
+yazpath=NONE
+AC_ARG_WITH(yazconfig, [  --with-yazconfig=DIR    yaz-config in DIR (example /home/yaz-1.5)], [yazpath=$withval])
+if test "x$yazpath" != "xNONE"; then
+        yazconfig=$yazpath/yaz-config
+else
+        for i in ../yaz* ../yaz; do
+                if test -d $i; then
+                        if test -r $i/include/yaz/yaz-version.h; then
+                                yazconfig=$i/yaz-config
+                        fi
+                fi
+        done
+        if test "x$yazconfig" = "xNONE"; then
+                AC_PATH_PROG(yazconfig, yaz-config, NONE)
+        fi
+fi
+AC_MSG_CHECKING(for YAZ)
+if test -r $yazconfig; then
+        . $yazconfig
+        AC_MSG_RESULT($yazconfig)
+else
+        AC_MSG_RESULT(Not found)
+fi
+dnl
 dnl ------ look for Tk
 dnl
 if test -r ${tclconfig}/tkConfig.sh; then
