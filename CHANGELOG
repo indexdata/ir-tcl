@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.22 1996-07-25 15:25:05 adam Exp $
+$Id: CHANGELOG,v 1.23 1996-07-25 15:29:08 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -77,12 +77,13 @@ $Id: CHANGELOG,v 1.22 1996-07-25 15:25:05 adam Exp $
 29/01/96 Bug fix: cs_type member in ir-tclp.h renamed to comstackType to
          avoid conflict with cs_type macro defined by YAZ.
 
+
 20/02/96 Identification of record syntaxes, etc. are handled by the YAZ
          oid utilities.
 
-05/29/96 Bug fix: Memory release of GRS-1 records was buggy.
+29/05/96 Bug fix: Memory release of GRS-1 records was buggy.
 
-05/29/96 GRS-1 record management function getGrs enhanced so that specific
+29/05/96 GRS-1 record management function getGrs enhanced so that specific
          elements can be extracted by (<tagType>,<tagVal>) - pairs.
 
 24/06/96 Quick reference man pages added: ir-assoc, ir-set and ir-scan.
