@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.10  1995-03-20 15:24:06  adam
+# Revision 1.11  1995-03-21 10:39:06  adam
+# Diagnostic error message displayed with tkerror.
+#
+# Revision 1.10  1995/03/20  15:24:06  adam
 # Diagnostic records saved on searchResponse.
 #
 # Revision 1.9  1995/03/17  18:26:16  adam
@@ -275,13 +278,13 @@ proc load-set-action {} {
     set fname [.load-set.top.filename.entry get]
     destroy .load-set
     if {$fname != ""} {
-        .data.list delete 0 end
+        init-title-lines
 
         show-status {Loading} 1
         z39.$setNo loadFile $fname
 
         set no [z39.$setNo numberOfRecordsReturned]
-        add-title-lines $no 1
+        add-title-lines $setNo $no 1
     }
     show-status {Ready} 0
 }
@@ -338,12 +341,19 @@ proc search-response {} {
     global setOffset
     global setMax
 
-    .data.list delete 0 end
+    init-title-lines
     show-status {Ready} 0
     show-message "[z39.$setNo resultCount] hits"
     set setMax [z39.$setNo resultCount]
     puts $setMax
     if {$setMax == 0} {
+        set status [z39.$setNo responseStatus]
+        if {[lindex $status 0] == "NSD"} {
+            set code [lindex $status 1]
+            set msg [lindex $status 2]
+            set addinfo [lindex $status 3]
+            tkerror "NSD$code: $msg: $addinfo"
+        }
         return
     }
     if {$setMax > 10} {
@@ -355,13 +365,15 @@ proc search-response {} {
     show-status {Retrieve} 1
 }
 
-proc add-title-lines {no offset} {
-    global setNo
+proc init-title-lines {} {
+    .data.list delete 0 end
+}
 
+proc add-title-lines {setno no offset} {
     for {set i 0} {$i < $no} {incr i} {
         set o [expr $i + $offset]
-        set title [lindex [z39.$setNo recordMarc $o field 245 * a] 0]
-        set year  [lindex [z39.$setNo recordMarc $o field 260 * c] 0]
+        set title [lindex [z39.$setno recordMarc $o field 245 * a] 0]
+        set year  [lindex [z39.$setno recordMarc $o field 260 * c] 0]
         set nostr [format "%3d" $o]
         .data.list insert end "$nostr $title - $year"
     }
@@ -375,8 +387,17 @@ proc present-response {} {
     puts "In present-response"
     set no [z39.$setNo numberOfRecordsReturned]
     puts "Returned $no records, setOffset $setOffset"
-    add-title-lines $no $setOffset
+    add-title-lines $setNo $no $setOffset
     set setOffset [expr $setOffset + $no]
+    set status [z39.$setNo responseStatus]
+    if {[lindex $status 0] == "NSD"} {
+        show-status {Ready} 0
+        set code [lindex $status 1]
+        set msg [lindex $status 2]
+        set addinfo [lindex $status 3]
+        tkerror "NSD$code: $msg: $addinfo"
+        return
+    }
     if {$no > 0 && $setOffset <= $setMax} {
         z39.$setNo present $setOffset [expr $setMax - $setOffset + 1]
     } else {
