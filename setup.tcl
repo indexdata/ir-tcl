@@ -6,7 +6,10 @@
 # Configuration Driver
 #
 # $Log: setup.tcl,v $
-# Revision 1.5  1998-04-02 14:32:01  adam
+# Revision 1.6  1999-12-12 00:25:59  adam
+# Updated list of preconfigure targets.
+#
+# Revision 1.5  1998/04/02 14:32:01  adam
 # Minor changes to EXPLAIN driver.
 #
 # Revision 1.4  1998/02/12 13:32:42  adam
@@ -66,7 +69,7 @@ proc protocol-setup-action {target} {
     
     set timedef $profileS($target,timeDefine)
     if {![string length $timedef]} {
-        set timedef [clock seconds]
+	set profileS($target,timeDefine) [clock seconds]
     }
 
     foreach n [array names profileS $target,*] {

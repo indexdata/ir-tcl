@@ -1,8 +1,7 @@
 # IR toolkit for tcl/tk
 # (c) Index Data 1995-1999
 # See the file LICENSE for details.
-# Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.52 1999-11-30 14:05:58 adam Exp $
+# $Id: Makefile.in,v 1.53 1999-12-12 00:25:59 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -102,6 +101,7 @@ install.man:
 install: @ALL_SPEC@
 	$(INSTALL) -d $(BUILD)$(IRTCLDIR)/formats
 	$(INSTALL) -d $(BUILD)$(IRTCLDIR)/bitmaps
+	$(INSTALL) -d $(BUILD)$(IRTCLDIR)/doc
 	$(INSTALL) -d $(BUILD)$(BINDIR)
 	@if [ -f ir-tcl ]; then \
 		$(INSTALL_PROGRAM) ir-tcl $(BUILD)$(BINDIR); \
@@ -140,6 +140,11 @@ install: @ALL_SPEC@
 			$(INSTALL_DATA) $$b $(BUILD)$(IRTCLDIR)/bitmaps; \
 		fi; \
 	done
+	@for b in doc/*; do \
+		if [ -f $$b ]; then \
+			$(INSTALL_DATA) $$b $(BUILD)$(IRTCLDIR)/doc; \
+		fi; \
+	done
 
 clean:
 	rm -f *.[oa] ir-tk ir-tcl wais-tcl core 
@@ -150,22 +155,7 @@ autoconf:
 	autoconf
 	configure
 
-distribution:
-	echo "Making distribution version $(VERSION). Did you commit?"
-	if [ -d tmp ]; then \
-		rm -fr tmp; \
-	fi
-	mkdir tmp; cd tmp; cvs export -f -D now ir-tcl
-	rm tmp/ir-tcl/wais-tcl.c
-	cd tmp/ir-tcl/doc; make all
-	cp tmp/ir-tcl/doc/*.html .
-	cp tmp/ir-tcl/CHANGELOG .
-	mv tmp/ir-tcl tmp/ir-tcl-$(VERSION)
-	cd tmp; tar zcvf ../ir-tcl-$(VERSION).tar.gz ir-tcl-$(VERSION)
-	rm -fr tmp
-
 .c.o:
 	$(CC) -c $(CFLAGS) $(SHLIB_CFLAGS) $(DEFS) $<
 
 $(O) tkmain.o tclmain.o wais-tcl.o waismain.o: ir-tcl.h ir-tclp.h
-

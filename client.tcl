@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.108  1999-11-30 14:05:58  adam
+# Revision 1.109  1999-12-12 00:25:59  adam
+# Updated list of preconfigure targets.
+#
+# Revision 1.108  1999/11/30 14:05:58  adam
 # Updated for new location of YAZ headers.
 #
 # Revision 1.107  1999/02/11 11:30:08  adam
@@ -509,8 +512,8 @@ set debugMode 0
 
 set queryTypes {Simple}
 set queryButtons { { {I 0} {I 1} {I 2} } }
-set queryInfo { { {Title {1=4 4=1}} {Author {1=1}} \
-        {Subject {1=21}} {Any {1=1016}} } }
+set queryInfo {{{Title {1=4}} {Author {1=1003}} \
+        {Subject {1=21}} {Any {1=1016}} {Abstract {1=62}}}}
 wm minsize . 0 0
 
 set setOffset 0
@@ -793,7 +796,7 @@ proc toplevelG {w} {
     toplevel $w
     if {[info exists windowGeometry($w)]} {
         set g $windowGeometry($w)
-        if {$g != ""} {
+        if {[string length $g]} {
             wm geometry $w $g
         }
     }
@@ -818,17 +821,6 @@ if {[catch {set g $windowGeometry(.)}]} {
 } else {
     wm geometry . $g
 }
-
-# Init: The geometry information for the main window is set - either
-# to a default value or to the value in windowGeometry(.)
-toplevelG .init
-place-force .init .
-message .init.top -aspect 500 -text "IrTcl" -relief raised -border 1 -font $font(bb,normal)
-text .init.msg -width 40 -height 4
-pack .init.top -side top -fill x -expand yes
-pack .init.msg -side bottom -fill both -expand yes
-wm iconify .
-update
 
 # Procedure top-down-ok-cancel {w ok-action g}
 #  w          top level widget with $w.bot-frame
@@ -1572,6 +1564,7 @@ proc explain-crash {target base} {
     global profile settingsChanged
     
     set profile($target,timeLastInit) [clock seconds]
+    set profile($target,timeLastExplain) {}
     set settingsChanged 1
 
     show-message {}
@@ -2006,7 +1999,7 @@ proc scan-up {attr} {
 
 # Procedure search-response
 # This procedure handles search-responses. If the search is successful
-# this procedure will try to retrieve a total of 20 records from the target;
+# this procedure will try to retrieve a total of 50 records from the target;
 # however not more than $presentChunk records at a time. This procedure
 # affects the following globals:
 #   $setOffset        current record position offset
@@ -2053,8 +2046,8 @@ proc search-response {} {
     set l [format "%-4d %7d" $setNo $setMax]
     .top.rset.m add command -label $l \
             -command [list recall-set $setNo]
-    if {$setMax > 20} {
-        set setMax 20
+    if {$setMax > 50} {
+        set setMax 50
     }
     set no [z39.$setNo numberOfRecordsReturned]
     dputs "Returned $no records, setOffset $setOffset"
@@ -2361,6 +2354,7 @@ proc protocol-setup-action {target w} {
     set dataBases {}
     set settingsChanged 1
 
+    puts "protocol-setup-action"
     set timedef $profile($target,timeDefine)
     if {![string length $timedef]} {
         set timedef [clock seconds]
@@ -2920,6 +2914,7 @@ proc save-geometry {} {
     global hostid
 
     set windowGeometry(.) [wm geometry .]
+    puts "root=[wm geometry .]"
 
     if {[catch {set f [open ~/.clientrc.tcl w]}]} {
         return
@@ -2936,6 +2931,9 @@ proc save-geometry {} {
     puts $f "set recordSyntax $recordSyntax"
     puts $f "set elementSetNames $elementSetNames"
     foreach n [array names windowGeometry] {
+        puts -nonewline "set [list windowGeometry($n)] "
+        puts [list $windowGeometry($n)]
+
         puts -nonewline $f "set [list windowGeometry($n)] "
         puts $f [list $windowGeometry($n)]
     }
@@ -3394,6 +3392,7 @@ proc use-attr {init} {
         {Host item}                    1033 
         {Content type}                 1034 
         {Anywhere}                     1035 
+        {Author-Title-Subject}         1036 
     }
     set w .index-setup
     global useTmpValue
@@ -3979,8 +3978,8 @@ irmenu .top.service.m
 .top.service.m add cascade -label Database -menu .top.service.m.dblist
 .top.service.m add cascade -label Present -menu .top.service.m.present
 irmenu .top.service.m.present
-.top.service.m.present add command -label {10 More} \
-        -command [list present-more 10]
+.top.service.m.present add command -label {50 More} \
+        -command [list present-more 50]
 .top.service.m.present add command -label All \
         -command [list present-more {}]
 .top.service.m add command -label Search -command {search-request 0}
@@ -4081,8 +4080,6 @@ irmenu .top.options.m.elements
 menubutton .top.help -text "Help" -menu .top.help.m
 irmenu .top.help.m
 
-.top.help.m add command -label "Help on help" \
-        -command {tkerror "Help on help not available. Sorry"}
 .top.help.m add command -label "About" -command {about-origin}
 
 # Init: Pack menu bar items.
@@ -4096,7 +4093,7 @@ button .mid.search -text Search -command {search-request 0} \
         -state disabled
 button .mid.scan -text Scan \
         -command scan-request -state disabled 
-button .mid.present -text {Present} -command [list present-more 10] \
+button .mid.present -text {Present} -command [list present-more 50] \
         -state disabled
 
 button .mid.clear -text Clear -command index-clear
@@ -4165,15 +4162,12 @@ pack .bot.a.status .bot.a.set .bot.a.message \
 set logLevel all
 if {[catch {ir-version}]} {
     set e [info sharedlibextension]
-    .init.msg insert end "Loading irtcl$e.\n"
     catch {load ${libdir}/irtcl$e irtcl}
     if {[catch {ir-version}]} {
 	catch {load irtcl$e irtcl}
     }
 }
 
-.init.msg insert end "IrTcl version [lindex [ir-version] 0]\n"
-.init.msg insert end "YAZ version [lindex [ir-version] 1]\n"
 if $debugMode {	
 	ir-log-init all {} irtcl.log
 } else {
@@ -4191,12 +4185,10 @@ if {[file exists ${libdir}/setup.tcl]} {
     source ${libdir}/setup.tcl
 }
 
-after 900 activateMainWindow
+after 10 activateMainWindow
 
 proc activateMainWindow {} {
     global hostid hostbase
-    destroy .init
-    wm deiconify .
     if {[string compare $hostid Default]} {
 	catch {open-target $hostid $hostbase}
     }
