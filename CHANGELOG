@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.47 2001-12-03 00:31:06 adam Exp $
+$Id: CHANGELOG,v 1.48 2001-12-03 19:06:06 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -148,5 +148,5 @@ $Id: CHANGELOG,v 1.47 2001-12-03 00:31:06 adam Exp $
 
 12/03/01 Changed Implemenation strings for IrTcl.
 
-XX/XX/01 Release of ir-tcl-1.4
+12/04/01 Release of ir-tcl-1.4
 ------------------------------------------------------
