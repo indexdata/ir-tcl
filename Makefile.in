@@ -1,7 +1,7 @@
 # IR toolkit for tcl/tk
 # (c) Index Data 1995-1999
 # See the file LICENSE for details.
-# $Id: Makefile.in,v 1.55 2001-12-03 00:31:06 adam Exp $
+# $Id: Makefile.in,v 1.56 2001-12-03 18:52:06 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -39,12 +39,10 @@ SHLIB_LD = @SHLIB_LD@
 SHLIB_SUFFIX = @SHLIB_SUFFIX@
 SHLIB_VERSION = @SHLIB_VERSION@
 
-# Where are Yaz libraries located?
+# Where are YAZ libraries located?
 YAZLIB=@YAZLIB@
-# Where are Yaz header files located?
+# Where are YAZ header files located?
 YAZINC=@YAZINC@
-# If Yaz is compiled with mosi support uncomment and specify.
-#OSILIB=../../xtimosi/src/libmosi.a ../../yaz/lib/librfc.a
 
 # All include paths
 INCLUDE=-I. $(YAZINC) $(TKINC) $(TCLINC) 
@@ -62,9 +60,6 @@ RANLIB = @RANLIB@
 O=ir-tcl.o marc.o queue.o mem.o grs.o explain.o select.o
 
 all: @ALL_SPEC@
-
-ir-tk: libirtcl.a tkmain.o
-	$(CC) $(CFLAGS) tkmain.o -o ir-tk libirtcl.a $(YAZLIB) $(TKLIB) 
 
 ir-tcl: libirtcl.a tclmain.o
 	$(CC) $(CFLAGS) tclmain.o -o ir-tcl libirtcl.a $(YAZLIB) $(TCLLIB) 

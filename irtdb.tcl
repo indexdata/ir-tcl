@@ -84,7 +84,7 @@ set profile(AGCI,timeDefine) 944954173
 set profile(AGCI,timeLastExplain) {}
 set profile(AGCI,timeLastInit) {}
 set profile(AGCI,welcomeMessage) {}
-set profile(AGCI,windowNumber) 14
+set profile(AGCI,windowNumber) 15
 set profile(BIBSYS,authentication) {}
 set profile(BIBSYS,comstack) tcpip
 set profile(BIBSYS,databases) {BIBSYS PERI}
@@ -140,7 +140,7 @@ set {profile(Bell Laboratories Library Network,timeDefine)} {}
 set {profile(Bell Laboratories Library Network,timeLastExplain)} {}
 set {profile(Bell Laboratories Library Network,timeLastInit)} 944953393
 set {profile(Bell Laboratories Library Network,welcomeMessage)} {}
-set {profile(Bell Laboratories Library Network,windowNumber)} 15
+set {profile(Bell Laboratories Library Network,windowNumber)} 16
 set {profile(Bibliotheque Nationale du Quebec,authentication)} {}
 set {profile(Bibliotheque Nationale du Quebec,comstack)} tcpip
 set {profile(Bibliotheque Nationale du Quebec,databases)} IRIS
@@ -196,7 +196,7 @@ set {profile(Colorado Alliance of Research Libraries,timeDefine)} 944954480
 set {profile(Colorado Alliance of Research Libraries,timeLastExplain)} {}
 set {profile(Colorado Alliance of Research Libraries,timeLastInit)} {}
 set {profile(Colorado Alliance of Research Libraries,welcomeMessage)} {}
-set {profile(Colorado Alliance of Research Libraries,windowNumber)} 13
+set {profile(Colorado Alliance of Research Libraries,windowNumber)} 14
 set {profile(DTV Alis,authentication)} {}
 set {profile(DTV Alis,comstack)} tcpip
 set {profile(DTV Alis,databases)} DTV01
@@ -250,7 +250,7 @@ set {profile(DanBib V2,smallSetUpperBound)} 0
 set {profile(DanBib V2,targetInfoName)} {}
 set {profile(DanBib V2,timeDefine)} 944954541
 set {profile(DanBib V2,timeLastExplain)} {}
-set {profile(DanBib V2,timeLastInit)} 971251341
+set {profile(DanBib V2,timeLastInit)} 1007339533
 set {profile(DanBib V2,welcomeMessage)} {}
 set {profile(DanBib V2,windowNumber)} 12
 set {profile(Data Research Associates,authentication)} {}
@@ -446,7 +446,7 @@ set {profile(University of Arkansas,timeDefine)} 944956252
 set {profile(University of Arkansas,timeLastExplain)} {}
 set {profile(University of Arkansas,timeLastInit)} 971251409
 set {profile(University of Arkansas,welcomeMessage)} {}
-set {profile(University of Arkansas,windowNumber)} 16
+set {profile(University of Arkansas,windowNumber)} 17
 set {profile(University of British Columbia,authentication)} {}
 set {profile(University of British Columbia,comstack)} tcpip
 set {profile(University of British Columbia,databases)} MARION
@@ -474,7 +474,7 @@ set {profile(University of British Columbia,timeDefine)} 944955536
 set {profile(University of British Columbia,timeLastExplain)} {}
 set {profile(University of British Columbia,timeLastInit)} 944955627
 set {profile(University of British Columbia,welcomeMessage)} {}
-set {profile(University of British Columbia,windowNumber)} 20
+set {profile(University of British Columbia,windowNumber)} 21
 set {profile(University of California MELVYL,authentication)} {}
 set {profile(University of California MELVYL,comstack)} tcpip
 set {profile(University of California MELVYL,databases)} PE
@@ -502,7 +502,7 @@ set {profile(University of California MELVYL,timeDefine)} 944955670
 set {profile(University of California MELVYL,timeLastExplain)} {}
 set {profile(University of California MELVYL,timeLastInit)} 944955675
 set {profile(University of California MELVYL,welcomeMessage)} {}
-set {profile(University of California MELVYL,windowNumber)} 18
+set {profile(University of California MELVYL,windowNumber)} 19
 set {profile(University of Illinois,authentication)} {}
 set {profile(University of Illinois,comstack)} tcpip
 set {profile(University of Illinois,databases)} {UICOPAC2 UICOPAC1}
@@ -528,7 +528,7 @@ set {profile(University of Illinois,smallSetUpperBound)} 0
 set {profile(University of Illinois,targetInfoName)} {}
 set {profile(University of Illinois,timeDefine)} 944955869
 set {profile(University of Illinois,timeLastExplain)} {}
-set {profile(University of Illinois,timeLastInit)} 944956081
+set {profile(University of Illinois,timeLastInit)} 1007339488
 set {profile(University of Illinois,welcomeMessage)} {}
 set {profile(University of Illinois,windowNumber)} 8
 set profile(indexdata,authentication) {}
@@ -558,7 +558,7 @@ set profile(indexdata,timeDefine) 944954185
 set profile(indexdata,timeLastExplain) 1007339347
 set profile(indexdata,timeLastInit) 971253620
 set profile(indexdata,welcomeMessage) {}
-set profile(indexdata,windowNumber) 19
+set profile(indexdata,windowNumber) 20
 set profile(localhost,authentication) {}
 set profile(localhost,comstack) tcpip
 set profile(localhost,databases) Default
@@ -586,7 +586,7 @@ set profile(localhost,timeDefine) 1007339366
 set profile(localhost,timeLastExplain) {}
 set profile(localhost,timeLastInit) 1007339370
 set profile(localhost,welcomeMessage) {}
-set profile(localhost,windowNumber) 21
+set profile(localhost,windowNumber) 13
 set queryTypes Simple
 set queryButtons {{ {I 0} {I 1} {I 2} }}
 set queryInfo {{{Title {1=4}} {Author {1=1003}}  {Subject {1=21}} {Any {1=1016}} {Abstract {1=62}}}}

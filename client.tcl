@@ -1,10 +1,13 @@
 # IR toolkit for tcl/tk
-# (c) Index Data 1995-1998
+# (c) Index Data 1995-2001
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.110  2000-10-11 12:26:47  adam
+# Revision 1.111  2001-12-03 18:52:06  adam
+# Configure no longer searches for Tk. Removed references to SR.
+#
+# Revision 1.110  2000/10/11 12:26:47  adam
 # Using yaz.m4 for aclocal.m4.
 #
 # Revision 1.109  1999/12/12 00:25:59  adam

@@ -1,5 +1,5 @@
 #!/usr/bin/tclsh
-# $Id: msearch.tcl,v 1.1 2001-03-26 11:39:35 adam Exp $
+# $Id: msearch.tcl,v 1.2 2001-12-03 18:52:06 adam Exp $
 # Simple multi-target search
 
 if {[catch {ir-log-init all irtcl shell.log}]} {
@@ -24,7 +24,7 @@ proc msearch {targets query pending} {
 	set n 0
 	foreach t $targets {
 		if {[catch {z.$n connect [lindex $t 0]}]} {
-			fail-response $targets $n
+			fail-response $targets $n $query $pending
 		}
 		incr n
 	}
