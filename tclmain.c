@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: tclmain.c,v $
- * Revision 1.20  1997-04-30 07:26:08  adam
+ * Revision 1.21  2000-02-22 23:11:03  adam
+ * Fixed include statements.
+ *
+ * Revision 1.20  1997/04/30 07:26:08  adam
  * Added support for shared libaries (if supported by Tcl itself).
  *
  * Revision 1.19  1996/08/20 09:27:49  adam
@@ -25,7 +28,7 @@
 #include <assert.h>
 
 #include <tcl.h>
-#include <log.h>
+#include <yaz/log.h>
 #include "ir-tcl.h"
 
 int Tcl_AppInit (Tcl_Interp *interp)

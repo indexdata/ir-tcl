@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: tkmain.c,v $
- * Revision 1.1  1996-08-20 09:27:49  adam
+ * Revision 1.2  2000-02-22 23:11:03  adam
+ * Fixed include statements.
+ *
+ * Revision 1.1  1996/08/20 09:27:49  adam
  * More work on explain.
  * Renamed tkinit.c to tkmain.c. The tcl shell uses the Tcl 7.5 interface
  * for socket i/o instead of the handcrafted one (for Tcl 7.3 and Tcl7.4).
@@ -13,7 +16,7 @@
  */
 
 #include <tk.h>
-#include <log.h>
+#include <yaz/log.h>
 #include "ir-tcl.h"
 
 /* socket layer code for tk3.x and tk4.0 */
