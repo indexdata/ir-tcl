@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: marc.c,v $
- * Revision 1.9  1996-07-03 13:31:13  adam
+ * Revision 1.10  1999-02-08 09:22:31  franck
+ * Added a grs mode for ir_tcl_get_marc which returns MARC records in a TCL
+ * structure similar to that of ir_tcl_get_grs.
+ *
+ * Revision 1.9  1996/07/03 13:31:13  adam
  * The xmalloc/xfree functions from YAZ are used to manage memory.
  *
  * Revision 1.8  1995/11/14  16:48:00  adam
@@ -144,6 +148,8 @@ int ir_tcl_get_marc (Tcl_Interp *interp, const char *buf,
         mode = 'f';
     else if (!strcmp (argv[3], "line"))
         mode = 'l';
+    else if (!strcmp (argv[3], "grs"))
+        mode = 'g';
     else
     {
         Tcl_AppendResult (interp, "Unknown MARC extract mode", NULL);
@@ -250,12 +256,35 @@ int ir_tcl_get_marc (Tcl_Interp *interp, const char *buf,
                     Tcl_AppendElement (interp, data);
                     Tcl_AppendResult (interp, "} ", NULL);
                 }
+                else if (mode == 'g')
+                {
+                    if (strcmp (tag, ptag))
+                    {
+                        if (*ptag)
+                            Tcl_AppendResult (interp, "}} ", NULL);
+                        if (*indicator)
+                            Tcl_AppendResult (interp, "{ 0 numeric {", tag,
+                                              indicator, "} subtree {", NULL);
+                        else
+                            Tcl_AppendResult (interp, "{ 0 numeric ", tag,
+                                              " subtree {", NULL);
+                        strcpy (ptag, tag);
+                    }
+                    if (*identifier)
+                        Tcl_AppendResult (interp, "{3 string ", identifier,
+                                          " string ", NULL);
+                    else
+                        Tcl_AppendResult (interp, "{1 numeric 19 string ",
+                                          NULL);
+                    Tcl_AppendElement (interp, data);
+                    Tcl_AppendResult (interp, "} ", NULL);
+                }
                 else
                     Tcl_AppendElement (interp, data);
                 xfree (data);
             }
 	}
-        if (mode == 'l' && *ptag)
+        if (((mode == 'l') || (mode == 'g')) && *ptag)
             Tcl_AppendResult (interp, "}} ", NULL);
 	if (i < end_offset)
             logf (LOG_WARN, "MARC: separator but not at end of field");
