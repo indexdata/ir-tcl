@@ -11,11 +11,11 @@ set {profile(DANBIB)} {{SR Target DANBIB} 0103/find2.denet.dk 4500 {} 8192 8192 
 set {profile(OCLC)} {{OCLC First search engine} z3950.oclc.org 210 {} 16384 8192 tcpip {ArticleFirst BiographyIndex BusinessPeriodicalsIndex} 1 {} {} Z39 9}
 set {profile(adad)} {a {} 210 {} 16384 8192 tcpip {} 1 {} {} Z39 26}
 set {profile(CARL)} {{CARL systems} Z3950.carl.org 210 {} 16384 8192 tcpip {ACC AIC AUR BEM CUB DPL DNU EPL FRC LAW LCC MCC MIN MPL NJC NWC OCC PPC PUE RDR RGU SPL TCC TKU UNC WYO} 1 {} {} Z39 11}
-set {profile(Innovative)} {{Innovatives server: demo.iii.com} demo.iii.com 210 {} 16384 8192 tcpip DEFAULT 1 {} {} Z39 12}
 set {profile(CLSI)} {CLSI inet-gw.clsi.us.geac.com 210 {} 16384 8192 tcpip cl_default 1 {} {} Z39 13}
+set {profile(Innovative)} {{Innovatives server: demo.iii.com} demo.iii.com 210 {} 16384 8192 tcpip DEFAULT 1 {} {} Z39 12}
 set {profile(AULS)} {{Acadia university} auls.acadiau.ca 210 {} 16384 8192 tcpip AULS 1 {} {} Z39 14}
-set {profile(canberra)} {canberra canberra.cs.umass.edu 2110 {} 30000 30000 tcpip cacm_dots 1 {} {} Z39 25}
 set {profile(dranet)} {dranet dranet.dra.com 210 {} 16384 16384 tcpip drewdb 1 {} 1 Z39 15}
+set {profile(canberra)} {canberra canberra.cs.umass.edu 2110 {} 30000 30000 tcpip cacm_dots 1 {} {} Z39 25}
 set queryTypes {Simple phrase}
 set queryButtons {{ {I 0} {I 1} {I 2} } {{I 0} {I 1} {I 0}}}
 set queryInfo {{ {Title {1=4}} {Author {1=1}} {Subject {1=21}} {Any {1=1016}}} {{Title 1=4 4=1 6=2} {Author 1=1003 4=1 6=2} {ISBN 1=7} {ISSN 1=8} {Year 1=30 4=4 6=2} {Any {}}}}

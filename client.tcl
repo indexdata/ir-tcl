@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.63  1995-08-04 13:20:48  adam
+# Revision 1.64  1995-08-24 15:33:02  adam
+# Minor changes.
+#
+# Revision 1.63  1995/08/04  13:20:48  adam
 # Buttons at the bottom are slightly smaller.
 #
 # Revision 1.62  1995/08/04  11:32:37  adam
@@ -225,12 +228,16 @@
 #
 
 if {$tk_version == "3.6"} {
-    set tk4 0
+    proc tk4 {} {
+        return 0
+    }
 } else {
-    set tk4 1
+    proc tk4 {} {
+        return 1
+    }
 }
 
-if {$tk4} {
+if {[tk4]} {
     proc configure-enable-e {w n} {
         incr n
         $w entryconfigure $n -state normal
@@ -250,7 +257,7 @@ if {$tk4} {
     set noFocus {}
 }
 
-if {! $tk4} {
+if {![tk4]} {
     if {[tk colormodel .] == "color"} {
         set monoFlag 0
     } else {
@@ -822,10 +829,9 @@ proc delete-target-hotlist {target} {
 
 proc set-target-hotlist {olen} {
     global hotTargets
-    global tk4
    
     if {$olen > 0} {
-        if {$tk4} {
+        if {[tk4]} {
             .top.target.m delete 7 [expr 7+$olen]
         } else {
             .top.target.m delete 6 [expr 6+$olen]
@@ -932,7 +938,6 @@ proc close-target {} {
     global cancelFlag
     global setNo
     global setNoLast
-    global tk4
 
     set cancelFlag 0
     set setNo 0
@@ -946,7 +951,7 @@ proc close-target {} {
     show-message {}
     configure-disable-e .top.target.m 1
     configure-disable-e .top.target.m 2
-    if {$tk4} {
+    if {[tk4]} {
         .top.rset.m delete 2 last
     } else {
         .top.rset.m delete 1 last
@@ -1567,12 +1572,11 @@ proc right-cursor {w} {
 }
 
 proc bind-fields {list returnAction escapeAction} {
-    global tk4
     set max [expr [llength $list]-1]
     for {set i 0} {$i < $max} {incr i} {
         bind [lindex $list $i] <Return> $returnAction
         bind [lindex $list $i] <Escape> $escapeAction
-        if {!$tk4} {
+        if {![tk4]} {
             bind [lindex $list $i] <Tab> \
                     [list focus [lindex $list [expr $i+1]]]
             bind [lindex $list $i] <Left> \
@@ -1583,7 +1587,7 @@ proc bind-fields {list returnAction escapeAction} {
     }
     bind [lindex $list $i] <Return> $returnAction
     bind [lindex $list $i] <Escape> $escapeAction
-    if {!$tk4} {
+    if {![tk4]} {
         bind [lindex $list $i] <Tab>  [list focus [lindex $list 0]]
         bind [lindex $list $i] <Left> [list left-cursor [lindex $list $i]]
         bind [lindex $list $i] <Right> [list right-cursor [lindex $list $i]]
@@ -1816,8 +1820,7 @@ proc protocol-setup {target} {
             -command [list add-database $target]
     button $w.top.databases.delete -text "Delete" \
             -command [list delete-database $target]
-    global tk4
-    if {! $tk4} {
+    if {! [tk4]} {
         listbox $w.top.databases.list -geometry 20x6 \
                 -yscrollcommand "$w.top.databases.scroll set"
     } else {
@@ -2458,7 +2461,6 @@ proc use-attr {init} {
         {Content type}                 1034 
         {Anywhere}                     1035 
     }
-    global tk4
     set w .index-setup
     global useTmpValue
     set l [llength $attr]
@@ -2474,7 +2476,7 @@ proc use-attr {init} {
             }
             incr lno
         }
-        if {$tk4} {
+        if {[tk4]} {
             $w.top.use.list selection clear 0 end
             $w.top.use.list selection set $s $s
         } else {
@@ -2542,7 +2544,6 @@ proc index-setup {attr queryNo indexNo} {
     global completenessTmpValue
     global positionTmpValue
     global useTmpValue
-    global tk4
     set relationTmpValue 0
     set truncationTmpValue 0
     set structureTmpValue 0
@@ -2597,7 +2598,7 @@ proc index-setup {attr queryNo indexNo} {
     pack $w.top.use -side left -pady 6 -padx 6 -fill y
 
     label $w.top.use.label -text "Use"
-    if {$tk4} {
+    if {[tk4]} {
         listbox $w.top.use.list -width 26 \
                 -yscrollcommand "$w.top.use.scroll set"
     } else {
@@ -2693,7 +2694,6 @@ proc query-setup {queryNo} {
     global queryButtonsTmp
     global queryInfoTmp
     global queryIndexTmp
-    global tk4
     
     set queryIndexTmp 0
     set queryName [lindex $queryTypes $queryNo]
@@ -2736,7 +2736,7 @@ proc query-setup {queryNo} {
     pack $w.top.index.list -side left -fill both -expand yes -padx 2 -pady 2
     pack $w.top.index.scroll -side right -fill y -padx 2 -pady 2
 
-    if {$tk4} {
+    if {[tk4]} {
         $w.top.index.list selection clear 0 end
         $w.top.index.list selection set 0 0
     } else {
@@ -2815,20 +2815,18 @@ proc index-query {} {
 
 proc index-focus-in {w i} {
     global curIndexEntry
-    global tk4
 
-    if {! $tk4} {
+    if {! [tk4]} {
         $w.$i configure -background red
     }
     set curIndexEntry $i
 }
 
 proc index-lines {w realOp buttonInfo queryInfo handle} {
-    global tk4
     set i 0
     foreach b $buttonInfo {
         if {! [winfo exists $w.$i]} {
-            if {$tk4} {
+            if {[tk4]} {
                 frame $w.$i -border 0
             } else {
                 frame $w.$i -background white -border 1
@@ -2845,7 +2843,7 @@ proc index-lines {w realOp buttonInfo queryInfo handle} {
                 pack $w.$i.l -side left
                 pack $w.$i.e -side left -fill x -expand yes
                 pack $w.$i -side top -fill x -padx 2 -pady 2
-                if {!$tk4} {
+                if {![tk4]} {
                     bind $w.$i.e <Left> [list left-cursor $w.$i.e]
                     bind $w.$i.e <Right> [list right-cursor $w.$i.e]
                 }
@@ -2865,7 +2863,7 @@ proc index-lines {w realOp buttonInfo queryInfo handle} {
     if {! $realOp} {
         return
     }
-    if {! $tk4} {
+    if {! [tk4]} {
         set j 0
         incr i -1
         while {$j < $i} {
@@ -2875,7 +2873,7 @@ proc index-lines {w realOp buttonInfo queryInfo handle} {
         }
     }
     if {$i >= 0} {
-        if {! $tk4} {
+        if {! [tk4]} {
             bind $w.$i.e <Tab> "focus $w.0.e"
         }
         focus $w.0.e
@@ -3057,12 +3055,12 @@ button .mid.present -width 7 -text {Present} -command [list present-more 10] \
 
 button .mid.clear -width 7 -text {Clear} -command index-clear
 pack .mid.search .mid.scan .mid.present .mid.clear -side left \
-        -fill y -padx 5 -pady 3
+        -fill y -padx 4 -pady 2
 
 text .data.record -height 2 -width 20 -wrap none \
         -yscrollcommand [list .data.scroll set] -wrap $textWrap
 scrollbar .data.scroll -command [list .data.record yview]
-if {$tk4} {
+if {[tk4]} {
     .data.record configure -takefocus 0
     .data.scroll configure -takefocus 0
 }
@@ -3080,7 +3078,7 @@ if {! $monoFlag} {
 .data.record tag configure marc-data -foreground black
 
 button .bot.logo  -bitmap @${libdir}/bitmaps/book1 -command cancel-operation
-if {$tk4} {
+if {[tk4]} {
     .bot.logo configure -takefocus 0
 }
 frame .bot.a
@@ -3098,7 +3096,7 @@ label .bot.a.message -text "" -width 15 -relief \
 
 pack .bot.a.target -side top -anchor nw -padx 2 -pady 2
 pack .bot.a.status .bot.a.set .bot.a.message \
-        -side left -padx 2 -pady 2
+        -side left -padx 2 -pady 2 -ipadx 1 -ipady 1
 
 ir z39
 z39 logLevel all
