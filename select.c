@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: select.c,v $
- * Revision 1.3  1997-04-13 18:57:28  adam
+ * Revision 1.4  1997-08-28 20:20:48  adam
+ * Added support for Tk8.0/Tcl8.0. Since Tcl_File handlers are gone
+ * we've moved to Tcl_Channel handlers instead.
+ *
+ * Revision 1.3  1997/04/13 18:57:28  adam
  * Better error reporting and aligned with Tcl/Tk style.
  * Rework of notifier code with Tcl_File handles.
  *
@@ -21,37 +25,25 @@
 #include <log.h>
 #include "ir-tcl.h"
 
-#if TCL_MAJOR_VERSION > 7 || (TCL_MAJOR_VERSION == 7 && TCL_MINOR_VERSION > 4)
-
-#define IRTCL_USE_TIMER 0
-
+#if TCL_MAJOR_VERSION == 8
 struct sel_proc {
     void (*f)(ClientData clientData, int r, int w, int e);
     ClientData clientData;
     int fd;
-#if IRTCL_USE_TIMER
-    int mask;
-    Tcl_TimerToken timer_token;
-#else
-    Tcl_File tcl_File;
-#endif
+    Tcl_Channel tcl_Channel;
     struct sel_proc *next;
 };
 
 static struct sel_proc *sel_proc_list = NULL;
 
-#if IRTCL_USE_TIMER
-static void ir_tcl_timer_proc (ClientData clientData)
+static void ir_tcl_tk_select_proc (ClientData clientData, int mask)
 {
     struct sel_proc *sp = (struct sel_proc *) clientData;
 
     if (!sp->f)
         return ;
-    sp->timer_token =
-        Tcl_CreateTimerHandler (250, ir_tcl_timer_proc, clientData);
-    (*sp->f)(sp->clientData, sp->mask & TCL_READABLE, sp->mask & TCL_WRITABLE,
-             sp->mask & TCL_EXCEPTION);
-    
+    (*sp->f)(sp->clientData, mask & TCL_READABLE, mask & TCL_WRITABLE,
+             mask & TCL_EXCEPTION);
 }
 
 void ir_tcl_select_set (void (*f)(ClientData clientData, int r, int w, int e),
@@ -69,32 +61,48 @@ void ir_tcl_select_set (void (*f)(ClientData clientData, int r, int w, int e),
     while (*sp)
     {
         if ((*sp)->fd == fd)
-            break;
+             break;
         sp = &(*sp)->next;
+    }
+    logf (LOG_DEBUG, "r=%d w=%d e=%d sp=%p", r, w, e, *sp);
+    if (*sp)
+        Tcl_DeleteChannelHandler ((*sp)->tcl_Channel, ir_tcl_tk_select_proc,
+                                  (*sp)->clientData);
+    if (!f)
+    {
+        if (*sp)
+        {
+            Tcl_Close (NULL, (*sp)->tcl_Channel);
+            *sp = (*sp)->next;
+        }
+        return ;
     }
     if (!*sp)
     {
-        if (!f)
-            return;
         *sp = ir_tcl_malloc (sizeof(**sp));
         (*sp)->next = NULL;
         (*sp)->fd = fd;
-        (*sp)->timer_token =
-            Tcl_CreateTimerHandler (250, ir_tcl_timer_proc, *sp);
+        (*sp)->tcl_Channel = Tcl_MakeTcpClientChannel ((ClientData) fd);
     }
-    (*sp)->mask = TCL_READABLE|TCL_WRITABLE;
     (*sp)->f = f;
     (*sp)->clientData = clientData;
-    if (!f)
-    {
-        struct sel_proc *sp_tmp = *sp;
-        Tcl_DeleteTimerHandler ((*sp)->timer_token);
-        *sp = (*sp)->next;
-        xfree (sp_tmp);
-    }
+    Tcl_CreateChannelHandler ((*sp)->tcl_Channel, mask,
+                              ir_tcl_tk_select_proc, *sp);
 }
+#endif
 
-#else
+#if (TCL_MAJOR_VERSION == 7 && TCL_MINOR_VERSION > 4)
+
+struct sel_proc {
+    void (*f)(ClientData clientData, int r, int w, int e);
+    ClientData clientData;
+    int fd;
+    Tcl_File tcl_File;
+    struct sel_proc *next;
+};
+
+static struct sel_proc *sel_proc_list = NULL;
+
 static void ir_tcl_tk_select_proc (ClientData clientData, int mask)
 {
     struct sel_proc *sp = (struct sel_proc *) clientData;
@@ -151,4 +159,3 @@ void ir_tcl_select_set (void (*f)(ClientData clientData, int r, int w, int e),
 }
 #endif
 
-#endif
