@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.80  1995-10-18 17:20:32  adam
+# Revision 1.81  1995-10-19 10:34:43  adam
+# More configurable client.
+#
+# Revision 1.80  1995/10/18  17:20:32  adam
 # Work on target setup in client.tcl.
 #
 # Revision 1.79  1995/10/18  16:42:37  adam
@@ -335,7 +338,7 @@ set hotTargets {}
 set hotInfo {}
 set busy 0
 
-set profile(Default) {{} {} {210} {} 16384 8192 tcpip {} 1 {} {} Z39 1}
+set profile(Default) {{} {} {210} {} 50000 30000 tcpip {} 1 {} {} Z39 1 2 0 0 4}
 set hostid Default
 set settingsChanged 0
 set setNo 0
@@ -377,6 +380,21 @@ proc tkerror err {
 
     bottom-buttons $w [list {Close} [list destroy $w]] 1
 }
+
+if {[file readable "clientrc.tcl"]} {
+    source "clientrc.tcl"
+} else {
+    if {[file readable "${libdir}/clientrc.tcl"]} {
+        source "${libdir}/clientrc.tcl"
+    }
+}
+
+if {[file readable "~/.clientrc.tcl"]} {
+    source "~/.clientrc.tcl"
+}
+
+set queryButtonsFind [lindex $queryButtons 0]
+set queryInfoFind [lindex $queryInfo 0]
 
 proc read-formats {} {
     global displayFormats
@@ -472,20 +490,6 @@ proc toplevelG {w} {
     bind $w <Destroy> [list destroyGW $w]
 }
 
-if {[file readable "clientrc.tcl"]} {
-    source "clientrc.tcl"
-} else {
-    if {[file readable "${libdir}/clientrc.tcl"]} {
-        source "${libdir}/clientrc.tcl"
-    }
-}
-
-if {[file readable "~/.clientrc.tcl"]} {
-    source "~/.clientrc.tcl"
-}
-
-set queryButtonsFind [lindex $queryButtons 0]
-set queryInfoFind [lindex $queryInfo 0]
 
 proc top-down-window {w} {
     frame $w.top -relief raised -border 1
@@ -940,15 +944,17 @@ proc define-target-action {} {
     }
     foreach n [array names profile] {
         if {$n == $target} {
+            destroy .target-define
             protocol-setup $n
             return
         }
     }
     set seq [lindex $profile(Default) 12]
     dputs "seq=${seq}"
+    dputs $profile(Default)
     set profile($target) $profile(Default)
     set profile(Default) [lreplace $profile(Default) 12 12 [incr seq]]
-
+   
     protocol-setup $target
     destroy .target-define
 }
@@ -969,6 +975,7 @@ proc connect-response {target base} {
 proc open-target {target base} {
     global profile
     global hostid
+    global presentChunk
 
     z39 disconnect
     z39 comstack [lindex $profile($target) 6]
@@ -986,6 +993,29 @@ proc open-target {target base} {
     } else {
         z39 databaseNames $base
     }
+    set x [lindex $profile($target) 13]
+    if {$x == ""} {
+        set x 2
+    }
+    z39 largeSetLowerBound $x
+
+    set x [lindex $profile($target) 14]
+    if {$x == ""} {
+        set x 0
+    }
+    z39 smallSetUpperBound $x
+
+    set x [lindex $profile($target) 15]
+    if {$x == ""} {
+        set x 0
+    }
+    z39 mediumSetPresentNumber $x
+
+    set presentChunk [lindex $profile($target) 16]
+    if {$presentChunk == ""} {
+        set presentChunk 4
+    }
+
     z39 failback [list fail-response $target]
     z39 callback [list connect-response $target $base]
     update idletasks
@@ -1460,6 +1490,8 @@ proc search-response {} {
     global cancelFlag
     global busy
     global delayRequest
+    global presentChunk
+
 
     dputs "In search-response"
     if {$cancelFlag} {
@@ -1500,9 +1532,18 @@ proc search-response {} {
     dputs "Returned $no records, setOffset $setOffset"
     add-title-lines $setNo $no $setOffset
     set setOffset [expr $setOffset + $no]
-    z39 callback {present-response}
-    z39.$setNo present $setOffset 1
-    show-status Retrieving 1 0
+
+    set toGet [expr $setMax - $setOffset + 1]
+    if {$toGet > 0} {
+        if {$setOffset == 1} {
+            set toGet 1
+        } elseif {$toGet > $presentChunk} {
+            set toGet $presentChunk
+        }
+        z39 callback {present-response}
+        z39.$setNo present $setOffset $toGet
+        show-status Retrieving 1 0
+    }
 }
 
 proc present-more {number} {
@@ -1512,6 +1553,7 @@ proc present-more {number} {
     global busy
     global cancelFlag
     global delayRequest
+    global presentChunk
 
     dputs "present-more"
     if {$cancelFlag} {
@@ -1549,8 +1591,8 @@ proc present-more {number} {
     if {$toGet <= 0} {
         return
     }
-    if {$toGet > 3} {
-        set toGet 3
+    if {$toGet > $presentChunk} {
+        set toGet $presentChunk
     } 
     z39.$setNo present $setOffset $toGet
     show-status Retrieving 1 0
@@ -1607,6 +1649,7 @@ proc present-response {} {
     global setMax
     global cancelFlag
     global delayRequest
+    global presentChunk
 
     dputs "In present-response"
     set no [z39.$setNo numberOfRecordsReturned]
@@ -1633,8 +1676,8 @@ proc present-response {} {
     if {$no > 0 && $setOffset <= $setMax} {
         dputs "present-request from ${setOffset}"
         set toGet [expr $setMax - $setOffset + 1]
-        if {$toGet > 3} {
-            set toGet 3
+        if {$toGet > $presentChunk} {
+            set toGet $presentChunk
         }
         z39.$setNo present $setOffset $toGet
     } else {
@@ -1730,18 +1773,14 @@ definition $target ?"]
 
 proc protocol-setup-action {target w} {
     global profile
-    global csRadioType
-    global protocolRadioType
     global settingsChanged
-    global RPNCheck
-    global CCLCheck
-    global ResultSetCheck
+    global targetS
 
-    set b {}
+    set dataBases {}
     set settingsChanged 1
     set len [$w.top.databases.list size]
     for {set i 0} {$i < $len} {incr i} {
-        lappend b [$w.top.databases.list get $i]
+        lappend dataBases [$w.top.databases.list get $i]
     }
     set wno [lindex $profile($target) 12]
 
@@ -1749,15 +1788,19 @@ proc protocol-setup-action {target w} {
             [$w.top.host.entry get] \
             [$w.top.port.entry get] \
             [$w.top.idAuthentication.entry get] \
-            [$w.top.maximumRecordSize.entry get] \
-            [$w.top.preferredMessageSize.entry get] \
-            $csRadioType \
-            $b \
-            $RPNCheck \
-            $CCLCheck \
-            $ResultSetCheck \
-            $protocolRadioType \
-            $wno]
+            $targetS($target,MRS) \
+            $targetS($target,PMS) \
+            $targetS($target,csType) \
+            $dataBases \
+            $targetS($target,RPN) \
+            $targetS($target,CCL) \
+            $targetS($target,ResultSets) \
+            $targetS($target,protocolType) \
+            $wno \
+            $targetS($target,LSLB) \
+            $targetS($target,SSUB) \
+            $targetS($target,MSPN) \
+            $targetS($target,presentChunk) ]
 
     cascade-target-list
     delete-target-hotlist $target
@@ -1826,11 +1869,7 @@ proc delete-database {target w} {
 
 proc protocol-setup {target} {
     global profile
-    global csRadioType
-    global protocolRadioType
-    global RPNCheck
-    global CCLCheck
-    global ResultSetCheck
+    global targetS
     
     set bno 0
     while {[winfo exists .setup-$bno]} {
@@ -1854,8 +1893,6 @@ proc protocol-setup {target} {
     frame $w.top.host
     frame $w.top.port
     frame $w.top.idAuthentication
-    frame $w.top.maximumRecordSize
-    frame $w.top.preferredMessageSize
     frame $w.top.cs-type -relief ridge -border 2
     frame $w.top.protocol -relief ridge -border 2
     frame $w.top.query -relief ridge -border 2
@@ -1863,17 +1900,13 @@ proc protocol-setup {target} {
 
     # Maximum/preferred/idAuth ...
     pack $w.top.description $w.top.host $w.top.port \
-            $w.top.idAuthentication $w.top.maximumRecordSize \
-            $w.top.preferredMessageSize -side top -anchor e -pady 2
+            $w.top.idAuthentication -side top -anchor e -pady 2
     
-    entry-fields $w.top {description host port idAuthentication \
-            maximumRecordSize preferredMessageSize} \
-            {{Description:} {Host:} {Port:} {Id Authentication:} \
-            {Maximum Record Size:} {Preferred Message Size:}} \
+    entry-fields $w.top {description host port idAuthentication } \
+            {{Description:} {Host:} {Port:} {Id Authentication:}} \
             [list protocol-setup-action $target $w] [list destroy $w]
     
-    foreach sub {description host port idAuthentication \
-            maximumRecordSize preferredMessageSize} {
+    foreach sub {description host port idAuthentication} {
         dputs $sub
         bind $w.top.$sub.entry <Control-a> [list add-database $target $w]
         bind $w.top.$sub.entry <Control-d> [list delete-database $target $w]
@@ -1882,17 +1915,20 @@ proc protocol-setup {target} {
     $w.top.host.entry insert 0 [lindex $profile($target) 1]
     $w.top.port.entry insert 0 [lindex $profile($target) 2]
     $w.top.idAuthentication.entry insert 0 [lindex $profile($target) 3]
-    $w.top.maximumRecordSize.entry insert 0 [lindex $profile($target) 4]
-    $w.top.preferredMessageSize.entry insert 0 [lindex $profile($target) 5]
-    set csRadioType [lindex $profile($target) 6]
-    set RPNCheck [lindex $profile($target) 8]
-    set CCLCheck [lindex $profile($target) 9]
-    set ResultSetCheck [lindex $profile($target) 10]
-    set protocolRadioType [lindex $profile($target) 11]
-    if {$protocolRadioType == ""} {
-        set protocolRadioType Z39
+    set targetS($target,csType) [lindex $profile($target) 6]
+    set targetS($target,RPN) [lindex $profile($target) 8]
+    set targetS($target,CCL) [lindex $profile($target) 9]
+    set targetS($target,ResultSets) [lindex $profile($target) 10]
+    set targetS($target,protocolType) [lindex $profile($target) 11]
+    if {$targetS($target,protocolType) == ""} {
+        set targetS($target,protocolType) Z39
     }
-
+    set targetS($target,LSLB) [lindex $profile($target) 13]
+    set targetS($target,SSUB) [lindex $profile($target) 14]
+    set targetS($target,MSPN) [lindex $profile($target) 15]
+    set targetS($target,presentChunk) [lindex $profile($target) 16]
+    set targetS($target,MRS) [lindex $profile($target) 4]
+    set targetS($target,PMS) [lindex $profile($target) 5]
     # Databases ....
     pack $w.top.databases -side left -pady 2 -padx 2 -expand yes -fill both
 
@@ -1928,9 +1964,9 @@ proc protocol-setup {target} {
     
     label $w.top.cs-type.label -text "Transport" 
     radiobutton $w.top.cs-type.tcpip -text "TCP/IP" -anchor w \
-            -variable csRadioType -value tcpip
+            -variable targetS($target,csType) -value tcpip
     radiobutton $w.top.cs-type.mosi -text "MOSI" -anchor w\
-            -variable csRadioType -value mosi
+            -variable targetS($target,csType) -value mosi
     
     pack $w.top.cs-type.label $w.top.cs-type.tcpip $w.top.cs-type.mosi \
             -padx 2 -side top -fill x
@@ -1940,9 +1976,9 @@ proc protocol-setup {target} {
     
     label $w.top.protocol.label -text "Protocol" 
     radiobutton $w.top.protocol.z39v2 -text "Z39.50" -anchor w \
-            -variable protocolRadioType -value Z39
+            -variable targetS($target,protocolType) -value Z39
     radiobutton $w.top.protocol.sr -text "SR" -anchor w \
-            -variable protocolRadioType -value SR
+            -variable targetS($target,protocolType) -value SR
     
     pack $w.top.protocol.label $w.top.protocol.z39v2 $w.top.protocol.sr \
             -padx 2 -side top -fill x
@@ -1951,9 +1987,12 @@ proc protocol-setup {target} {
     pack $w.top.query -pady 2 -padx 2 -side top -fill x
 
     label $w.top.query.label -text "Query support"
-    checkbutton $w.top.query.c1 -text "RPN query" -anchor w -variable RPNCheck
-    checkbutton $w.top.query.c2 -text "CCL query" -anchor w -variable CCLCheck
-    checkbutton $w.top.query.c3 -text "Result sets" -anchor w -variable ResultSetCheck
+    checkbutton $w.top.query.c1 -text "RPN query" -anchor w \
+            -variable targetS($target,RPN)
+    checkbutton $w.top.query.c2 -text "CCL query" -anchor w \
+            -variable targetS($target,CCL)
+    checkbutton $w.top.query.c3 -text "Result sets" -anchor w \
+            -variable targetS($target,ResultSets)
 
     pack $w.top.query.label -side top 
     pack $w.top.query.c1 $w.top.query.c2 $w.top.query.c3 \
@@ -1969,6 +2008,7 @@ proc protocol-setup {target} {
 
 proc advanced-setup {target b} {
     global profile
+    global targetS
 
     set w .advanced-setup-$b
     
@@ -1982,7 +2022,6 @@ proc advanced-setup {target b} {
         set target Default
     }
     dputs target
-    dputs $profile($target)
     
     frame $w.top.largeSetLowerBound
     frame $w.top.smallSetUpperBound
@@ -2003,6 +2042,13 @@ proc advanced-setup {target b} {
             {Medium Set Present Number:} {Present Chunk:} \
             {Maximum Record Size:} {Preferred Message Size:}} \
             [list advanced-setup-action $target $b] [list destroy $w]
+
+    $w.top.largeSetLowerBound.entry insert 0 $targetS($target,LSLB)
+    $w.top.smallSetUpperBound.entry insert 0 $targetS($target,SSUB)
+    $w.top.mediumSetPresentNumber.entry insert 0 $targetS($target,MSPN)
+    $w.top.presentChunk.entry insert 0 $targetS($target,presentChunk)
+    $w.top.maximumRecordSize.entry insert 0 $targetS($target,MRS)
+    $w.top.preferredMessageSize.entry insert 0 $targetS($target,PMS)
     
     bottom-buttons $w [list {Ok} [list advanced-setup-action $target $b] \
             {Cancel} [list destroy $w]] 0   
@@ -2010,6 +2056,14 @@ proc advanced-setup {target b} {
 
 proc advanced-setup-action {target b} {
     set w .advanced-setup-$b
+    global targetS
+    
+    set targetS($target,LSLB) [$w.top.largeSetLowerBound.entry get]
+    set targetS($target,SSUB) [$w.top.smallSetUpperBound.entry get]
+    set targetS($target,MSPN) [$w.top.mediumSetPresentNumber.entry get]
+    set targetS($target,presentChunk) [$w.top.presentChunk.entry get]
+    set targetS($target,MRS) [$w.top.maximumRecordSize.entry get]
+    set targetS($target,PMS) [$w.top.preferredMessageSize.entry get]
 
     dputs "advanced-setup-action"
     destroy $w
@@ -2087,10 +2141,8 @@ proc cascade-target-list {} {
     }
     .top.target.m.slist delete 0 last
     foreach n [lsort [array names profile]] {
-        if {$n != "Default"} {
-            .top.target.m.slist add command -label $n \
-                    -command [list protocol-setup $n]
-        }
+        .top.target.m.slist add command -label $n \
+                -command [list protocol-setup $n]
     }
 }
 
@@ -2204,12 +2256,18 @@ proc save-geometry {} {
     global popupMarcdf
     global recordSyntax
     global elementSetNames
+    global hostid
 
     set windowGeometry(.) [wm geometry .]
 
     if {[catch {set f [open ~/.clientrc.tcl w]}]} {
         return
     } 
+    if {$hostid != "Default"} {
+        puts $f "set hostid $hostid"
+        set b [z39 databaseNames]
+        puts $f "set hostbase $b"
+    }
     puts $f "set hotTargets \{ $hotTargets \}"
     puts $f "set textWrap $textWrap"
     puts $f "set displayFormat $displayFormat"
@@ -3293,8 +3351,11 @@ if {[catch {ir z39}]} {
     ir z39
     puts "ok"
 }
-z39 largeSetLowerBound 20
-z39 smallSetUpperBound 2
-z39 mediumSetPresentNumber 2
 z39 logLevel all
+
+if {$hostid != "Default"} {
+    catch {open-target $hostid $hostbase}
+}
+
 show-logo 1
+
