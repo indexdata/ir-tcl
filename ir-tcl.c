@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.43  1995-06-19 13:06:08  adam
+ * Revision 1.44  1995-06-19 17:01:20  adam
+ * Minor changes.
+ *
+ * Revision 1.43  1995/06/19  13:06:08  adam
  * New define: IR_TCL_VERSION.
  *
  * Revision 1.42  1995/06/19  08:08:52  adam
@@ -246,7 +249,9 @@ int IrTcl_eval (Tcl_Interp *interp, const char *command)
     strcpy (tmp, command);
     r = Tcl_Eval (interp, tmp);
     if (r == TCL_ERROR)
-        logf (LOG_WARN, "Tcl error in line %d: %s", interp->errorLine, interp->result);
+        logf (LOG_WARN, "Tcl error in line %d: %s", interp->errorLine, 
+              interp->result);
+    Tcl_FreeResult (interp);
     free (tmp);
     return r;
 }
@@ -1022,7 +1027,7 @@ static int do_callback (void *obj, Tcl_Interp *interp,
 	}
 	else
 	    p->callback = NULL;
-        p->interp = irTcl_interp;
+        p->interp = interp;
     }
     return TCL_OK;
 }
@@ -1052,7 +1057,7 @@ static int do_failback (void *obj, Tcl_Interp *interp,
 	}
 	else
 	    p->failback = NULL;
-        p->interp = irTcl_interp;
+        p->interp = interp;
     }
     return TCL_OK;
 }
