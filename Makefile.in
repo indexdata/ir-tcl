@@ -2,7 +2,7 @@
 # (c) Index Data 1995
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.10 1995-06-26 14:46:24 adam Exp $
+# $Id: Makefile.in,v 1.11 1995-06-27 17:10:36 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -69,24 +69,40 @@ libirtcl.a: $(O)
 	$(RANLIB) libirtcl.a
 
 install: ir-tcl
-	for d in $(IRTCLDIR) $(IRTCLDIR)/formats $(IRTCLDIR)/bitmaps; do \
+	@for d in $(IRTCLDIR) $(IRTCLDIR)/formats $(IRTCLDIR)/bitmaps; do \
 		if [ ! -d $$d ]; then \
 			echo Making $$d; \
 			mkdir $$d; \
 			chmod 755 $$d; \
 		fi; \
 	done;
-	$(INSTALL_PROGRAM) ir-tcl $(BINDIR)
-	$(INSTALL_DATA) libirtcl.a $(LIBDIR)
-	$(INSTALL_DATA) ir-tcl.h $(INCDIR)
-	if [ -f ir-tk ]; then \
-	        $(INSTALL_PROGRAM) ir-tk $(BINDIR); \
+	@echo "Installing ir-tcl"
+	@$(INSTALL_PROGRAM) ir-tcl $(BINDIR)
+	@echo "Installing libirtcl.a"
+	@$(INSTALL_DATA) libirtcl.a $(LIBDIR)
+	@echo "Installing ir-tcl.h"
+	@$(INSTALL_DATA) ir-tcl.h $(INCDIR)
+	@if [ -f ir-tk ]; then \
+		echo "Installing ir-tk"; \
+		$(INSTALL_PROGRAM) ir-tk $(BINDIR); \
+		echo "Installing irclient"; \
 		echo "#! $(BINDIR)/ir-tk -f" >head.bak; \
 		cat head.bak client.tcl| sed "s,^set libdir LIBDIR,set libdir $(IRTCLDIR)," >client.bak; \
 		$(INSTALL_PROGRAM) client.bak $(BINDIR)/irclient; \
+		echo "Installing clientrc.tcl" ; \
 		$(INSTALL_DATA) LICENSE clientrc.tcl $(IRTCLDIR); \
-		$(INSTALL_DATA) formats/*.tcl $(IRTCLDIR)/formats; \
-		$(INSTALL_DATA) bitmaps/book? $(IRTCLDIR)/bitmaps; \
+		echo "Installing display format scripts"; \
+		for b in formats/*.tcl; do \
+			if [ -f $$b ]; then \
+				$(INSTALL_DATA) $$b $(IRTCLDIR)/formats; \
+			fi; \
+		done; \
+		echo "Installing bitmaps"; \
+		for b in bitmaps/*; do \
+			if [ -f $$b ]; then \
+				$(INSTALL_DATA) $$b $(IRTCLDIR)/bitmaps; \
+			fi; \
+		done; \
 	fi; 
 
 clean:

@@ -4,7 +4,11 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.54  1995-06-27 14:41:03  adam
+# Revision 1.55  1995-06-27 17:10:37  adam
+# Bug fix: install procedure didn't work on some systems.
+# Error turned up when clientrc.tcl was't present.
+#
+# Revision 1.54  1995/06/27  14:41:03  adam
 # Bug fix in search-response. Didn't always observe non-surrogate diagnostics.
 #
 # Revision 1.53  1995/06/26  12:40:09  adam
@@ -193,18 +197,24 @@
 #
 
 set libdir LIBDIR
-if {[file readable clientrc.tcl]} {
+if {[file readable bitmaps/book2]} {
 	set libdir .
 }
+if {! [file readable ${libdir}/bitmaps/book2]} {
+    puts "Cannot locate system files in ${libdir}. You must either run this"
+    puts "program from the source directory root of ir-tcl or you must assure"
+    puts "that it is installed - normally in /usr/local/lib/irtcl"
+    exit 1
+}
+
 set hotTargets {}
 set hotInfo {}
 set busy 0
 
-set profile(Default) {{} {} {210} {} 16384 8192 tcpip {} 1 {} {} Z39}
+set profile(Default) {{} {} {210} {} 16384 8192 tcpip {} 1 {} {} Z39 1}
 set hostid Default
 set settingsChanged 0
 set setNo 0
-set lastSetNo 0
 set cancelFlag 0
 set scanEnable 0
 set fullMarcSeq 0
@@ -240,7 +250,7 @@ proc tkerror err {
             -font -Adobe-Helvetica-Bold-R-Normal-*-240-*
     pack $w.top.b $w.top.t -side left -padx 10 -pady 10
 
-    bottom-buttons $w [list {Close} [list destroy $w]] 0
+    bottom-buttons $w [list {Close} [list destroy $w]] 1
 }
 
 proc read-formats {} {
@@ -338,8 +348,12 @@ proc toplevelG {w} {
     bind $w <Destroy> [list destroyGW $w]
 }
 
-if {[file readable "${libdir}/clientrc.tcl"]} {
-    source "${libdir}/clientrc.tcl"
+if {[file readable "clientrc.tcl"]} {
+    source "clientrc.tcl"
+} else {
+    if {[file readable "${libdir}/clientrc.tcl"]} {
+        source "${libdir}/clientrc.tcl"
+    }
 }
 
 if {[file readable "~/.clientrc.tcl"]} {
@@ -843,6 +857,7 @@ proc close-target {} {
     show-message {}
     .top.target.m disable 1
     .top.target.m disable 2
+    .top.rset.m delete 2 last
     .top.target.m enable 0
 }
 
@@ -1277,13 +1292,13 @@ proc search-response {} {
         }
         return
     }
+    set setOffset 0
     set delayRequest {}
     init-title-lines
     set setMax [z39.$setNo resultCount]
     show-status {Ready} 0 1
     set status [z39.$setNo responseStatus]
     if {[lindex $status 0] == "NSD"} {
-        set setOffset 0
         set code [lindex $status 1]
         set msg [lindex $status 2]
         set addinfo [lindex $status 3]
@@ -1294,6 +1309,9 @@ proc search-response {} {
         set setMax 20
     }
     show-message "${setMax} hits"
+    if {$setMax == 0} {
+        return
+    }
     set setOffset 1
     show-status {Ready} 0 1
     set l [format "%-4d %7d" $setNo $setMax]
@@ -1895,7 +1913,7 @@ proc query-delete {queryNo} {
 
     label $w.top.warning -bitmap warning
     message $w.top.quest -text "Are you sure you want to delete the \
-query type $n ?"  -aspect 200
+query type $n ?"  -aspect 300
     pack $w.top.warning $w.top.quest -side left -expand yes -padx 10 -pady 5
     bottom-buttons $w [list {Ok} [list query-delete-action $queryNo] \
                             {Cancel} [list destroy $w]] 1
@@ -1960,9 +1978,15 @@ proc save-settings {} {
     global queryInfo
    
     if {![file writable "${libdir}/clientrc.tcl"]} {
-	return
+        set a [alert "Cannot open ${libdir}/clientrc.tcl for writing. Do you \
+                wish to save clientrc.tcl in the current directory instead?"]
+        if {! $a} {
+            return
+        }
+        set f [open "clientrc.tcl" w]
+    } else {
+        set f [open "${libdir}/clientrc.tcl" w]
     }
-    set f [open "${libdir}/clientrc.tcl" w]
     puts $f "# Setup file"
 
     foreach n [array names profile] {
@@ -1995,7 +2019,7 @@ proc alert {ask} {
     top-down-window $w
 
     label $w.top.warning -bitmap warning
-    message $w.top.message -text $ask -aspect 200 \
+    message $w.top.message -text $ask -aspect 300 \
             -font -Adobe-Times-Medium-R-Normal-*-180-*
 
     pack $w.top.warning $w.top.message -side left -pady 5 -padx 10 -expand yes
