@@ -4,7 +4,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.29  1995-05-24 14:10:22  adam
+ * Revision 1.30  1995-05-26 08:54:11  adam
+ * New MARC utilities. Uses prefix query.
+ *
+ * Revision 1.29  1995/05/24  14:10:22  adam
  * Work on idAuthentication, protocolVersion and options.
  *
  * Revision 1.28  1995/05/23  15:34:48  adam
@@ -123,7 +126,8 @@ static IRRecordList *new_IR_record (IRSetObj *setobj, int no, int which)
             switch (rl->which)
             {
             case Z_NamePlusRecord_databaseRecord:
-                iso2709_rm (rl->u.marc.rec);
+	        free (rl->u.dbrec.buf);
+		rl->u.dbrec.buf = NULL;
                 break;
             case Z_NamePlusRecord_surrogateDiagnostic:
                 free (rl->u.diag.addinfo);
@@ -1025,7 +1029,9 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
               int argc, char **argv)
 {
     IRObj *obj;
+#if CCL2RPN
     FILE *inf;
+#endif
 
     if (argc != 2)
     {
@@ -1067,12 +1073,14 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     
     obj->hostname = NULL;
 
+#if CCL2RPN
     obj->bibset = ccl_qual_mk (); 
     if ((inf = fopen ("default.bib", "r")))
     {
     	ccl_qual_file (obj->bibset, inf);
     	fclose (inf);
     }
+#endif
     ODR_MASK_ZERO (&obj->protocolVersion);
     ODR_MASK_SET (&obj->protocolVersion, 0);
     ODR_MASK_SET (&obj->protocolVersion, 1);
@@ -1149,15 +1157,29 @@ static int do_search (void *o, Tcl_Interp *interp,
     req.databaseNames = p->set_inher.databaseNames;
     printf ("Search:");
     for (r=0; r < p->set_inher.num_databaseNames; r++)
-    {
         printf (" %s", p->set_inher.databaseNames[r]);
-    }
     req.smallSetElementSetNames = 0;
     req.mediumSetElementSetNames = 0;
     req.preferredRecordSyntax = 0;
     req.query = &query;
 
     if (!strcmp (p->set_inher.queryType, "rpn"))
+    {
+        Z_RPNQuery *RPNquery;
+
+        RPNquery = p_query_rpn (p->odr_out, argv[2]);
+	if (!RPNquery)
+	{
+            Tcl_AppendResult (interp, "Syntax error in query", NULL);
+            return TCL_ERROR;
+        }
+        RPNquery->attributeSetId = oid_getoidbyent (&p->bib1);
+        query.which = Z_Query_type_1;
+        query.u.type_1 = RPNquery;
+        printf ("- RPN\n");
+    }
+#if CCL2RPN
+    else if (!strcmp (p->set_inher.queryType, "cclrpn"))
     {
         int error;
         int pos;
@@ -1172,12 +1194,13 @@ static int do_search (void *o, Tcl_Interp *interp,
         }
         ccl_pr_tree (rpn, stderr);
         fprintf (stderr, "\n");
-        query.which = Z_Query_type_1;
         assert((RPNquery = ccl_rpn_query(rpn)));
         RPNquery->attributeSetId = oid_getoidbyent (&p->bib1);
+        query.which = Z_Query_type_1;
         query.u.type_1 = RPNquery;
-        printf ("- RPN\n");
+        printf ("- CCLRPN\n");
     }
+#endif
     else if (!strcmp (p->set_inher.queryType, "ccl"))
     {
         query.which = Z_Query_type_2;
@@ -1267,6 +1290,7 @@ static int do_numberOfRecordsReturned (void *o, Tcl_Interp *interp,
     return get_set_int (&obj->numberOfRecordsReturned, interp, argc, argv);
 }
 
+#if 0
 static int get_marc_fields(Tcl_Interp *interp, Iso2709Rec rec,
                            int argc, char **argv)
 {
@@ -1287,7 +1311,9 @@ static int get_marc_fields(Tcl_Interp *interp, Iso2709Rec rec,
     iso2709_a_rm (a);
     return TCL_OK;
 }
+#endif
 
+#if 0
 static int get_marc_lines(Tcl_Interp *interp, Iso2709Rec rec,
                          int argc, char **argv)
 {
@@ -1329,6 +1355,7 @@ static int get_marc_lines(Tcl_Interp *interp, Iso2709Rec rec,
     iso2709_a_rm (a);
     return TCL_OK;
 }
+#endif
 
 /*
  * do_recordType: Return record type (if any) at position.
@@ -1397,9 +1424,9 @@ static int do_recordDiag (void *o, Tcl_Interp *interp, int argc, char **argv)
 }
 
 /*
- * do_recordMarc: Get ISO2709 Record lines/fields
+ * do_getMarc: Get ISO2709 Record lines/fields
  */
-static int do_recordMarc (void *o, Tcl_Interp *interp, int argc, char **argv)
+static int do_getMarc (void *o, Tcl_Interp *interp, int argc, char **argv)
 {
     IRSetObj *obj = o;
     int offset;
@@ -1423,15 +1450,7 @@ static int do_recordMarc (void *o, Tcl_Interp *interp, int argc, char **argv)
         Tcl_AppendResult (interp, "No MARC record at #", argv[2], NULL);
         return TCL_ERROR;
     }
-    if (!strcmp (argv[3], "field"))
-        return get_marc_fields (interp, rl->u.marc.rec, argc, argv);
-    else if (!strcmp (argv[3], "line"))
-        return get_marc_lines (interp, rl->u.marc.rec, argc, argv);
-    else
-    {
-        Tcl_AppendResult (interp, "field/line expected", NULL);
-        return TCL_ERROR;
-    }
+    return ir_tcl_get_marc (interp, rl->u.dbrec.buf, argc, argv);
 }
 
 
@@ -1544,8 +1563,9 @@ static int do_loadFile (void *o, Tcl_Interp *interp,
 {
     IRSetObj *setobj = o;
     FILE *inf;
+    size_t size;
     int  no = 1;
-    const char *buf;
+    char *buf;
 
     if (argc < 3)
     {
@@ -1558,16 +1578,13 @@ static int do_loadFile (void *o, Tcl_Interp *interp,
         Tcl_AppendResult (interp, "Cannot open ", argv[2], NULL);
         return TCL_ERROR;
     }
-    while ((buf = iso2709_read (inf)))
+    while ((buf = ir_tcl_fread_marc (inf, &size)))
     {
         IRRecordList *rl;
-        Iso2709Rec rec;
 
-        rec = iso2709_cvt (buf);
-        if (!rec)
-            break;
         rl = new_IR_record (setobj, no, Z_NamePlusRecord_databaseRecord);
-        rl->u.marc.rec = rec;
+        rl->u.dbrec.buf = buf;
+	rl->u.dbrec.size = size;
         no++;
     }
     setobj->numberOfRecordsReturned = no-1;
@@ -1589,7 +1606,7 @@ static int ir_set_obj_method (ClientData clientData, Tcl_Interp *interp,
     { 0, "numberOfRecordsReturned", do_numberOfRecordsReturned },
     { 0, "present",                 do_present },
     { 0, "recordType",              do_recordType },
-    { 0, "recordMarc",              do_recordMarc },
+    { 0, "getMarc",                 do_getMarc },
     { 0, "recordDiag",              do_recordDiag },
     { 0, "responseStatus",          do_responseStatus },
     { 0, "loadFile",                do_loadFile },
@@ -1691,8 +1708,11 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     Z_APDU apdu, *apdup = &apdu;
     IRScanObj *obj = o;
     IRObj *p = obj->parent;
-    int r, pos;
+    int r;
+#if CCL2RPN
     struct ccl_rpn_node *rpn;
+    int pos;
+#endif
 
     p->scan_child = o;
     if (argc != 3)
@@ -1717,25 +1737,12 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     req.databaseNames = p->set_inher.databaseNames;
     req.attributeSet = oid_getoidbyent (&p->bib1);
 
-#if 0
-    if (!(req.termListAndStartPoint =
-          ir_malloc (interp, sizeof(*req.termListAndStartPoint))))
-        return TCL_ERROR;
-    req.termListAndStartPoint->num_attributes = 0;
-    req.termListAndStartPoint->attributeList = NULL;
-    if (!(req.termListAndStartPoint->term = ir_malloc (interp,
-                                                       sizeof(Z_Term))))
-        return TCL_ERROR;
-    req.termListAndStartPoint->term->which = Z_Term_general;
-    if (!(req.termListAndStartPoint->term->u.general = 
-        ir_malloc (interp, sizeof(*req.termListAndStartPoint->
-                                  term->u.general))))
-        return TCL_ERROR;
-    if (ir_strdup (interp, &req.termListAndStartPoint->term->u.general->buf,
-                   argv[2]) == TCL_ERROR)
-        return TCL_ERROR;
-    req.termListAndStartPoint->term->u.general->len = 
-        req.termListAndStartPoint->term->u.general->size = strlen(argv[2]);
+#if !CCL2RPN
+    if (!(req.termListAndStartPoint = p_query_scan (p->odr_out, argv[2])))
+    {
+        Tcl_AppendResult (interp, "Syntax error in query", NULL);
+	return TCL_ERROR;
+    }
 #else
     rpn = ccl_find_str(p->bibset, argv[2], &r, &pos);
     if (r)
@@ -2050,14 +2057,15 @@ static void ir_handleRecords (void *o, Z_Records *zrs)
                 zr = zrs->u.databaseOrSurDiagnostics->records[offset]
                     ->u.databaseRecord;
                 oe = (Odr_external*) zr;
-                if (oe->which == ODR_EXTERNAL_octet
-                    && zr->u.octet_aligned->len)
+		rl->u.dbrec.size = zr->u.octet_aligned->len;
+                if (oe->which == ODR_EXTERNAL_octet && rl->u.dbrec.size > 0)
                 {
                     const char *buf = (char*) zr->u.octet_aligned->buf;
-                    rl->u.marc.rec = iso2709_cvt (buf);
+                    if ((rl->u.dbrec.buf = malloc (rl->u.dbrec.size)))
+		        memcpy (rl->u.dbrec.buf, buf, rl->u.dbrec.size);
                 }
                 else
-                    rl->u.marc.rec = NULL;
+                    rl->u.dbrec.buf = NULL;
             }
         }
     }

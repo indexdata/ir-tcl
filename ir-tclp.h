@@ -4,7 +4,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.2  1995-05-24 14:10:23  adam
+ * Revision 1.3  1995-05-26 08:54:17  adam
+ * New MARC utilities. Uses prefix query.
+ *
+ * Revision 1.2  1995/05/24  14:10:23  adam
  * Work on idAuthentication, protocolVersion and options.
  *
  * Revision 1.1  1995/05/23  15:34:49  adam
@@ -19,8 +22,14 @@
 
 #include <tcl.h>
 
+#include <pquery.h>
+#if CCL2RPN
 #include <yaz-ccl.h>
+#endif
+#if 0
 #include <iso2709.h>
+#endif
+
 #include <comstack.h>
 #include <tcpip.h>
 
@@ -87,7 +96,10 @@ typedef struct {
     char       *callback;
     char       *failback;
 
+#if CCL2RPN
     CCL_bibset  bibset;
+#endif
+
     oident      bib1;
 
     struct IRSetObj_ *set_child;
@@ -101,8 +113,9 @@ typedef struct IRRecordList_ {
     int which;
     union {
         struct {
-            Iso2709Rec rec;
-        } marc;
+	    char *buf;
+	    size_t size;
+        } dbrec;
         struct {
             int  condition;
             char *addinfo;
@@ -169,4 +182,8 @@ struct ir_named_entry {
     char *name;
     int  pos;
 };
+
+int ir_tcl_get_marc (Tcl_Interp *interp, const char *buf,
+                     int argc, char **argv);
+char *ir_tcl_fread_marc (FILE *inf, size_t *size);
 #endif
