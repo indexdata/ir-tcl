@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.26  1995-06-01 16:36:46  adam
+# Revision 1.27  1995-06-02 14:29:42  adam
+# Work on scan interface - up/down buttons.
+#
+# Revision 1.26  1995/06/01  16:36:46  adam
 # About buttons. Minor bug fixes.
 #
 # Revision 1.25  1995/05/31  13:09:57  adam
@@ -213,12 +216,21 @@ proc show-status {status b sb} {
         .mid.search configure -state normal
         .mid.scan configure -state normal
         .mid.present configure -state normal
+        if {[winfo exists .scan-window]} {
+            .scan-window.bot.2 configure -state normal
+            .scan-window.bot.4 configure -state normal
+        }
         set searchEnable 1
     } else {
         .top.search configure -state disabled
         .mid.search configure -state disabled
         .mid.scan configure -state disabled
         .mid.present configure -state disabled
+
+        if {[winfo exists .scan-window]} {
+            .scan-window.bot.2 configure -state disabled
+            .scan-window.bot.4 configure -state disabled
+        }
         set searchEnable 0
     }
 }
@@ -253,8 +265,10 @@ proc about-target {} {
     label $w.top.ii -text "Implementation id: $i"
     set i [z39 targetImplementationVersion]
     label $w.top.iv -text "Implementation version: $i"
+    set i [z39 options]
+    label $w.top.op -text "Protocol options: $i"
 
-    pack $w.top.in $w.top.ii $w.top.iv -side top -anchor nw
+    pack $w.top.in $w.top.ii $w.top.iv $w.top.op -side top -anchor nw
 
     bottom-buttons $w [list {Close} [list destroy $w]] 1
 }
@@ -429,6 +443,7 @@ proc open-target {target base} {
     puts [z39 maximumRecordSize]
     puts -nonewline "preferredMessageSize="
     puts [z39 preferredMessageSize]
+    show-status {Connecting} 0 0
     if {$base == ""} {
         z39 databaseNames [lindex [lindex $profile($target) 7] 0]
     } else {
@@ -437,7 +452,7 @@ proc open-target {target base} {
     z39 failback [list fail-response $target]
     z39 callback [list connect-response $target]
     z39 connect [lindex $profile($target) 1]:[lindex $profile($target) 2]
-    show-status {Connecting} 1 0
+    show-status {Connecting} 1 {}
     set hostid $target
     .top.target.m disable 0
     .top.target.m enable 1
@@ -567,52 +582,159 @@ proc search-request {} {
     show-status {Search} 1 0
 }
 
-proc scan-request {} {
+proc scan-request {attr} {
     set w .scan-window
 
     global profile
     global hostid
+    global scanView
 
     set target $hostid
+    set scanView 0
 
     ir-scan z39.scan z39
 
-    z39 callback {scan-response}
+    z39 callback [list scan-response $attr 0 25]
     if {![winfo exists $w]} {
         toplevel $w
         
         wm title $w "Scan"
         
-        wm minsize $w 200 200
+        wm minsize $w 0 0
 
         top-down-window $w
         
-        listbox $w.top.list -yscrollcommand [list $w.top.scroll set] \
-                -font fixed -geometry 50x14
-        scrollbar $w.top.scroll -orient vertical -border 1
-        pack $w.top.list -side left -fill both -expand yes
-        pack $w.top.scroll -side right -fill y
-        $w.top.scroll config -command [list $w.top.list yview]
-
-        bottom-buttons $w [list {Close} [list destroy $w]] 0 
+        if {1} {
+            listbox $w.top.list -yscrollcommand [list $w.top.scroll set] \
+                    -font fixed -geometry 50x14
+            scrollbar $w.top.scroll -orient vertical -border 1
+            pack $w.top.list -side left -fill both -expand yes
+            pack $w.top.scroll -side right -fill y
+            $w.top.scroll config -command [list $w.top.list yview]
+        } else {
+            listbox $w.top.list -font fixed -geometry 60x14
+            pack $w.top.list -side left -fill both -expand yes
+        }
+        
+        bottom-buttons $w [list {Close} [list destroy $w] \
+                {Up} [list scan-up $attr] \
+                {Down} [list scan-down $attr]] 0
+        bind $w.top.list <Up> [list scan-up $attr]
+        bind $w.top.list <Down> [list scan-down $attr]
     }
-    z39.scan numberOfTermsRequested 100
-    z39.scan scan "@attr 1=4 0"
+    focus $w.top.list
+    z39.scan numberOfTermsRequested 5
+    z39.scan preferredPositionInResponse 1
+    z39.scan scan "${attr} b"
     
     show-status {Scan} 1 0
 }
 
-proc scan-response {} {
+
+proc scan-response {attr start toget} {
+    global cancelFlag
+
     set w .scan-window
+    puts "In scan-response"
     set m [z39.scan numberOfEntriesReturned]
     puts $m
-    for {set i 0} {$i < $m} {incr i} {
-        set term [lindex [z39.scan scanLine $i] 1]
-        set nostr [format "%7d" [lindex [z39.scan scanLine $i] 2]]
+    puts attr=$attr
+    puts start=$start
+    puts toget=$toget
 
-        $w.top.list insert end "$nostr $term"
+    if {![winfo exists .scan-window]} {
+        show-status {Ready} 0 1
+        set cancelFlag 0
+        return
+    }
+    if {$toget < 0} {
+        for {set i 0} {$i < $m} {incr i} {
+            set term [lindex [z39.scan scanLine $i] 1]
+            set nostr [format " %-6d" [lindex [z39.scan scanLine $i] 2]]
+            $w.top.list insert $i "$nostr $term"
+        }
+    } else {
+        $w.top.list delete $start end
+        for {set i 0} {$i < $m} {incr i} {
+            set term [lindex [z39.scan scanLine $i] 1]
+            set nostr [format " %-6d" [lindex [z39.scan scanLine $i] 2]]
+            $w.top.list insert end "$nostr $term"
+        }
+    }
+    if {$cancelFlag} {
+        show-status {Ready} 0 1
+        set cancelFlag 0
+        return
+    }
+    if {$toget > 0 && $m > 1 && $m < $toget} {
+        set ntoget [expr $toget - $m + 1]
+        puts ntoget=$ntoget
+        z39 callback [list scan-response $attr [expr $start + $m - 1] $ntoget]
+        set q $term
+        puts "down continue: $q"
+        if {$ntoget > 10} {
+            z39.scan numberOfTermsRequested 10
+        } else {
+            z39.scan numberOfTermsRequested $ntoget
+        }
+        z39.scan preferredPositionInResponse 1
+        z39.scan scan "${attr} \{$q\}"
+        return
+    }
+    if {$toget < 0 && $m > 1 && $m < [expr - $toget]} {
+        set ntoget [expr - $toget - $m]
+        puts ntoget=$ntoget
+        z39 callback [list scan-response $attr 0 -$ntoget]
+        set q [string range [$w.top.list get 0] 7 end]
+        puts "up continue: $q"
+        if {$ntoget > 10} {
+            z39.scan numberOfTermsRequested 10
+            z39.scan preferredPositionInResponse 11
+        } else {
+            z39.scan numberOfTermsRequested $ntoget
+            z39.scan preferredPositionInResponse [incr ntoget]
+        }
+        z39.scan scan "${attr} \{$q\}"
+        return
     }
     show-status {Ready} 0 1
+}
+
+proc scan-down {attr} {
+    global scanView
+
+    set w .scan-window
+    set scanView [expr $scanView + 5]
+    set s [$w.top.list size]
+    if {$scanView > $s} {
+        z39 callback [list scan-response $attr [expr $s - 1] 30]
+        set q [string range [$w.top.list get [expr $s - 1]] 7 end]
+        puts "down: $q"
+        z39.scan numberOfTermsRequested 10
+        z39.scan preferredPositionInResponse 1
+        show-status {Scan} 1 0
+        z39.scan scan "${attr} \{$q\}"
+        return
+    }
+    $w.top.list yview $scanView
+}
+
+proc scan-up {attr} {
+    global scanView
+
+    set w .scan-window
+    if {$scanView < 5} {
+        z39 callback [list scan-response $attr 0 -30]
+        set q [string range [$w.top.list get 0] 7 end]
+        puts "up: $q"
+        z39.scan numberOfTermsRequested 10
+        z39.scan preferredPositionInResponse 11
+        show-status {Scan} 1 0
+        z39.scan scan "${attr} \{$q\}"
+        return
+    }
+    set scanView [expr $scanView - 5]
+    $w.top.list yview $scanView
 }
 
 proc search-response {} {
@@ -1638,8 +1760,8 @@ index-lines .lines 1 $queryButtonsFind [lindex $queryInfo 0] activate-index
 
 button .mid.search -width 7 -text {Search} -command search-request \
         -state disabled
-button .mid.scan -width 7 -text {Scan} -command scan-request \
-        -state disabled
+button .mid.scan -width 7 -text {Scan} \
+        -command [list scan-request "@attr 1=4"] -state disabled 
 button .mid.present -width 7 -text {Present} -command [list present-more 10] \
         -state disabled
 
