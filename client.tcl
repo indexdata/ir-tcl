@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.22  1995-05-26 11:44:09  adam
+# Revision 1.23  1995-05-29 10:33:41  adam
+# README and rename of startup script.
+#
+# Revision 1.22  1995/05/26  11:44:09  adam
 # Bugs fixed. More work on MARC utilities and queries. Test
 # client is up-to-date again.
 #
@@ -83,13 +86,13 @@ set setNo 0
 
 set queryTypes {Simple}
 set queryButtons { { {I 0} {I 1} {I 2} } }
-set queryInfo { { {Title {1=4 4=1 6=1}} {Author {1=1 4=1 6=1}} \
-        {Subject {1=21 4=1 6=1}} {Any {1=1016 4=1 6=1}} } }
+set queryInfo { { {Title {1=4}} {Author {1=1}} \
+        {Subject {1=21}} {Any {1=1016}} } }
 
 wm minsize . 350 250
 
-if {[file readable "~/.tk-c"]} {
-    source "~/.tk-c"
+if {[file readable "clientrc.tcl"]} {
+    source "clientrc.tcl"
 }
 
 set queryButtonsFind [lindex $queryButtons 0]

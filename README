@@ -1,0 +1,47 @@
+ 
+ * Copyright (C) 1995, Index Data.
+ * See the file LICENSE for details.
+ * Sebastian Hammer, Adam Dickmeiss
+
+Compilation and installation of IrTcl.
+This is a very early alpha-release of IrTcl.
+
+In order to compile you need:
+   
+  o  An ansi-C compiler such as GNU C
+  o  Tcl version 7.3
+  o  YAZ version 0.2 beta or higher
+
+You may also need:
+
+  o  Tk version 3.6 
+  o  The XTI/mosi package
+
+Compilation:
+  1) Compile/install yaz/tcl, etc.
+
+  2) Edit Makefile (in current directory)
+     Set MOSI to 1/0
+     Define include directory paths of yaz/tcl/tk
+     Define libraries of yaz/tcl/tk
+
+  3) Type 'make ir-tcl' to make the Tcl version or IrTcl.
+     Type 'make ir-tk' to make the Tk version of IrTcl.
+
+Install/run:
+
+  4) The resulting files are:
+     ir-tcl                     Tcl version of IrTcl
+     ir-tk                      Tk version of IrTcl
+     marc.tcl/iterate.tcl       small IrTcl scripts
+     client.tcl                 Tk graphical client - automatically
+                                executed by ir-tk
+     clientrc.tcl               Startup script - read by client.tcl - holds
+                                user/target definitions.
+
+  5) Type 'ir-tk' to run the Tk graphical client (client.tcl and 
+     clientrc.tcl should be in current directory)
+
+     Type 'ir-tcl' to run the Tcl client. Very similar to tclsh.
+
+

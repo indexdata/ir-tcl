@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.33  1995-05-29 09:15:11  quinn
+ * Revision 1.34  1995-05-29 10:33:42  adam
+ * README and rename of startup script.
+ *
+ * Revision 1.33  1995/05/29  09:15:11  quinn
  * Changed CS_SR to PROTO_SR, etc.
  *
  * Revision 1.32  1995/05/29  08:44:16  adam
@@ -1809,7 +1812,7 @@ static void ir_set_obj_delete (ClientData clientData)
  * ir_set_obj_mk: IR Set Object creation
  */
 static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
-			     int argc, char **argv)
+                          int argc, char **argv)
 {
     IRMethods tabs[3];
     IRSetObj *obj;
@@ -1819,6 +1822,8 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
         interp->result = "wrong # args";
         return TCL_ERROR;
     }
+    if (!(obj = ir_malloc (interp, sizeof(*obj))))
+        return TCL_ERROR;
     else if (argc == 3)
     {
         Tcl_CmdInfo parent_info;
@@ -1831,8 +1836,6 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
             interp->result = "No parent";
             return TCL_ERROR;
         }
-        if (!(obj = ir_malloc (interp, sizeof(*obj))))
-            return TCL_ERROR;
         obj->parent = (IRObj *) parent_info.clientData;
 
         dst = &obj->set_inher;
@@ -2175,7 +2178,7 @@ static int ir_scan_obj_mk (ClientData clientData, Tcl_Interp *interp,
         return TCL_ERROR;
 
     tabs[0].tab = ir_scan_method_tab;
-    tabs[0].obj = clientData;
+    tabs[0].obj = obj;
     tabs[1].tab = NULL;
 
     if (ir_method (interp, 0, NULL, tabs) == TCL_ERROR)
