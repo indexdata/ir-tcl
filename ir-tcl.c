@@ -1,11 +1,15 @@
 /*
  * IR toolkit for tcl/tk
- * (c) Index Data 1995-1997
+ * (c) Index Data 1995-1998
  * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.103  1997-11-19 11:22:10  adam
+ * Revision 1.104  1998-02-27 14:26:07  adam
+ * Changed client so that it still works if target sets numberOfRecords
+ * in response to an illegal value.
+ *
+ * Revision 1.103  1997/11/19 11:22:10  adam
  * Object identifiers can be accessed in GRS-1 records.
  *
  * Revision 1.102  1997/09/17 12:22:40  adam
@@ -2609,7 +2613,7 @@ static int do_getExplain (void *o, Tcl_Interp *interp, int argc, char **argv)
         return TCL_OK;
     assert (rl->u.dbrec.buf);
     odr_setbuf (p->odr_in, rl->u.dbrec.buf, rl->u.dbrec.size, 0);
-    if (!(*etype->fun)(p->odr_in, &rr, 0))
+    if (!(*etype->fun)(p->odr_in, (char **) &rr, 0))
         return TCL_OK;
     
     if (etype->what != Z_External_explainRecord)
@@ -3589,7 +3593,7 @@ static void ir_handleDBRecord (IrTcl_Obj *p, IrTcl_RecordList *rl,
         
         odr_setbuf (p->odr_in, (char*) oe->u.octet_aligned->buf,
                     oe->u.octet_aligned->len, 0);
-        if (!(*etype->fun)(p->odr_in, &rr, 0))
+        if (!(*etype->fun)(p->odr_in, (char **) &rr, 0))
             return;
         switch (etype->what)
         {
@@ -3661,11 +3665,15 @@ static void ir_handleZRecords (void *o, Z_Records *zrs, IrTcl_SetObj *setobj,
                     &setobj->nonSurrogateDiagnosticNum);
     if (zrs->which == Z_Records_DBOSD)
     {
-	int num_rec = setobj->numberOfRecordsReturned;
+	int num_rec = zrs->u.databaseOrSurDiagnostics->num_records;
 
-	if (num_rec > zrs->u.databaseOrSurDiagnostics->num_records)
-	    num_rec = zrs->u.databaseOrSurDiagnostics->num_records;
-        logf (LOG_DEBUG, "Got %d records", num_rec);
+        if (num_rec != setobj->numberOfRecordsReturned)
+        {
+	    logf (LOG_WARN, "numberOfRecordsReturned=%d but num records=%d",
+			setobj->numberOfRecordsReturned, num_rec);
+            setobj->numberOfRecordsReturned = num_rec;
+        }
+
         for (offset = 0; offset < num_rec; offset++)
         {
             Z_NamePlusRecord *znpr = zrs->u.databaseOrSurDiagnostics->

@@ -94,7 +94,7 @@ set profile(DanBib,maximumRecordSize) 50000
 set profile(DanBib,mediumSetPresentNumber) 0
 set profile(DanBib,multipleDatabases) 0
 set profile(DanBib,namedResultSets) 1
-set profile(DanBib,port) 2100
+set profile(DanBib,port) 210
 set profile(DanBib,preferredMessageSize) 30000
 set profile(DanBib,presentChunk) 4
 set profile(DanBib,protocol) Z39
@@ -105,7 +105,7 @@ set profile(DanBib,smallSetUpperBound) 0
 set profile(DanBib,targetInfoName) {}
 set profile(DanBib,timeDefine) 878567355
 set profile(DanBib,timeLastExplain) {}
-set profile(DanBib,timeLastInit) 887289885
+set profile(DanBib,timeLastInit) 888495120
 set profile(DanBib,welcomeMessage) {}
 set profile(DanBib,windowNumber) 2
 set profile(Default,authentication) {}
