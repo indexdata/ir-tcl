@@ -1,15 +1,15 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.8 1995-06-19 13:06:23 adam Exp $
+  $Id: ir-tcl.sgml,v 1.9 1995-06-25 10:25:33 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference
 <author>Index Data, <tt/info@index.ping.dk/
-<date>$Revision: 1.8 $
+<date>$Revision: 1.9 $
 <abstract>
-This document describes IrTcl &mdash an information retrieval toolkit for
+This document describes IrTcl &mdash; an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
 </abstract>
 
@@ -25,7 +25,7 @@ K. Ousterhout at the University of California &lsqb;ref 1&rsqb;.
 Tcl is a simple, somewhat shell-like, interpreted language. What
 makes Tcl attractive is that it also offers a C API, which makes
 extensions to the language possible. The most important Tcl extension is
-probably Tk &mdash A Motif look-and-feel interface to the X window
+probably Tk &mdash; A Motif look-and-feel interface to the X window
 system.
 
 To interface the Z39.50/SR protocol <sf/IrTcl/ uses <bf/YAZ/.
@@ -38,13 +38,142 @@ See &lsqb;ref 2&rsqb; for more information about the XTI/mOSI implementation.
 <sf/IrTcl/ provides two system environments:
 
 <itemize>
-<item> A simple command line shell &mdash useful for
+<item> A simple command line shell &mdash; useful for
 testing purposes.
 <item> A system which operates within the Tk environment which
 makes it very easy to implement GUI clients.
 </itemize>
 
-<sect>Overview
+<sect>Compilation and installation
+
+<p>
+In order to compile you need:
+<itemize>
+<item> An ANSI C compiler such as GNU C.
+<item> Tcl 7.3. 
+<item> YAZ version 1.0b or higher
+</itemize>
+
+As an option you may want:
+<itemize>
+<item> Tk 3.6.
+<item> XTI/mosi
+</itemize>
+
+Newer versions of Tcl and Tk have been released. These packages
+will <em/not/ work with <sf/IrTcl/. The <sf/IrTcl/ package will
+probably be able to use the newer versions soon. Fortunately this
+move will not change the <sf/IrTcl/ API &mdash; only the Tk code of the
+test client will be modified.
+
+Unpack the <sf/IrTcl/ package at the same directory level as <bf/YAZ/. 
+
+Type:
+<tscreen><verb>
+$ ./configure
+</verb></tscreen>
+
+This command tries to configure <sf/IrTcl/ for your system and creates
+a <tt>Makefile</tt>.
+
+If the <tt>configure</tt> command cannot locate Tcl and Tk in your standard
+locations for libraries searched by your C compiler it will guess 
+that the libraries are located in <tt>/usr/local/lib</tt> and that 
+the header files are located in <tt>/usr/local/include</tt>. 
+If this is incorrect you will have to modify the <tt>Makefile</tt> yourself.
+
+Compile <sf/IrTcl/ by typing:
+<tscreen><verb>
+$ make
+</verb></tscreen>
+
+If you don't have Tk you will only be able to create the <tt>ir-tcl</tt>
+program and you must type <tt>make ir-tcl</tt> instead.
+
+If successful, this will make <tt>ir-tcl</tt>, <tt>ir-tk</tt> (if
+Tk is present) and a library called <tt>libirtcl.a</tt>.
+
+To install the programs and support files type:
+<tscreen><verb>
+$ make install
+</verb></tscreen>
+
+Summary of files installed (the names refer to the Makefile variables):
+
+<descrip>
+<tag><tt>ir-tk</tt></tag> The Tk client. Installed in <tt>BINDIR</tt> &mdash;
+defaults to <tt>/usr/local/bin</tt>. When ir-tk starts it reads
+<tt>client.tcl</tt>. If the files doesn't exist in the current
+directory it tries to read it from <tt>IRTCLDIR</tt> - defaults
+to <tt>/usr/local/lib/irtcl</tt>.
+<tag><tt>ir-tcl</tt></tag> The Tcl client. Installed in <tt>BINDIR</tt> &mdash;
+defaults to <tt>/usr/local/bin</tt>.
+<tag><tt>libirtcl.a</tt></tag> The <sf/IrTcl/ library. 
+Installed in <tt>LIBDIR</tt> &mdash; defaults to <tt>/usr/local/lib</tt>.
+<tag><tt>ir-tcl.h</tt></tag> The <sf/IrTcl/ header file.
+Installed in <tt>INCDIR</tt> &mdash; defaults to <tt>/usr/local/include</tt>.
+<tag><tt>client.tcl</tt></tag> A graphical client written in TK. 
+Installed in <tt>IRTCLDIR</tt> &mdash; defaults to 
+<tt>/usr/local/lib/irtcl</tt>.
+<tag><tt>clientrc.tcl</tt></tag> A setup file with definitions
+of target and queries. Read and updated by <tt>client.tcl</tt>. Installed
+in <tt>IRTCLDIR</tt> &mdash; defaults to <tt>/usr/local/lib/irtcl</tt>.
+<tag><tt>formats/*</tt></tag> Display format files written
+in Tk. Read by <tt>client.tcl</tt>. Installed 
+in <tt>IRTCLDIR</tt> &mdash; defaults to <tt>/usr/local/lib/irtcl</tt>.
+<tag><tt>bitmaps/*</tt></tag> Various bitmap files. Read by
+<tt>client.tcl</tt>. Installed 
+in <tt>IRTCLDIR</tt> &mdash; defaults to <tt>/usr/local/lib/irtcl</tt>.
+<tag><tt>LICENSE</tt></tag> LICENSE file. Read by
+<tt>client.tcl</tt>. Installed 
+in <tt>IRTCLDIR</tt> &mdash; defaults to <tt>/usr/local/lib/irtcl</tt>.
+</descrip>
+
+<sect1>ir-tcl
+
+<p>
+The <tt>ir-tcl</tt> program is a shell like <tt>tclsh</tt> except that
+<tt>ir-tcl</tt> features the new set of information retrieval commands. 
+Normally <tt>ir-tcl</tt> waits on <tt/stdin/ (for you to type commands) and
+on sockets events (connected to Z39.50/SR targets).
+You simply type the Tcl commands line by line. A filename may be specified as 
+argument to <tt>ir-tcl</tt> in which case the file specified is evaluated 
+as a script.
+
+<sect1>ir-tk
+
+<p>
+<tt>ir-tk</tt> is a program which basically waits for X events and
+socket events (assocated with Z39.50/SR targets). <tt>ir-tk</tt> normally
+tries to evaluate the file named <tt>client.tcl</tt> when it
+starts. However, this behaviour may be changed by specifying another 
+filename with the <tt>-file</tt> option.
+
+The enclosed script <tt>client.tcl</tt> is a graphical client which
+demonstates an example of a user interface for the Z39.50/SR protocols.
+At first the script was relatively small but it has grown since the 
+beginning. At present it is about 3000 lines.
+
+The client lets up define targets and query types within the interface.
+Hence, you will not need to modify configation files. 
+
+Stuff concerning targets can be found in the pull down menu 'Target'
+with the following options:
+<descrip>
+<tag>Connect</tag> Establishes connection to a target.
+<tag>Disconnect</tag> Closes a target connection.
+<tag>About</tag> Shows implementation Id, implementation Version, etc 
+ for the current target.
+<tag>Setup</tag> Pops up a target definition window. You may alter
+ a target definition.
+<tag>Setup new</tag> Lets you define a new target.
+</descrip> 
+
+The term query type refers to a collection of search fields. The
+pull down menu Options|Query deals with queries. You may
+insert/modify/remove query types.
+
+<sect>Overview of the API
 
 <p>
 Basically, <sf/IrTcl/ is a set of commands introduced to Tcl.
@@ -156,7 +285,7 @@ consists of a single word <tt/science/.
 When the <tt/search-response/ procedure is called it defines
 a variable <tt/hits/ and sets it to the value of the setting
 <tt/resultCount/. If <tt/hits/ is positive a present-request is
-sent &mdash asking for 5 records from position 1. 
+sent &mdash; asking for 5 records from position 1. 
 
 Finally, a present response is received and the number of records
 returned is stored in the variable <tt/ret/.
@@ -383,7 +512,7 @@ presents are handled.
 A search operation and a result set is described by the ir set object.
 The ir set object is defined by the <tt/ir-set/ command which
 has two parameters. The first is the name of the new ir set object, and
-the second, which is optional, is the name of an assocation &mdash an ir
+the second, which is optional, is the name of an assocation &mdash; an ir
 object. The second argument is required if the ir set object should be able
 to perform searches and presents. However, it is not required if
 only ``local'' operations is done with the ir set object.
@@ -477,7 +606,7 @@ The settings that affect the search are listed below:
 <tag><tt>queryType rpn|ccl</tt></tag>
  query type-1 or query type-2 
 <tag><tt>preferredRecordSyntax </tt><em>string</em></tag>
- preferred record syntax &mdash UNIMARC, USMARC, etc. 
+ preferred record syntax &mdash; UNIMARC, USMARC, etc. 
 <tag><tt>smallSetElementSetNames </tt><em>string</em></tag>
  small-set-element-set names. Not implemented yet.
 <tag><tt>mediumSetElementSetNames </tt><em>string</em></tag>
@@ -523,7 +652,7 @@ empty if no additional information was returned by the target.
 target has returned one or more records. Each record may be
 either a database record or a surrogate diagnostic.
 
-<tag><tt>OK</tt></tag> indicates a successful operation &mdash no records are
+<tag><tt>OK</tt></tag> indicates a successful operation &mdash; no records are
 returned from the target. 
 </descrip>
 
@@ -600,14 +729,14 @@ are common to both situations.
 <p>
 The <tt/present/ action sends a present request. The <tt/present/ is
 followed by two optional integers. The first integer is the 
-result-set starting position &mdash defaults to 1. The second integer 
-is the number of records requested &mdash defaults to 10. 
+result-set starting position &mdash; defaults to 1. The second integer 
+is the number of records requested &mdash; defaults to 10. 
 The settings which could be modified before a <tt/present/
 action are:
 
 <descrip>
 <tag><tt>preferredRecordSyntax </tt><em>string</em></tag>
- preferred record syntax &mdash UNIMARC, USMARC, etc.
+ preferred record syntax &mdash; UNIMARC, USMARC, etc.
 <tag><tt>elementSetElementSetNames </tt><em>string</em></tag>
  element-set names 
 <tag><tt>presentResponse </tt><em>list</em></tag>
@@ -728,7 +857,7 @@ that matches the mask specification. Only the content of fields
 is returned.
 
 The <tt/line/ type, on the other hand, returns a Tcl list that
-completely describe the layout of the MARC record &mdash including
+completely describe the layout of the MARC record &mdash; including
 tags, fields, etc.
 
 The <tt/field/ type is sufficient and efficient in the case, where only a
@@ -736,7 +865,7 @@ small number of fields are extracted, and in the case where no
 further processing (in Tcl) is necessary.
 
 However, if the MARC record is to be edited or altered in any way, the
-<tt/line/ extraction is more powerful &mdash only limited by the Tcl
+<tt/line/ extraction is more powerful &mdash; only limited by the Tcl
 language itself.
 
 <bf/Example/
@@ -846,6 +975,12 @@ copies a record in Tcl list notation to a ir set object and is
 needed if a result-set must be updated by a Tcl modified (user-edited)
 record.
 
+<sect1>SUTRS
+
+In <sf/IrTcl/ a SUTRS record is treated as one single string. To retrieve
+a SUTRS string at a given index, the <tt>getSutrs</tt> should be used. 
+The <tt>getSutrs</tt> is immediately followed by a index.
+
 <sect>Scan
 
 <p>
@@ -929,7 +1064,7 @@ been created.
 <sect>License
 
 <p>
-Copyright (c) 1995, Index Data.
+Copyright &copy; 1995, Index Data.
 
 Permission to use, copy, modify, distribute, and sell this software and
 its documentation, in whole or in part, for any purpose, is hereby granted,
