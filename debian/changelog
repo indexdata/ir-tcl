@@ -1,3 +1,9 @@
+ir-tcl (1.4.1-2) unstable; urgency=low
+
+  * New package in order to avoid libxml2 high version.
+
+ -- Adam Dickmeiss <adam@indexdata.dk>  Fri, 28 Sep 2003 10:58:00 +0100
+
 ir-tcl (1.4.1-1) unstable; urgency=low
 
   * Upstream.
