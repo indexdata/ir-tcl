@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: tclmain.c,v $
- * Revision 1.11  1995-08-03 13:23:02  adam
+ * Revision 1.12  1995-08-28 11:07:16  adam
+ * Minor changes.
+ *
+ * Revision 1.11  1995/08/03  13:23:02  adam
  * Request queue.
  *
  * Revision 1.10  1995/06/30  12:39:28  adam
@@ -52,9 +55,9 @@ static char *fileName = NULL;
 
 /* select(2) callbacks */
 struct callback {
-    void (*r_handle)(void *p);
-    void (*w_handle)(void *p);
-    void (*x_handle)(void *p);
+    void (*r_handle)(ClientData);
+    void (*w_handle)(ClientData);
+    void (*x_handle)(ClientData);
     void *obj;
 };
 #define MAX_CALLBACK 200
