@@ -1,70 +1,16 @@
-# IR toolkit for tcl/tk
-# (c) Index Data 1995
-# See the file LICENSE for details.
-# Sebastian Hammer, Adam Dickmeiss
-#
-# $Log: medium.tcl,v $
-# Revision 1.1  1998-09-30 10:53:54  perhans
-# New client with better Explain support and nice icons.
-#
-# Revision 1.15  1997/11/19 11:22:10  adam
-# Object identifiers can be accessed in GRS-1 records.
-#
-# Revision 1.14  1996/04/12 13:45:49  adam
-# Minor changes.
-#
-# Revision 1.13  1996/04/12  12:25:27  adam
-# Modified display of GRS-1 records to include headings for standard
-# tag sets.
-#
-# Revision 1.12  1996/03/29  16:05:36  adam
-# Bug fix: GRS records wasn't recognized.
-#
-# Revision 1.11  1996/01/23  15:24:23  adam
-# Wrore more comments.
-#
-# Revision 1.10  1996/01/11  09:31:05  quinn
-# Small.
-#
-# Revision 1.9  1995/10/17  14:18:10  adam
-# Minor changes in presentation formats.
-#
-# Revision 1.8  1995/10/17  10:58:09  adam
-# More work on presentation formats.
-#
-# Revision 1.7  1995/10/16  17:01:03  adam
-# Medium presentation format looks better.
-#
-# Revision 1.6  1995/09/20  11:37:06  adam
-# Work on GRS.
-#
-# Revision 1.5  1995/06/22  13:16:29  adam
-# Feature: SUTRS. Setting getSutrs implemented.
-# Work on display formats.
-#
-# Revision 1.4  1995/06/14  12:16:42  adam
-# Minor presentation format changes.
-#
-# Revision 1.3  1995/06/13  14:39:06  adam
-# Fix: if {$var != ""} doesn't work if var is a large numerical!
-# Highlight when line format is used.
-#
-# Revision 1.2  1995/06/12  15:18:10  adam
-# Work on presentation formats. These are used in the main window as well
-# as popup windows.
-#
-#
+#Procedure display-grs-medium {w r i}
+#  w      	text widget in which the record should be displayed
+#  r		record
+#  i		indent
+#This procedure displaies the GRS-1 records in a medium sized format and 
+#puts tags around the text in order to format the output.
 proc display-grs-medium {w r i} {
     global tagSet
     
+	$w tag configure indent$i -lmargin1 [expr $i * 16] \
+		-lmargin2 [expr $i * 16 + 8]
     foreach e $r {
-        if {[tk4]} {
-            set start [$w index insert]
-        } else {
-            for {set j 0} {$j < $i} {incr j} {
-                insertWithTags $w "  " marc-tag
-            }
-        }
+        set start [$w index insert]
         set ttype [lindex $e 0]
         set tval [lindex $e 2]
         if {$ttype == 3} {
@@ -83,12 +29,7 @@ proc display-grs-medium {w r i} {
             insertWithTags $w [lindex $e 4] {}
             insertWithTags $w " \n" {}
         }
-        if {[tk4]} {
-            $w tag configure indent$i \
-                    -lmargin1 [expr $i * 16] \
-                    -lmargin2 [expr $i * 16 + 8]
-            $w tag add indent$i $start insert
-        }
+		$w tag add indent$i $start insert
         if {[lindex $e 3] == "subtree"} {
             display-grs-medium $w [lindex $e 4] [expr $i+1]
         }
@@ -183,9 +124,17 @@ proc display-medium {sno no w hflag} {
         $w insert end "\n"
     }
     set i [concat [z39.$sno getMarc $no field 260 * a] \
-            [z39.$sno getMarc $no field 260 * b]]
+            [z39.$sno getMarc $no field 260 * b] [z39.$sno getMarc $no field 260 * c]]
     if {[llength $i]} {
         insertWithTags $w "Publisher " marc-pref
+        foreach x $i {
+            insertWithTags $w $x marc-text
+        }
+        $w insert end "\n"
+    }
+    set i [z39.$sno getMarc $no field 300 * a]
+    if {[llength $i]} {
+        insertWithTags $w "Phys. Desc. " marc-pref
         foreach x $i {
             insertWithTags $w $x marc-text
         }

@@ -970,9 +970,6 @@ proc open-target {target base} {
     }
     set hostid $target
     set currentDb $base
-#	changeQueryButtons $target $base
-    
-#    .top.options.m.query.slist entryconfigure 2 -state normal
     configure-disable-e .top.target.m 0
     configure-enable-e .top.target.m 1
     configure-enable-e .top.target.m 2
@@ -1151,7 +1148,7 @@ proc ready-response {base target} {
 #This procedure take care of all the actions that should start if connect is succesfull.
 proc ready-response-actions {target base} {
 	global profile queryAuto
-	get-attributeDetails $target $base
+#	get-attributeDetails $target $base
 	changeQueryButtons $target $base 
 	configureOptionsSyntax $target $base
 	if {[info exists profile($target,AttributeDetails,$base,Bib1Use)] && $queryAuto == 1} {
@@ -2330,7 +2327,7 @@ proc listbuttonx {button no names handle user} {
         ${button}.m delete 0 last
     } else {
         menubutton $button -text [lindex [lindex $names $no] 0] \
-			-width 10 -menu ${button}.m -relief raised -border 1
+			-width 15 -menu ${button}.m -relief raised -border 1
         irmenu ${button}.m
         ${button}.m configure -tearoff off
     }
@@ -3156,7 +3153,7 @@ proc search-fields {w buttondefs} {
 #base 		database name
 #Changes the Options|Syntax menu acording to the information obtained via explain.
 proc configureOptionsSyntax {target base} {
-	global profile syntaxList
+	global profile syntaxList recordSyntax syntax
 	set activate 0
 	set i -1
 	if {[info exists profile($target,RecordSyntaxes,$base)]} {
@@ -3168,6 +3165,9 @@ proc configureOptionsSyntax {target base} {
 				configure-enable-e .top.options.m.syntax $i
 				if {$activate == 0} {
 					.top.options.m.syntax invoke $i
+					set recordSyntax $syntax
+#					.debug-window.top.t insert end $recordSyntax\n
+#					.debug-window.top.t insert end $syntax
 					set activate 1
 				}
 			} else {

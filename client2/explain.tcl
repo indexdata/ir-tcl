@@ -200,7 +200,7 @@ proc prettyDumpR {x ind} {
 
 # Procedure explain-check-ok
 proc explain-check-ok {target zz category finish} {
-    global profile settingsChanged
+    global profile settingsChanged currentDb
 
     puts ""
     puts ""
@@ -259,6 +259,7 @@ proc explain-check-ok {target zz category finish} {
 		[lindex [lindex [lindex [lindex [lindex $trec 10] 1] 1] 1] 1]
     
     set settingsChanged 1
+    get-attributeDetails $target $currentDb
 
     eval $finish [list $target]
 }
@@ -295,7 +296,6 @@ proc explain-check {target finish base} {
     }
     if {$refresh} {
 		explain-refresh $target $finish
-#		get-attributeDetails $target $base
     } else {
 		eval $finish [list $target]
     }

@@ -55,8 +55,8 @@ set profile(Bagel:210,recentNews) {}
 set profile(Bagel:210,smallSetUpperBound) 0
 set profile(Bagel:210,targetInfoName) Zebra
 set profile(Bagel:210,timeDefine) {}
-set profile(Bagel:210,timeLastExplain) 907773347
-set profile(Bagel:210,timeLastInit) 907773347
+set profile(Bagel:210,timeLastExplain) 908180779
+set profile(Bagel:210,timeLastInit) 908180779
 set profile(Bagel:210,welcomeMessage) {}
 set profile(Bagel:210,windowNumber) 1
 set {profile(Bell Laboratories Library Network,authentication)} {}
@@ -82,8 +82,8 @@ set {profile(Bell Laboratories Library Network,recentNews)} {}
 set {profile(Bell Laboratories Library Network,smallSetUpperBound)} 0
 set {profile(Bell Laboratories Library Network,targetInfoName)} {Lucent Technologies Research Server}
 set {profile(Bell Laboratories Library Network,timeDefine)} 878567355
-set {profile(Bell Laboratories Library Network,timeLastExplain)} 887288368
-set {profile(Bell Laboratories Library Network,timeLastInit)} 887288368
+set {profile(Bell Laboratories Library Network,timeLastExplain)} 907838464
+set {profile(Bell Laboratories Library Network,timeLastInit)} 907838464
 set {profile(Bell Laboratories Library Network,welcomeMessage)} {Salutations - this is Lucent Technologies experimental Z39.50 server. No guarentees, but free and unlimited access!}
 set {profile(Bell Laboratories Library Network,windowNumber)} 15
 set {profile(Bibliothèque Nationale du Québec,authentication)} {}
@@ -225,7 +225,7 @@ set profile(LOC,targetMaxResultSize) {}
 set profile(LOC,targetMaxTerms) {}
 set profile(LOC,timeDefine) 878567355
 set profile(LOC,timeLastExplain) {}
-set profile(LOC,timeLastInit) 907587281
+set profile(LOC,timeLastInit) 907942726
 set profile(LOC,welcomeMessage) {}
 set profile(LOC,windowNumber) 12
 set {profile(OCLC FirstSearch,authentication)} {}
