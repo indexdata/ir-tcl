@@ -4,7 +4,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.24  1995-04-11 14:16:42  adam
+ * Revision 1.25  1995-04-17 09:37:17  adam
+ * Further development of scan.
+ *
+ * Revision 1.24  1995/04/11  14:16:42  adam
  * Further work on scan. Response works. Entries aren't saved yet.
  *
  * Revision 1.23  1995/04/10  10:50:27  adam
@@ -82,6 +85,8 @@
 #include <sys/time.h>
 #include <assert.h>
 
+#include <tcl.h>
+
 #include <yaz-ccl.h>
 #include <iso2709.h>
 #include <comstack.h>
@@ -95,8 +100,6 @@
 #include <proto.h>
 #include <oid.h>
 #include <diagbib1.h>
-
-#include <tcl.h>
 
 #include "ir-tcl.h"
 
@@ -180,6 +183,24 @@ typedef struct IRSetObj_ {
     IRRecordList *record_list;
 } IRSetObj;
 
+typedef struct IRScanEntry_ {
+    int         which;
+    union {
+        struct {
+	    char *buf;
+	    int  globalOccurrences;
+	} term;
+	struct {
+	    int  condition;
+	    char *addinfo;
+	} diag;
+    } u;
+} IRScanEntry;
+
+typedef struct IRScanDiag_ {
+    int         dummy;
+} IRScanDiag;
+
 typedef struct IRScanObj_ {
     IRObj      *parent;
     int         stepSize;
@@ -192,6 +213,12 @@ typedef struct IRScanObj_ {
 
     int         entries_flag;
     int         which;
+
+    int         num_entries;
+    int         num_diagRecs;
+
+    IRScanEntry *entries;
+    IRScanDiag  *nonSurrogateDiagnostics;
 } IRScanObj;
 
 typedef struct {
@@ -259,6 +286,31 @@ static int get_set_int (int *val, Tcl_Interp *interp, int argc, char **argv)
     }
     sprintf (buf, "%d", *val);
     Tcl_AppendResult (interp, buf, NULL);
+    return TCL_OK;
+}
+
+/*
+ * mk_nonSurrogateDiagnostics: Make Tcl result with diagnostic info
+ */
+static int mk_nonSurrogateDiagnostics (Tcl_Interp *interp, 
+                                       int condition,
+				       const char *addinfo)
+{
+    char buf[20];
+    const char *cp;
+
+    Tcl_AppendElement (interp, "NSD");
+    sprintf (buf, "%d", condition);
+    Tcl_AppendElement (interp, buf);
+    cp = diagbib1_str (condition);
+    if (cp)
+        Tcl_AppendElement (interp, (char*) cp);
+    else
+        Tcl_AppendElement (interp, "");
+    if (addinfo)
+        Tcl_AppendElement (interp, (char*) addinfo);
+    else
+        Tcl_AppendElement (interp, "");
     return TCL_OK;
 }
 
@@ -1230,6 +1282,7 @@ static int do_recordMarc (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
 }
 
+
 /*
  * do_responseStatus: Return response status (present or search)
  */
@@ -1237,8 +1290,6 @@ static int do_responseStatus (void *o, Tcl_Interp *interp,
                              int argc, char **argv)
 {
     IRSetObj *obj = o;
-    const char *cp;
-    char buf[28];
 
     if (!obj->recordFlag)
         return TCL_OK;
@@ -1248,19 +1299,8 @@ static int do_responseStatus (void *o, Tcl_Interp *interp,
     	Tcl_AppendElement (interp, "DBOSD");
         break;
     case Z_Records_NSD:
-        Tcl_AppendElement (interp, "NSD");
-        sprintf (buf, "%d", obj->condition);
-        Tcl_AppendElement (interp, buf);
-        cp = diagbib1_str (obj->condition);
-        if (cp)
-            Tcl_AppendElement (interp, (char*) cp);
-        else
-            Tcl_AppendElement (interp, "");
-        if (obj->addinfo)
-            Tcl_AppendElement (interp, obj->addinfo);
-        else
-            Tcl_AppendElement (interp, "");
-        break;
+        return mk_nonSurrogateDiagnostics (interp, obj->condition, 
+	                                   obj->addinfo);
     }
     return TCL_OK;
 }
@@ -1593,6 +1633,45 @@ static int do_positionOfTerm (void *obj, Tcl_Interp *interp,
     return get_set_int (&p->positionOfTerm, interp, argc, argv);
 }
 
+/*
+ * do_scanLine: get Scan Line (surrogate or normal) after response
+ */
+static int do_scanLine (void *obj, Tcl_Interp *interp, int argc, char **argv)
+{
+    IRScanObj *p = obj;
+    int i;
+    char numstr[20];
+
+    if (argc != 3)
+    {
+        interp->result = "wrong # args";
+	return TCL_ERROR;
+    }
+    if (Tcl_GetInt (interp, argv[2], &i) == TCL_ERROR)
+        return TCL_ERROR;
+    if (!p->entries_flag || p->which != Z_ListEntries_entries || !p->entries
+        || i >= p->num_entries || i < 0)
+        return TCL_OK;
+    switch (p->entries[i].which)
+    {
+    case Z_Entry_termInfo:
+        Tcl_AppendElement (interp, "T");
+	if (p->entries[i].u.term.buf)
+	    Tcl_AppendElement (interp, p->entries[i].u.term.buf);
+	else
+	    Tcl_AppendElement (interp, "");
+	sprintf (numstr, "%d", p->entries[i].u.term.globalOccurrences);
+	Tcl_AppendElement (interp, numstr);
+	break;
+    case Z_Entry_surrogateDiagnostic:
+        return 
+	    mk_nonSurrogateDiagnostics (interp, p->entries[i].u.diag.condition,
+	                                p->entries[i].u.diag.addinfo);
+	break;
+    }
+    return TCL_OK;
+}
+
 /* 
  * ir_scan_obj_method: IR Scan Object methods
  */
@@ -1607,6 +1686,7 @@ static int ir_scan_obj_method (ClientData clientData, Tcl_Interp *interp,
     { 0, "scanStatus",              do_scanStatus },
     { 0, "numberOfEntriesReturned", do_numberOfEntriesReturned },
     { 0, "positionOfTerm",          do_positionOfTerm },
+    { 0, "scanLine",                do_scanLine },
     { 0, NULL, NULL}
     };
 
@@ -1648,6 +1728,9 @@ static int ir_scan_obj_mk (ClientData clientData, Tcl_Interp *interp,
     obj->stepSize = 0;
     obj->numberOfTermsRequested = 20;
     obj->preferredPositionInResponse = 1;
+
+    obj->entries = NULL;
+    obj->nonSurrogateDiagnostics = NULL;
 
     obj->parent = (IRObj *) parent_info.clientData;
     Tcl_CreateCommand (interp, argv[1], ir_scan_obj_method,
@@ -1812,11 +1895,66 @@ static void ir_scanResponse (void *o, Z_ScanResponse *scanrs)
     else
         scanobj->positionOfTerm = -1;
     printf ("positionOfTerm=%d\n", scanobj->positionOfTerm);
-    
+
+    free (scanobj->entries);
+    scanobj->entries = NULL;
+    free (scanobj->nonSurrogateDiagnostics);
+    scanobj->nonSurrogateDiagnostics = NULL;
+
     if (scanrs->entries)
     {
+        int i;
+	Z_Entry *ze;
+
         scanobj->entries_flag = 1;
         scanobj->which = scanrs->entries->which;
+	switch (scanobj->which)
+	{
+	case Z_ListEntries_entries:
+	    scanobj->num_entries = scanrs->entries->u.entries->num_entries;
+	    scanobj->entries = malloc (scanobj->num_entries * 
+	                               sizeof(*scanobj->entries));
+            for (i=0; i<scanobj->num_entries; i++)
+	    {
+	        ze = scanrs->entries->u.entries->entries[i];
+                scanobj->entries[i].which = ze->which;
+		switch (ze->which)
+		{
+		case Z_Entry_termInfo:
+		    if (ze->u.termInfo->term->which == Z_Term_general)
+		    {
+                        scanobj->entries[i].u.term.buf =
+			    malloc (1+ze->u.termInfo->term->u.general->len);
+			strcpy (scanobj->entries[i].u.term.buf, 
+			        ze->u.termInfo->term->u.general->buf);
+		    }
+		    else
+                        scanobj->entries[i].u.term.buf = NULL;
+		    if (ze->u.termInfo->globalOccurrences)
+		        scanobj->entries[i].u.term.globalOccurrences = 
+		            *ze->u.termInfo->globalOccurrences;
+		    else
+		        scanobj->entries[i].u.term.globalOccurrences = 0;
+                    break;
+		case Z_Entry_surrogateDiagnostic:
+		    scanobj->entries[i].u.diag.addinfo = 
+		            malloc (1+strlen(ze->u.surrogateDiagnostic->
+			                     addinfo));
+                    strcpy (scanobj->entries[i].u.diag.addinfo,
+		            ze->u.surrogateDiagnostic->addinfo);
+		    scanobj->entries[i].u.diag.condition = 
+		        *ze->u.surrogateDiagnostic->condition;
+		    break;
+		}
+	    }
+            break;
+	case Z_ListEntries_nonSurrogateDiagnostics:
+	    scanobj->num_diagRecs = scanrs->entries->
+	                          u.nonSurrogateDiagnostics->num_diagRecs;
+	    scanobj->nonSurrogateDiagnostics = malloc (scanobj->num_diagRecs *
+	                          sizeof(*scanobj->nonSurrogateDiagnostics));
+            break;
+	}
     }
     else
         scanobj->entries_flag = 0;
