@@ -3,7 +3,10 @@
  * (c) Index Data 1995
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.11  1995-03-16 17:54:03  adam
+ * Revision 1.12  1995-03-17 15:45:00  adam
+ * Improved target/database setup.
+ *
+ * Revision 1.11  1995/03/16  17:54:03  adam
  * Minor changes really.
  *
  * Revision 1.10  1995/03/15  16:14:50  adam
@@ -1247,6 +1250,10 @@ static void ir_initResponse (void *obj, Z_InitResponse *initrs)
         printf("Name   : %s\n", initrs->implementationName);
     if (initrs->implementationVersion)
         printf("Version: %s\n", initrs->implementationVersion);
+    if (initrs->maximumRecordSize)
+        printf ("MaximumRecordSize=%d\n", *initrs->maximumRecordSize);
+    if (initrs->preferredMessageSize)
+        printf ("PreferredMessageSize=%d\n", *initrs->preferredMessageSize);
 #if 0
     if (initrs->userInformationField)
     {

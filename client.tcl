@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.7  1995-03-16 17:54:03  adam
+# Revision 1.8  1995-03-17 15:45:00  adam
+# Improved target/database setup.
+#
+# Revision 1.7  1995/03/16  17:54:03  adam
 # Minor changes really.
 #
 # Revision 1.6  1995/03/15  19:10:20  adam
@@ -27,8 +30,10 @@ set hotTargets {}
 set hotInfo {}
 set busy 0
 
-set profile(Default) {{} {} 16384 8192 tcpip {books names demo} }
-set hostname Default
+set profile(Default) {{} {} {210} {} 16384 8192 tcpip {}}
+set hostid Default
+set settingsChanged 0
+set setNo 0
 
 wm minsize . 360 200
 
@@ -194,11 +199,11 @@ proc update-target-hotlist {target} {
 
 proc set-target-hotlist {} {
     global hotTargets
-
+    
     set i 1
     foreach target $hotTargets {
-        .top.target.m add command -label $target -command \
-            "menu-open-target $target"
+        .top.target.m add command -label "$i $target" -command \
+                "menu-open-target $target {}"
         incr i
         if {$i > 8} {
              break
@@ -206,33 +211,49 @@ proc set-target-hotlist {} {
     }
 }
 
-proc menu-open-target {target} {
-    open-target $target
+proc menu-open-target {target base} {
+    open-target $target $base
     update-target-hotlist $target
 }
 
-proc open-target-action {} {
-    set host [.target-connect.top.host.entry get]
-    set port [.target-connect.top.port.entry get]
+proc define-target-action {} {
+    global profile
 
-    if {$host == ""} {
+    set target [.target-define.top.target.entry get]
+    if {$target == ""} {
         return
     }
-    if {$port == ""} {
-        set port 210
+    update-target-hotlist $target
+    foreach n [array names profile] {
+        if {$n == $target} {
+            protocol-setup $n
+            return
+        }
     }
-    open-target "${host}:${port}"
-    update-target-hotlist ${host}:${port}
-    destroy .target-connect
+    set profile($target) $profile(Default)
+    protocol-setup $target
+    destroy .target-define
 }
 
-proc open-target {target} {
-    z39 disconnect
-    global csRadioType
-    z39 comstack ${csRadioType}
-    show-target $target
-    z39 connect $target
+proc open-target {target base} {
+    global profile
 
+    z39 disconnect
+    z39 comstack [lindex $profile($target) 6]
+    # z39 idAuthentication [lindex $profile($target) 3]
+    z39 maximumRecordSize [lindex $profile($target) 4]
+    z39 preferredMessageSize [lindex $profile($target) 5]
+    puts -nonewline "maximumRecordSize="
+    puts [z39 maximumRecordSize]
+    puts -nonewline "preferredMessageSize="
+    puts [z39 preferredMessageSize]
+    if {$base == ""} {
+        z39 databaseNames [lindex [lindex $profile($target) 7] 0]
+    } else {
+        z39 databaseNames $base
+    }
+    show-target $target
+    z39 connect  [lindex $profile($target) 1]:[lindex $profile($target) 2]
     init-request
 }
 
@@ -313,8 +334,11 @@ proc search-response {} {
     show-message "[z39.$setNo resultCount] hits"
     set setMax [z39.$setNo resultCount]
     puts $setMax
-    if {$setMax > 30} {
-        set setMax 30
+    if {$setMax == 0} {
+        return
+    }
+    if {$setMax > 20} {
+        set setMax 20
     }
     z39 callback {present-response}
     set setOffset 1
@@ -329,7 +353,8 @@ proc add-title-lines {no offset} {
         set o [expr $i + $offset]
         set title [lindex [z39.$setNo recordMarc $o field 245 * a] 0]
         set year  [lindex [z39.$setNo recordMarc $o field 260 * c] 0]
-        .data.list insert end "$title - $year"
+        set nostr [format "%3d" $o]
+        .data.list insert end "$nostr $title - $year"
     }
 }
 
@@ -370,7 +395,7 @@ proc entry-fields {parent list tlist returnAction escapeAction} {
         set label ${parent}.${field}.label
         set entry ${parent}.${field}.entry
         label $label -text [lindex $tlist $i] -anchor e
-        entry $entry -width 24 -relief sunken
+        entry $entry -width 26 -relief sunken
         pack $label -side left
         pack $entry -side right
         lappend alist $entry
@@ -379,8 +404,8 @@ proc entry-fields {parent list tlist returnAction escapeAction} {
     bind-fields $alist $returnAction $escapeAction
 }
 
-proc open-target-dialog {} {
-    set w .target-connect
+proc define-target-dialog {} {
+    set w .target-define
 
     toplevel $w
 
@@ -388,17 +413,16 @@ proc open-target-dialog {} {
 
     top-down-window $w
 
-    frame $w.top.host
-    frame $w.top.port
+    frame $w.top.target
 
-    pack $w.top.host $w.top.port \
+    pack $w.top.target \
             -side top -anchor e -pady 2 
 
-    entry-fields $w.top {host port } \
-            {{Hostname:} {Port number:}} \
-            {open-target-action} {destroy .target-connect}
-
-    top-down-ok-cancel $w {open-target-action}
+    entry-fields $w.top {target} \
+            {{Target:}} \
+            {define-target-action} {destroy .target-define}
+    
+    top-down-ok-cancel $w {define-target-action}
 }
 
 proc close-target {} {
@@ -409,25 +433,30 @@ proc close-target {} {
     show-message {}
 }
 
-proc protocol-setup-action {} {
-    global hostname
+proc protocol-setup-action {target} {
     global profile
     global csRadioType
+    global settingsChanged
 
     set w .protocol-setup.top
     
+    set b {}
+    set settingsChanged 1
     set len [$w.databases.list size]
     for {set i 0} {$i < $len} {incr i} {
         lappend b [$w.databases.list get $i]
     }
-    set profile($hostname) [list [$w.description.entry get] \
+    set profile($target) [list [$w.description.entry get] \
+            [$w.host.entry get] \
+            [$w.port.entry get] \
             [$w.idAuthentication.entry get] \
             [$w.maximumRecordSize.entry get] \
             [$w.preferredMessageSize.entry get] \
             $csRadioType \
             $b]
 
-    puts $profile($hostname)
+    cascade-target-list
+    puts $profile($target)
     destroy .protocol-setup
 }
 
@@ -477,25 +506,27 @@ proc delete-database {} {
     }
 }
 
-proc protocol-setup {} {
+proc protocol-setup {target} {
     set w .protocol-setup
 
-    global hostname
     global profile
     global csRadioType
 
     toplevel $w
 
+    wm title $w "Setup $target"
     place-force $w .
 
     top-down-window $w
     
-    if {$hostname == ""} {
-        set hostname Default
+    if {$target == ""} {
+        set target Default
     }
-    puts hostname
-    puts $profile($hostname)
+    puts target
+    puts $profile($target)
 
+    frame $w.top.host
+    frame $w.top.port
     frame $w.top.description
     frame $w.top.idAuthentication
     frame $w.top.maximumRecordSize
@@ -505,21 +536,23 @@ proc protocol-setup {} {
     frame $w.top.databases -relief ridge -border 2
 
     # Maximum/preferred/idAuth ...
-    pack $w.top.description \
+    pack $w.top.description $w.top.host $w.top.port \
             $w.top.idAuthentication $w.top.maximumRecordSize \
             $w.top.preferredMessageSize -side top -anchor e -pady 2
     #-anchor e
     
-    entry-fields $w.top {description idAuthentication maximumRecordSize \
-            preferredMessageSize} \
-            {{Description:} {Id Authentification:} {Maximum Record Size:}
-    {Preferred Message Size:}} \
-            {protocol-setup-action} {destroy .protocol-setup}
+    entry-fields $w.top {description host port idAuthentication \
+            maximumRecordSize preferredMessageSize} \
+            {{Description:} {Host:} {Port:} {Id Authentification:} \
+            {Maximum Record Size:} {Preferred Message Size:}} \
+            [list protocol-setup-action $target] {destroy .protocol-setup}
     
-    $w.top.description.entry insert 0 [lindex $profile($hostname) 0]
-    $w.top.idAuthentication.entry insert 0 [lindex $profile($hostname) 1]
-    $w.top.maximumRecordSize.entry insert 0 [lindex $profile($hostname) 2]
-    $w.top.preferredMessageSize.entry insert 0 [lindex $profile($hostname) 3]
+    $w.top.description.entry insert 0 [lindex $profile($target) 0]
+    $w.top.host.entry insert 0 [lindex $profile($target) 1]
+    $w.top.port.entry insert 0 [lindex $profile($target) 2]
+    $w.top.idAuthentication.entry insert 0 [lindex $profile($target) 3]
+    $w.top.maximumRecordSize.entry insert 0 [lindex $profile($target) 4]
+    $w.top.preferredMessageSize.entry insert 0 [lindex $profile($target) 5]
 
     # Databases ....
     pack $w.top.databases -side left -pady 6 -padx 6 -expand yes -fill x
@@ -540,12 +573,12 @@ proc protocol-setup {} {
             -padx 2 -pady 2
     $w.top.databases.scroll config -command "$w.top.databases.list yview"
 
-    foreach b [lindex $profile($hostname) 5] {
+    foreach b [lindex $profile($target) 7] {
         $w.top.databases.list insert end $b
     }
     
     # Transport ...
-    set csRadioType [lindex $profile($hostname) 4]
+    set csRadioType [lindex $profile($target) 6]
 
     pack $w.top.cs-type -pady 6 -padx 6 -side top
     
@@ -570,7 +603,7 @@ proc protocol-setup {} {
     pack $w.top.query.c1 $w.top.query.c2 $w.top.query.c3 \
             -padx 4 -side top -fill x
     
-    top-down-ok-cancel $w {protocol-setup-action}
+    top-down-ok-cancel $w [list protocol-setup-action $target]
 }
 
 proc database-select-action {} {
@@ -588,7 +621,7 @@ proc database-select-action {} {
 proc database-select {} {
     set w .database-select
     global profile
-    global hostname
+    global hostid
 
     toplevel $w
 
@@ -596,18 +629,11 @@ proc database-select {} {
 
     top-down-window $w
 
-    if {$hostname == ""} {
-        set hostname Default
+    if {$hostid == ""} {
+        set hostid Default
     }
 
-    #frame $w.top.database
     frame $w.top.databases -relief ridge -border 2
-
-    #pack $w.top.database -side top -anchor e -pady 2
-    
-    #entry-fields $w.top {database} \
-    #        {{Database:}} \
-    #        {database-select-action} {destroy .database-select}
 
     pack $w.top.databases -side left -pady 6 -padx 6 -expand yes -fill x
 
@@ -623,25 +649,104 @@ proc database-select {} {
             -padx 2 -pady 2
     $w.top.databases.scroll config -command "$w.top.databases.list yview"
 
-    foreach b [lindex $profile($hostname) 5] {
+    foreach b [lindex $profile($hostid) 7] {
         $w.top.databases.list insert end $b
     }
     top-down-ok-cancel $w {database-select-action}
 }
 
+proc cascade-target-list {} {
+    global profile
+    
+    foreach sub [winfo children .top.target.m.clist] {
+        puts "deleting $sub"
+        destroy $sub
+    }
+    .top.target.m.clist delete 0 last
+    foreach n [array names profile] {
+        if {$n != "Default"} {
+            set nl [string tolower $n]
+            if {[llength [lindex $profile($n) 7]] > 1} {
+                .top.target.m.clist add cascade -label $n \
+                        -menu .top.target.m.clist.$nl
+                menu .top.target.m.clist.$nl
+                foreach b [lindex $profile($n) 7] {
+                    .top.target.m.clist.$nl add command -label $b \
+                            -command "menu-open-target $n $b"
+                }
+            } else {
+                .top.target.m.clist add command -label $n \
+                        -command "menu-open-target $n {}"
+            }
+        }
+    }
+    .top.target.m.slist delete 0 last
+    foreach n [array names profile] {
+        if {$n != "Default"} {
+            .top.target.m.slist add command -label $n \
+                    -command "protocol-setup $n"
+        }
+    }
+}
+
 proc save-settings {} {
     global hotTargets 
+    global profile
+    global settingsChanged
 
     set f [open "~/.tk-c" w]
     puts $f "# Setup file"
     puts $f "set hotTargets \{ $hotTargets \}"
+
+    foreach n [array names profile] {
+        puts -nonewline $f "set profile($n) \{"
+        puts -nonewline $f $profile($n)
+        puts $f "\}"
+    }
     close $f
+    set settingsChanged 0
 }
 
-frame .top -border 1 -relief raised
+proc alert {ask} {
+    set w .alert
+
+    global alertAnswer
+
+    toplevel $w
+    place-force $w .
+    top-down-window $w
+
+    message $w.top.message -text $ask
+
+    pack $w.top.message -side left -pady 6 -padx 20 -expand yes -fill x
+  
+    set alertAnswer 0
+    top-down-ok-cancel $w {alert-action}
+    return $alertAnswer
+}
+
+proc alert-action {} {
+    global alertAnswer
+    set alertAnswer 1
+    destroy .alert
+}
+
+proc exit-action {} {
+    global settingsChanged
+
+    if {$settingsChanged} {
+        set a [alert "you havent saved your settings. Do you wish to save?"]
+        if {$a} {
+            save-settings
+        }
+    }
+    destroy .
+}
+
+frame .top  -border 1 -relief raised
 frame .mid  -border 1 -relief raised
 frame .data -border 1 -relief raised
-frame .bot -border 1 -relief raised
+frame .bot  -border 1 -relief raised
 pack .top .mid -side top -fill x
 pack .data      -side top -fill both -expand yes
 pack .bot      -fill x
@@ -651,16 +756,21 @@ menu .top.file.m
 .top.file.m add command -label "Save settings" -command {save-settings}
 .top.file.m add command -label "Load Set" -command {load-set}
 .top.file.m add separator
-.top.file.m add command -label "Exit" -command {destroy .}
+.top.file.m add command -label "Exit" -command {exit-action}
 
 menubutton .top.target -text "Target" -menu .top.target.m
 menu .top.target.m
-.top.target.m add command -label "Connect" -command {open-target-dialog}
+.top.target.m add cascade -label "Connect" -menu .top.target.m.clist
 .top.target.m add command -label "Disconnect" -command {close-target}
-.top.target.m add command -label "Initialize" -command {init-request}
-.top.target.m add command -label "Setup" -command {protocol-setup}
+#.top.target.m add command -label "Initialize" -command {init-request}
+.top.target.m add cascade -label "Setup" -menu .top.target.m.slist
+.top.target.m add command -label "Setup new" -command {define-target-dialog}
 .top.target.m add separator
 set-target-hotlist
+
+menu .top.target.m.clist
+menu .top.target.m.slist
+cascade-target-list
 
 menubutton .top.database -text "Database" -menu .top.database.m
 menu .top.database.m
@@ -669,6 +779,7 @@ menu .top.database.m
 
 menubutton .top.help -text "Help" -menu .top.help.m
 menu .top.help.m
+
 .top.help.m add command -label "Help on help" -command {puts "Help on help"}
 .top.help.m add command -label "About" -command {puts "About"}
 
@@ -676,10 +787,9 @@ pack .top.file .top.target .top.database -side left
 pack .top.help -side right
 
 label .mid.searchlabel -text {Search:}
-entry .mid.searchentry -width 50 -relief sunken
+entry .mid.searchentry -width 40 -relief sunken
 
 listbox .data.list -yscrollcommand {.data.scroll set}
-#-geometry 50x10
 scrollbar .data.scroll -orient vertical -border 1
 pack .data.list -side left -fill both -expand yes
 pack .data.scroll -side right -fill y
@@ -695,8 +805,5 @@ pack .bot.target .bot.status .bot.message -anchor nw -side left -padx 2 -pady 2
 bind .data.list <Double-Button-1> {set indx [.data.list nearest %y]
 show-full-marc $indx}
 
-set setNo 0
 ir z39
 z39 comstack tcpip
-set csRadioType [z39 comstack]
-z39 preferredMessageSize 12000
