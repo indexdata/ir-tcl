@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.5  1995-03-15 13:59:23  adam
+# Revision 1.6  1995-03-15 19:10:20  adam
+# Database setup in protocol-setup (rather target setup).
+#
+# Revision 1.5  1995/03/15  13:59:23  adam
 # Minor changes.
 #
 # Revision 1.4  1995/03/14  17:32:29  adam
@@ -20,6 +23,9 @@
 set hotTargets {}
 set hotInfo {}
 set busy 0
+
+set profile(Default) {{} {} 16384 8192 tcpip {books names} }
+set hostname Default
 
 wm minsize . 360 200
 
@@ -361,7 +367,7 @@ proc entry-fields {parent list tlist returnAction escapeAction} {
         set label ${parent}.${field}.label
         set entry ${parent}.${field}.entry
         label $label -text [lindex $tlist $i] -anchor e
-        entry $entry -width 30 -relief sunken
+        entry $entry -width 24 -relief sunken
         pack $label -side left
         pack $entry -side right
         lappend alist $entry
@@ -401,6 +407,24 @@ proc close-target {} {
 }
 
 proc protocol-setup-action {} {
+    global hostname
+    global profile
+    global csRadioType
+
+    set w .protocol-setup.top
+    
+    set len [$w.databases.list size]
+    for {set i 0} {$i < $len} {incr i} {
+        lappend b [$w.databases.list get $i]
+    }
+    set profile($hostname) [list [$w.description.entry get] \
+            [$w.idAuthentication.entry get] \
+            [$w.maximumRecordSize.entry get] \
+            [$w.preferredMessageSize.entry get] \
+            $csRadioType \
+            $b]
+
+    puts $profile($hostname)
     destroy .protocol-setup
 }
 
@@ -416,73 +440,19 @@ proc place-force {window parent} {
     wm geometry $window +${x}+${y}
 }
 
-proc protocol-setup {} {
-    set w .protocol-setup
 
-    toplevel $w
-
-    place-force $w .
-
-    top-down-window $w
-    
-    frame $w.top.description
-    frame $w.top.idAuthentification
-    frame $w.top.maximumMessageSize
-    frame $w.top.preferredMessageSize
-    frame $w.top.cs-type -relief ridge -border 2
-    frame $w.top.query -relief ridge -border 2
-    
-    # Maximum/preferred/idAuth ...
-    pack $w.top.description \
-            $w.top.idAuthentification $w.top.maximumMessageSize \
-            $w.top.preferredMessageSize -side top -anchor e -pady 2 
-    
-    entry-fields $w.top {description idAuthentification maximumMessageSize \
-            preferredMessageSize} \
-            {{Description:} {Id Authentification:} {Maximum Message Size:}
-    {Preferred Message Size:}} \
-            {protocol-setup-action} {destroy .protocol-setup}
-    
-    # Transport ...
-    pack $w.top.cs-type -side left -pady 2 -padx 2
-    
-    global csRadioType
-    
-    label $w.top.cs-type.label -text "Transport" -anchor e
-    radiobutton $w.top.cs-type.tcpip -text "TCP/IP" \
-            -command {puts tcp/ip} -variable csRadioType -value tcpip
-    radiobutton $w.top.cs-type.mosi -text "MOSI" \
-            -command {puts mosi} -variable csRadioType -value mosi
-    
-    pack $w.top.cs-type.label $w.top.cs-type.tcpip $w.top.cs-type.mosi \
-            -padx 4 -side top -fill x
-    
-    # Query ...
-    pack $w.top.query -side right -pady 2 -padx 2 -expand yes
-
-    label $w.top.query.label -text "Query support" -anchor e
-    checkbutton $w.top.query.c1 -text "CCL query"   
-    checkbutton $w.top.query.c2 -text "RPN query"
-    checkbutton $w.top.query.c3 -text "Result sets"
-
-    pack $w.top.query.label -side top -anchor w
-    pack $w.top.query.c1 $w.top.query.c2 $w.top.query.c3 \
-            -padx 4 -side left -fill x
-    
-    top-down-ok-cancel $w {protocol-setup-action}
-}
-
-proc database-select-action {} {
-    z39 databaseNames [.database-select.top.database.entry get]
+proc add-database-action {} {
+    .protocol-setup.top.databases.list insert end \
+            [.database-select.top.database.entry get]
     destroy .database-select
 }
 
-proc database-select {} {
+proc add-database {} {
     set w .database-select
 
     toplevel $w
 
-    place-force $w .
+    place-force $w .protocol-setup
 
     top-down-window $w
 
@@ -491,9 +461,168 @@ proc database-select {} {
     pack $w.top.database -side top -anchor e -pady 2
     
     entry-fields $w.top {database} \
-            {{Database:}} \
-            {database-select-action} {destroy .database-select}
+            {{Database to add:}} \
+            {add-database-action} {destroy .database-select}
 
+    top-down-ok-cancel $w {add-database-action}
+}
+
+proc delete-database {} {
+    foreach i [lsort -decreasing \
+            [.protocol-setup.top.databases.list curselection]] {
+        .protocol-setup.top.databases.list delete $i
+    }
+}
+
+proc protocol-setup {} {
+    set w .protocol-setup
+
+    global hostname
+    global profile
+    global csRadioType
+
+    toplevel $w
+
+    place-force $w .
+
+    top-down-window $w
+    
+    if {$hostname == ""} {
+        set hostname Default
+    }
+    puts hostname
+    puts $profile($hostname)
+
+    frame $w.top.description
+    frame $w.top.idAuthentication
+    frame $w.top.maximumRecordSize
+    frame $w.top.preferredMessageSize
+    frame $w.top.cs-type -relief ridge -border 2
+    frame $w.top.query -relief ridge -border 2
+    frame $w.top.databases -relief ridge -border 2
+
+    # Maximum/preferred/idAuth ...
+    pack $w.top.description \
+            $w.top.idAuthentication $w.top.maximumRecordSize \
+            $w.top.preferredMessageSize -side top -anchor e -pady 2
+    #-anchor e
+    
+    entry-fields $w.top {description idAuthentication maximumRecordSize \
+            preferredMessageSize} \
+            {{Description:} {Id Authentification:} {Maximum Record Size:}
+    {Preferred Message Size:}} \
+            {protocol-setup-action} {destroy .protocol-setup}
+    
+    $w.top.description.entry insert 0 [lindex $profile($hostname) 0]
+    $w.top.idAuthentication.entry insert 0 [lindex $profile($hostname) 1]
+    $w.top.maximumRecordSize.entry insert 0 [lindex $profile($hostname) 2]
+    $w.top.preferredMessageSize.entry insert 0 [lindex $profile($hostname) 3]
+
+    # Databases ....
+    pack $w.top.databases -side left -pady 6 -padx 6 -expand yes -fill x
+
+    label $w.top.databases.label -text "Databases"
+    button $w.top.databases.add -text "Add" -command {add-database}
+    button $w.top.databases.delete -text "Delete" -command {delete-database}
+    listbox $w.top.databases.list -geometry 20x6 \
+            -yscrollcommand "$w.top.databases.scroll set"
+    scrollbar $w.top.databases.scroll -orient vertical -border 1
+    pack $w.top.databases.label -side top -fill x \
+            -padx 2 -pady 2
+    pack $w.top.databases.add $w.top.databases.delete -side top -fill x \
+            -padx 2 -pady 2
+    pack $w.top.databases.list -side left -fill both -expand yes \
+            -padx 2 -pady 2
+    pack $w.top.databases.scroll -side right -fill y \
+            -padx 2 -pady 2
+    $w.top.databases.scroll config -command "$w.top.databases.list yview"
+
+    foreach b [lindex $profile($hostname) 5] {
+        $w.top.databases.list insert end $b
+    }
+    
+    # Transport ...
+    set csRadioType [lindex $profile($hostname) 4]
+
+    pack $w.top.cs-type -pady 6 -padx 6 -side top
+    
+    label $w.top.cs-type.label -text "Transport" 
+    radiobutton $w.top.cs-type.tcpip -text "TCP/IP" \
+            -command {puts tcp/ip} -variable csRadioType -value tcpip
+    radiobutton $w.top.cs-type.mosi -text "MOSI" \
+            -command {puts mosi} -variable csRadioType -value mosi
+    
+    pack $w.top.cs-type.label $w.top.cs-type.tcpip $w.top.cs-type.mosi \
+            -padx 4 -side top -fill x
+
+    # Query ...
+    pack $w.top.query -pady 6 -padx 6 -side top
+
+    label $w.top.query.label -text "Query support" -anchor e
+    checkbutton $w.top.query.c1 -text "CCL query"   
+    checkbutton $w.top.query.c2 -text "RPN query"
+    checkbutton $w.top.query.c3 -text "Result sets"
+
+    pack $w.top.query.label -side top 
+    pack $w.top.query.c1 $w.top.query.c2 $w.top.query.c3 \
+            -padx 4 -side top -fill x
+    
+    top-down-ok-cancel $w {protocol-setup-action}
+}
+
+proc database-select-action {} {
+    set w .database-select.top
+    set b {}
+    foreach indx [$w.databases.list curselection] {
+        lappend b [$w.databases.list get $indx]
+    }
+    if {$b != ""} {
+        z39 databaseNames $b
+    }
+    destroy .database-select
+}
+
+proc database-select {} {
+    set w .database-select
+    global profile
+    global hostname
+
+    toplevel $w
+
+    place-force $w .
+
+    top-down-window $w
+
+    if {$hostname == ""} {
+        set hostname Default
+    }
+
+    #frame $w.top.database
+    frame $w.top.databases -relief ridge -border 2
+
+    #pack $w.top.database -side top -anchor e -pady 2
+    
+    #entry-fields $w.top {database} \
+    #        {{Database:}} \
+    #        {database-select-action} {destroy .database-select}
+
+    pack $w.top.databases -side left -pady 6 -padx 6 -expand yes -fill x
+
+    label $w.top.databases.label -text "List"
+    listbox $w.top.databases.list -geometry 20x6 \
+            -yscrollcommand "$w.top.databases.scroll set"
+    scrollbar $w.top.databases.scroll -orient vertical -border 1
+    pack $w.top.databases.label -side top -fill x \
+            -padx 2 -pady 2
+    pack $w.top.databases.list -side left -fill both -expand yes \
+            -padx 2 -pady 2
+    pack $w.top.databases.scroll -side right -fill y \
+            -padx 2 -pady 2
+    $w.top.databases.scroll config -command "$w.top.databases.list yview"
+
+    foreach b [lindex $profile($hostname) 5] {
+        $w.top.databases.list insert end $b
+    }
     top-down-ok-cancel $w {database-select-action}
 }
 
