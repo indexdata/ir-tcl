@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.33  1995-06-09 11:17:35  adam
+# Revision 1.34  1995-06-12 07:59:07  adam
+# More work on geometry handling.
+#
+# Revision 1.33  1995/06/09  11:17:35  adam
 # Start work on geometry management.
 #
 # Revision 1.32  1995/06/07  09:16:37  adam
@@ -125,8 +128,18 @@ set queryTypes {Simple}
 set queryButtons { { {I 0} {I 1} {I 2} } }
 set queryInfo { { {Title {1=4}} {Author {1=1}} \
         {Subject {1=21}} {Any {1=1016}} } }
+wm minsize . 0 0
 
-set windowGeometry(.scan-window) {}
+proc read-formats {} {
+    global displayFormats
+    set formats [glob -nocomplain formats/*.tcl]
+    foreach f $formats {
+        source $f
+        set l [expr [string length $f] - 5]
+ 	lappend displayFormats [string range $f 8 $l]
+    }
+    puts $displayFormats
+}
 
 proc destroyG {w} {
     global windowGeometry
@@ -146,10 +159,13 @@ proc toplevelG {w} {
     }
 }
 
-wm minsize . 0 0
 
 if {[file readable "clientrc.tcl"]} {
     source "clientrc.tcl"
+}
+
+if {[file readable "clientg.tcl"]} {
+    source "clientg.tcl"
 }
 
 set queryButtonsFind [lindex $queryButtons 0]
@@ -331,133 +347,6 @@ proc about-origin {} {
     bottom-buttons $w [list {Close} [list destroyG $w]] 1
 }
 
-proc display-raw {sno no w} {
-    $w delete 0.0 end
-    set r [z39.$sno getMarc $no list * * *]
-    foreach line $r {
-        set tag [lindex $line 0]
-        set indicator [lindex $line 1]
-        set fields [lindex $line 2]
-        
-        if {$indicator != ""} {
-            insertWithTags $w "$tag $indicator" marc-tag
-        } else {
-            insertWithTags $w "$tag    " marc-tag
-        }
-        foreach field $fields {
-            set id [lindex $field 0]
-            set data [lindex $field 1]
-            if {$id != ""} {
-                insertWithTags $w " $id " marc-id
-            }
-            set start [$w index insert]
-            insertWithTags $w $data {}
-        }
-        $w insert end "\n"
-    }
-}
-
-proc display-nice {sno no w} {
-    $w delete 0.0 end
-    set i [z39.$sno getMarc $no field 245 * a]
-    if {$i != ""} {
-        set i [lindex $i 0]
-        insertWithTags $w "Title:      " marc-tag
-        insertWithTags $w $i marc-data
-        set i [z39.$sno getMarc $no field 245 * b]
-        if {$i != ""} {
-            insertWithTags $w [lindex $i 0] marc-data
-        }
-        $w insert end "\n"
-    }
-    set i [z39.$sno getMarc $no field 700 * a]
-    if {$i == ""} {
-        set i [z39.$sno getMarc $no field 100 * a]
-    }
-    if {$i != ""} {
-        if {[llength $i] > 1} {
-            insertWithTags $w "Authors:    " marc-tag
-        } else {
-            insertWithTags $w "Author:     " marc-tag
-        }
-        foreach x $i {
-            insertWithTags $w $x marc-data
-        }
-        $w insert end "\n"
-    }
-    set i [z39.$sno getMarc $no field 110 * *]
-    if {$i != ""} {
-        insertWithTags $w "Co-Author:  " marc-tag
-        foreach x $i {
-            insertWithTags $w $x marc-data
-        }
-        $w insert end "\n"
-    }
-
-    set i [z39.$sno getMarc $no field 650 * *]
-    if {$i != ""} {
-        set n 0
-        insertWithTags $w "Keywords:   " marc-tag
-        foreach x $i {
-            if {$n > 0} {
-                $w insert end ", "
-            }
-            insertWithTags $w $x marc-data
-            incr n
-        }
-        $w insert end "\n"
-    }
-    set i [concat [z39.$sno getMarc $no field 260 * a] \
-            [z39.$sno getMarc $no field 260 * b]]
-    if {$i != ""} {
-        insertWithTags $w "Publisher:  " marc-tag
-        foreach x $i {
-            insertWithTags $w $x marc-data
-        }
-        $w insert end "\n"
-    }
-    set i [z39.$sno getMarc $no field 020 * a]
-    if {$i != ""} {
-        insertWithTags $w "ISBN:       " marc-tag
-        foreach x $i {
-            insertWithTags $w $x marc-data
-        }
-        $w insert end "\n"
-    }
-    set i [z39.$sno getMarc $no field 022 * a]
-    if {$i != ""} {
-        insertWithTags $w "ISSN:       " marc-tag
-        foreach x $i {
-            insertWithTags $w $x marc-data
-        }
-        $w insert end "\n"
-    }
-    set i [z39.$sno getMarc $no field 030 * a]
-    if {$i != ""} {
-        insertWithTags $w "CODEN:      " marc-tag
-        foreach x $i {
-            insertWithTags $w $x marc-data
-        }
-        $w insert end "\n"
-    }
-    set i [z39.$sno getMarc $no field 015 * a]
-    if {$i != ""} {
-        insertWithTags $w "Ctl number: " marc-tag
-        foreach x $i {
-            insertWithTags $w $x marc-data
-        }
-        $w insert end "\n"
-    }
-    set i [z39.$sno getMarc $no field 010 * a]
-    if {$i != ""} {
-        insertWithTags $w "LC number:  " marc-tag
-        foreach x $i {
-            insertWithTags $w $x marc-data
-        }
-        $w insert end "\n"
-    }
-}
-
 proc show-full-marc {sno no b} {
     global fullMarcSeq
     global displayFormat
@@ -475,11 +364,7 @@ proc show-full-marc {sno no b} {
         set new 0
     } else {
 
-        if {$b} {
-            toplevel $w
-        } else {
-            toplevelG $w
-        }
+        toplevelG $w
 
         wm minsize $w 0 0
         
@@ -489,15 +374,20 @@ proc show-full-marc {sno no b} {
         pack  $w.top -side top -fill both -expand yes
         pack  $w.bot -fill both
 
-        text $w.top.record -width 60 -height 12 -wrap word \
+        text $w.top.record -width 60 -height 5 -wrap word \
                 -yscrollcommand [list $w.top.s set]
         scrollbar $w.top.s -command [list $w.top.record yview]
 
         set new 1
     }
-    $w.top.record tag configure marc-tag -foreground blue
+    if {[tk colormodel .] == "color"} {
+        $w.top.record tag configure marc-tag -foreground blue
+        $w.top.record tag configure marc-id -foreground red
+    } else {
+        $w.top.record tag configure marc-tag -foreground black
+        $w.top.record tag configure marc-id -foreground black
+    }
     $w.top.record tag configure marc-data -foreground black
-    $w.top.record tag configure marc-id -foreground red
 
     if {$displayFormat == "nice"} {
         display-nice $sno $no $w.top.record
@@ -509,11 +399,19 @@ proc show-full-marc {sno no b} {
         
         pack $w.top.s -side right -fill y
         pack $w.top.record -expand yes -fill both
-
-        bottom-buttons $w [list \
+        
+        if {$b} {
+            bottom-buttons $w [list \
                 {Close} [list destroy $w] \
                 {Raw} [list display-raw $sno $no $w.top.record] \
                 {Duplicate} [list show-full-marc $sno $no 1]] 0
+        } else {
+            bottom-buttons $w [list \
+                {Close} [list destroyG $w] \
+                {Raw} [list display-raw $sno $no $w.top.record] \
+                {Duplicate} [list show-full-marc $sno $no 1]] 0
+        }
+
     } else {
         $w.bot.2 configure -command [list display-raw $sno $no $w.top.record]
         $w.bot.4 configure -command [list show-full-marc $sno $no 1]
@@ -771,7 +669,7 @@ proc scan-request {attr} {
         bind $w.top.entry <KeyRelease> [list scan-term-h $attr]
         if {1} {
             listbox $w.top.list -yscrollcommand [list $w.top.scroll set] \
-                    -font fixed -geometry 50x14
+                    -font fixed 
             scrollbar $w.top.scroll -orient vertical -border 1
             pack $w.top.list -side left -fill both -expand yes
             pack $w.top.scroll -side right -fill y
@@ -1495,6 +1393,21 @@ proc cascade-query-list {} {
     }
 }
 
+proc save-geometry {} {
+    global windowGeometry
+    
+    set windowGeometry(.) [wm geometry .]
+
+    set f [open "clientg.tcl" w]
+
+    foreach n [array names windowGeometry] {
+        puts -nonewline $f "set \{windowGeometry($n)\} \{"
+        puts -nonewline $f $windowGeometry($n)
+        puts $f "\}"
+    }
+    close $f
+}
+
 proc save-settings {} {
     global hotTargets 
     global profile
@@ -1502,9 +1415,7 @@ proc save-settings {} {
     global queryTypes
     global queryButtons
     global queryInfo
-
-    destroyG .
-
+    
     set f [open "clientrc.tcl" w]
     puts $f "# Setup file"
     puts $f "set hotTargets \{ $hotTargets \}"
@@ -1525,7 +1436,6 @@ proc save-settings {} {
     puts -nonewline $f "set queryInfo \{"
     puts -nonewline $f $queryInfo
     puts $f "\}"
-    
     close $f
     set settingsChanged 0
 }
@@ -1557,6 +1467,7 @@ proc alert-action {} {
 proc exit-action {} {
     global settingsChanged
 
+    save-geometry
     if {$settingsChanged} {
         set a [alert "you havent saved your settings. Do you wish to save?"]
         if {$a} {
@@ -1943,12 +1854,14 @@ proc search-fields {w buttondefs} {
     $w.0 configure -background red
 }
 
-if {[info exists windowGeometry(.w)]} {
-    set g $windowGeometry(.w)
+if {[info exists windowGeometry(.)]} {
+    set g $windowGeometry(.)
     if {$g != ""} {
-        wm geometry .w $g
+        wm geometry . $g
     }
 }    
+
+read-formats
 
 frame .top  -border 1 -relief raised
 frame .lines  -border 1 -relief raised
