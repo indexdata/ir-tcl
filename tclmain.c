@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: tclmain.c,v $
- * Revision 1.13  1995-08-28 12:21:22  adam
+ * Revision 1.14  1995-09-21 13:11:53  adam
+ * Support of dynamic loading.
+ * Test script uses load command if necessary.
+ *
+ * Revision 1.13  1995/08/28  12:21:22  adam
  * Removed lines and list as synonyms of list in MARC extractron.
  * Configure searches also for tk4.0 / tcl7.4.
  *
@@ -75,7 +79,7 @@ int Tcl_AppInit (Tcl_Interp *interp)
 {
     if (Tcl_Init(interp) == TCL_ERROR)
         return TCL_ERROR;
-    if (ir_tcl_init(interp) == TCL_ERROR)
+    if (Irtcl_Init(interp) == TCL_ERROR)
         return TCL_ERROR;
     return TCL_OK;
 }

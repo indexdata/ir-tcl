@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.56  1995-08-29 15:30:14  adam
+ * Revision 1.57  1995-09-21 13:11:51  adam
+ * Support of dynamic loading.
+ * Test script uses load command if necessary.
+ *
+ * Revision 1.56  1995/08/29  15:30:14  adam
  * Work on GRS records.
  *
  * Revision 1.55  1995/08/28  09:43:25  adam
@@ -3083,9 +3087,9 @@ void ir_select_write (ClientData clientData)
 /* ------------------------------------------------------- */
 
 /*
- * ir_tcl_init: Registration of TCL commands.
+ * Irtcl_init: Registration of TCL commands.
  */
-int ir_tcl_init (Tcl_Interp *interp)
+int Irtcl_Init (Tcl_Interp *interp)
 {
     Tcl_CreateCommand (interp, "ir", ir_obj_mk, (ClientData) NULL,
                        (Tcl_CmdDeleteProc *) NULL);
@@ -3095,3 +3099,4 @@ int ir_tcl_init (Tcl_Interp *interp)
     		       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
     return TCL_OK;
 }
+

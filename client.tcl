@@ -4,7 +4,11 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.67  1995-09-20 14:35:19  adam
+# Revision 1.68  1995-09-21 13:11:49  adam
+# Support of dynamic loading.
+# Test script uses load command if necessary.
+#
+# Revision 1.67  1995/09/20  14:35:19  adam
 # Minor changes.
 #
 # Revision 1.66  1995/08/29  15:30:13  adam
@@ -3113,7 +3117,13 @@ pack .bot.a.target -side top -anchor nw -padx 2 -pady 2
 pack .bot.a.status .bot.a.set .bot.a.message \
         -side left -padx 2 -pady 2 -ipadx 1 -ipady 1
 
-catch {ir z39}
+if {[catch {ir z39}]} {
+    set e [info sharedlibextension]
+    puts -nonewline "Loading irtcl..."
+    load irtcl$e
+    ir z39
+    puts "ok"
+}
 #z39 logLevel all
 show-logo 1
 

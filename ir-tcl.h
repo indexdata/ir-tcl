@@ -24,7 +24,11 @@
  * OF THIS SOFTWARE.
  *
  * $Log: ir-tcl.h,v $
- * Revision 1.10  1995-06-22 07:15:59  adam
+ * Revision 1.11  1995-09-21 13:11:52  adam
+ * Support of dynamic loading.
+ * Test script uses load command if necessary.
+ *
+ * Revision 1.10  1995/06/22  07:15:59  adam
  * Version number moved to Makefile.in
  * Some work on autoconf.
  *
@@ -56,7 +60,7 @@
 #ifndef IR_TCL_H
 #define IR_TCL_H
 
-int ir_tcl_init (Tcl_Interp *interp);
+int Irtcl_Init (Tcl_Interp *interp);
 
 void ir_select_add          (int fd, void *obj);
 void ir_select_add_write    (int fd, void *obj);
