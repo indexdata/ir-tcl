@@ -1,14 +1,14 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.19 1996-06-24 16:24:39 adam Exp $
+  $Id: ir-tcl.sgml,v 1.20 1996-07-25 13:44:04 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference 
 <author><htmlurl url="http://www.indexdata.dk/" name="Index Data">,
 <tt><htmlurl url="mailto:info@index.ping.dk" name="info@index.ping.dk"></tt>
-<date>$Revision: 1.19 $
+<date>$Revision: 1.20 $
 <abstract>
 This document describes IrTcl -- an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
@@ -54,7 +54,7 @@ In order to compile you need:
 <item> <htmlurl url="http://www.sunlabs.com/research/tcl/" name="Tcl">.
  Version 7.3, 7.4 and 7.5 has been tested.
 <item> <htmlurl url="http://130.225.252.168/yaz.html" name="YAZ">
- version 1.0 patch level 3 or higher.
+ version 1.2 or higher.
 </itemize>
 
 As an option you may want:
@@ -1213,8 +1213,9 @@ Tcl and the Tk Toolkit. Addison-Wesley Company Inc (ISBN
  name="http://www.sunlabs.com/research/tcl"></tt>.
 The primary ftp site is <tt><htmlurl url="ftp://ftp.smli.com/pub/tcl/"
 name="ftp://ftp.smli.com/pub/tcl/"></tt>.
-A mirror site can be found at <tt><htmlurl url="ftp://ftp.aud.alcatel.com/tcl/"
-name="ftp://ftp.aud.alcatel.com/tcl/"></tt>.
+A mirror site can be found at <tt>
+<htmlurl url="ftp://ftp.neosoft.com/pub/tcl/mirror/ftp.smli.com"
+name="ftp://ftp.neosoft.com/pub/tcl/mirror/ftp.smli.com"></tt>.
 <tag>2 Furniss, Peter:</tag>
 RFC 1698: Octet Sequences for Upper-Layer OSI to Support
 Basic Communications Applications.
