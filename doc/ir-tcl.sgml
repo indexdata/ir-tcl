@@ -1,13 +1,13 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.5 1995-05-30 10:59:20 adam Exp $
+  $Id: ir-tcl.sgml,v 1.6 1995-06-01 16:36:56 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference
 <author>Index Data, <tt/info@index.ping.dk/
-<date>$Revision: 1.5 $
+<date>$Revision: 1.6 $
 <abstract>
 This document describes IrTcl &mdash an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
@@ -538,7 +538,7 @@ The first part of the <tt/search-response/ looks like:
 proc search-response {assoc rset} {
     set status [$rset responseStatus]
     set type [lindex $status 0]
-    if {$type == NSD} {
+    if {$type == "NSD"} {
         set code [lindex $status 1]
         set msg [lindex $status 2]
         set addinfo [lindex $status 3]
@@ -546,7 +546,7 @@ proc search-response {assoc rset} {
         return
     } 
     set hits [$rset resultCount]
-    if {$type == DBOSD} {
+    if {$type == "DBOSD"} {
         set ret [$rset numberOfRecordsReturned]
         ...
     }
@@ -621,7 +621,7 @@ surrogate diagnostics (<tt/DBOSD/). The individual
 records, indexed by an integer position, should be 
 inspected.
 
-The action <tt/Type/ followed by an integer returns information 
+The action <tt/type/ followed by an integer returns information 
 about a given position in an ir set. There are three possiblities:
 
 <descrip>
@@ -660,18 +660,18 @@ Recall that the ir set name was passed to the
 search-response handler as argument <tt/rset/.
 
 <tscreen><verb>
-    if {$type == DBOSD} {
+    if {$type == "DBOSD"} {
         set ret [$rset numberOfRecordsReturned]
         for {set i 1} {$i<=$ret} {incr i} {
-            set itype [$rset Type $i]
-            if {$itype == SD} {
+            set itype [$rset type $i]
+            if {$itype == "SD"} {
                 set diag [$rset Diag $i]
                 set code [lindex $diag 0]
                 set msg [lindex $diag 1]
                 set addinfo [lindex $diag 2]
                 puts "$i: NSD $code: $msg: $addinfo"
-            } else if {$itype == DB} {
-                set rtype [$rset RecordType $i]
+            } else if {$itype == "DB"} {
+                set rtype [$rset recordType $i]
                 puts "$i: type is $rtype"
             }
         }
