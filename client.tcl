@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.56  1995-06-27 19:03:48  adam
+# Revision 1.57  1995-06-29 09:20:30  adam
+# Target entries in cascade menus are sorted.
+#
+# Revision 1.56  1995/06/27  19:03:48  adam
 # Bug fix in do_present in ir-tcl.c: p->set_child member weren't set.
 # nextResultSetPosition used instead of setOffset.
 #
@@ -1835,7 +1838,7 @@ proc cascade-target-list {} {
         destroy $sub
     }
     .top.target.m.clist delete 0 last
-    foreach n [array names profile] {
+    foreach n [lsort [array names profile]] {
         if {$n != "Default"} {
             set nl [lindex $profile($n) 12]
             if {[llength [lindex $profile($n) 7]] > 1} {
@@ -1853,7 +1856,7 @@ proc cascade-target-list {} {
         }
     }
     .top.target.m.slist delete 0 last
-    foreach n [array names profile] {
+    foreach n [lsort [array names profile]] {
         if {$n != "Default"} {
             .top.target.m.slist add command -label $n \
                     -command [list protocol-setup $n]
