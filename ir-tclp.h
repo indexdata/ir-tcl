@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.28  1996-02-23 17:31:41  adam
+ * Revision 1.29  1996-02-26 18:38:33  adam
+ * Work on export of set methods.
+ *
+ * Revision 1.28  1996/02/23  17:31:41  adam
  * More functions made available to the wais tcl extension.
  *
  * Revision 1.27  1996/02/23  13:41:41  adam
@@ -364,13 +367,15 @@ int ir_tcl_method (Tcl_Interp *interp, int argc, char **argv,
 typedef struct {
     const char *name;
     int (*ir_init)   (ClientData clientData, Tcl_Interp *interp,
-                      int argc, char **argv, ClientData *subData);
+                      int argc, char **argv, ClientData *subData,
+                      ClientData parentData);
     int (*ir_method) (ClientData clientData, Tcl_Interp *interp,
                       int argc, char **argv);
     void (*ir_delete)(ClientData clientData);
 } IrTcl_Class;
 
 extern IrTcl_Class ir_obj_class;
+extern IrTcl_Class ir_set_obj_class;
 
 void ir_select_add (int fd, void *obj);
 void ir_select_add_write (int fd, void *obj);

@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.80  1996-02-23 17:31:39  adam
+ * Revision 1.81  1996-02-26 18:38:32  adam
+ * Work on export of set methods.
+ *
+ * Revision 1.80  1996/02/23  17:31:39  adam
  * More functions made available to the wais tcl extension.
  *
  * Revision 1.79  1996/02/23  13:41:38  adam
@@ -1396,13 +1399,14 @@ static int do_databaseNames (void *obj, Tcl_Interp *interp,
     }
     p->num_databaseNames = argc - 2;
     p->databaseNames =
-        ir_tcl_malloc (sizeof(*p->databaseNames) * p->num_databaseNames);
+        ir_tcl_malloc (sizeof(*p->databaseNames) * (1+p->num_databaseNames));
     for (i=0; i<p->num_databaseNames; i++)
     {
         if (ir_tcl_strdup (interp, &p->databaseNames[i], argv[2+i]) 
             == TCL_ERROR)
             return TCL_ERROR;
     }
+    p->databaseNames[i] = NULL;
     return TCL_OK;
 }
 
@@ -1750,7 +1754,8 @@ static void ir_obj_delete (ClientData clientData)
  * ir_obj_init: IR Object initialization
  */
 int ir_obj_init (ClientData clientData, Tcl_Interp *interp,
-                 int argc, char **argv, ClientData *subData)
+                 int argc, char **argv, ClientData *subData,
+                 ClientData parentData)
 {
     IrTcl_Methods tab[3];
     IrTcl_Obj *obj;
@@ -1808,7 +1813,7 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
                       int argc, char **argv)
 {
     ClientData subData;
-    int r = ir_obj_init (clientData, interp, argc, argv, &subData);
+    int r = ir_obj_init (clientData, interp, argc, argv, &subData, 0);
     
     if (r == TCL_ERROR)
         return TCL_ERROR;
@@ -2637,10 +2642,11 @@ static void ir_set_obj_delete (ClientData clientData)
 }
 
 /*
- * ir_set_obj_mk: IR Set Object creation
+ * ir_set_obj_init: IR Set Object initialization
  */
-static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
-                          int argc, char **argv)
+static int ir_set_obj_init (ClientData clientData, Tcl_Interp *interp,
+                            int argc, char **argv, ClientData *subData,
+                            ClientData parentData)
 {
     IrTcl_Methods tabs[3];
     IrTcl_SetObj *obj;
@@ -2652,33 +2658,30 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
     }
     obj = ir_tcl_malloc (sizeof(*obj));
     logf (LOG_DEBUG, "ir set create");
-    if (argc == 3)
+    if (parentData)
     {
-        Tcl_CmdInfo parent_info;
         int i;
         IrTcl_SetCObj *dst;
         IrTcl_SetCObj *src;
 
-        if (!Tcl_GetCommandInfo (interp, argv[2], &parent_info))
-        {
-            interp->result = "No parent";
-            return TCL_ERROR;
-        }
-        obj->parent = (IrTcl_Obj *) parent_info.clientData;
+        obj->parent = (IrTcl_Obj *) parentData;
 
         dst = &obj->set_inher;
         src = &obj->parent->set_inher;
 
         if ((dst->num_databaseNames = src->num_databaseNames))
+        {
             dst->databaseNames =
                 ir_tcl_malloc (sizeof (*dst->databaseNames)
-                               * dst->num_databaseNames);
+                               * (1+dst->num_databaseNames));
+            for (i = 0; i < dst->num_databaseNames; i++)
+                if (ir_tcl_strdup (interp, &dst->databaseNames[i],
+                                   src->databaseNames[i]) == TCL_ERROR)
+                    return TCL_ERROR;
+            dst->databaseNames[i] = NULL;
+        }
         else
             dst->databaseNames = NULL;
-        for (i = 0; i < dst->num_databaseNames; i++)
-            if (ir_tcl_strdup (interp, &dst->databaseNames[i],
-                           src->databaseNames[i]) == TCL_ERROR)
-                return TCL_ERROR;
         if (ir_tcl_strdup (interp, &dst->queryType, src->queryType)
             == TCL_ERROR)
             return TCL_ERROR;
@@ -2722,10 +2725,44 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
     if (ir_tcl_method (interp, 0, NULL, tabs) == TCL_ERROR)
         return TCL_ERROR;
 
-    Tcl_CreateCommand (interp, argv[1], ir_set_obj_method,
-                       (ClientData) obj, ir_set_obj_delete);
+    *subData = obj;
     return TCL_OK;
 }
+
+/*
+ * ir_set_obj_mk: IR Set Object creation
+ */
+static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
+                          int argc, char **argv)
+{
+    ClientData subData;
+    ClientData parentData = 0;
+    int r;
+
+    if (argc == 3)
+    {
+        Tcl_CmdInfo parent_info;
+        if (!Tcl_GetCommandInfo (interp, argv[2], &parent_info))
+        {
+            interp->result = "No parent";
+            return TCL_ERROR;
+        }
+        parentData = parent_info.clientData;
+    }
+    r = ir_set_obj_init (clientData, interp, argc, argv, &subData, parentData);
+    if (r == TCL_ERROR)
+        return TCL_ERROR;
+    Tcl_CreateCommand (interp, argv[1], ir_set_obj_method,
+                       subData, ir_set_obj_delete);
+    return TCL_OK;
+}
+
+IrTcl_Class ir_set_obj_class = {
+    "ir-set",
+    ir_set_obj_init,
+    ir_set_obj_method,
+    ir_set_obj_delete
+};
 
 /* ------------------------------------------------------- */
 

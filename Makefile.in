@@ -2,7 +2,7 @@
 # (c) Index Data 1995
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.28 1996-02-23 17:31:38 adam Exp $
+# $Id: Makefile.in,v 1.29 1996-02-26 18:38:31 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -67,7 +67,7 @@ ir-tcl: libirtcl.a tclmain.o
 	$(CC) $(CFLAGS) tclmain.o -o ir-tcl libirtcl.a $(YAZLIB) $(TCLLIB) $(LIBS)
 
 wais-tcl: libirtcl.a wais-tcl.o waismain.o
-	$(CC) $(CFLAGS) wais-tcl.o waismain.o -o wais-tcl libirtcl.a $(YAZLIB) $(TCLLIB) $(LIBS)
+	$(CC) $(CFLAGS) wais-tcl.o waismain.o -o wais-tcl libirtcl.a $(YAZLIB) $(TCLLIB) /home/proj/freeWAIS-sf/freeWAIS-sf-2.0.60/ir/libwais.a $(LIBS)
 
 waismain.o: tclmain.c
 	$(CC) -c $(CFLAGS) -DUSE_WAIS=1 $(DEFS) tclmain.c -o waismain.o
