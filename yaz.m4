@@ -1,8 +1,81 @@
-## $Id: yaz.m4,v 1.1 2004-04-26 09:12:01 adam Exp $
+## $Id: yaz.m4,v 1.2 2004-09-11 20:58:20 adam Exp $
 ## 
-# Use this m4 funciton for autoconf if you use YAZ in your own
+# Use this m4 function for autoconf if you use YAZ in your own
 # configure script.
-# YAZ_INIT
+
+dnl ----- Setup Docbook documentation for YAZ
+AC_DEFUN([YAZ_DOC],
+[
+AC_SUBST(DTD_DIR)	
+AC_ARG_WITH(docbook-dtd, [  --with-docbook-dtd[=DIR]  use docbookx.dtd in DIR],
+[
+	if test -f "$withval/docbookx.dtd"; then
+		DTD_DIR=$withval
+	fi
+],[
+	AC_MSG_CHECKING(for docbookx.dtd)
+	DTD_DIR=""
+	for d in /usr/share/sgml/docbook/dtd/xml/4.1.2 \
+		/usr/share/sgml/docbook/xml-dtd-4.1.2* \
+		/usr/share/sgml/docbook/xml-dtd-4.1 \
+		/usr/share/sgml/docbook/dtd/xml/4.0 \
+		/usr/lib/sgml/dtd/docbook-xml 
+	do
+		if test -f $d/docbookx.dtd; then
+			AC_MSG_RESULT($d)
+			DTD_DIR=$d
+			break
+		fi
+	done
+	if test -z "$DTD_DIR"; then
+		AC_MSG_RESULT(Not found)
+	fi
+])
+AC_SUBST(DSSSL_DIR)
+AC_ARG_WITH(docbook-dsssl,[  --with-docbook-dsssl[=DIR] use Docbook DSSSL in DIR/{html,print}/docbook.dsl],
+[
+	if test -f "$withval/html/docbook.dsl"; then
+		DSSSL_DIR=$withval
+	fi
+],[
+	AC_MSG_CHECKING(for docbook.dsl)
+	DSSSL_DIR=""
+	for d in /usr/share/sgml/docbook/stylesheet/dsssl/modular \
+		/usr/share/sgml/docbook/dsssl-stylesheets-1.* \
+		/usr/lib/sgml/stylesheet/dsssl/docbook/nwalsh 
+	do
+		if test -f $d/html/docbook.dsl; then
+			AC_MSG_RESULT($d)
+			DSSSL_DIR=$d
+			break
+		fi
+	done
+	if test -z "$DSSSL_DIR"; then
+		AC_MSG_RESULT(Not found)
+	fi
+])
+AC_SUBST(XSL_DIR)
+AC_ARG_WITH(docbook-xsl,[  --with-docbook-xsl[=DIR]  use Docbook XSL in DIR/{htmlhelp,xhtml}],
+[
+	if test -f "$withval/htmlhelp/htmlhelp.xsl"; then
+		XSL_DIR=$withval
+	fi
+],[
+	AC_MSG_CHECKING(for htmlhelp.xsl)
+	for d in /usr/share/sgml/docbook/stylesheet/xsl/nwalsh \
+		/usr/share/sgml/docbook/xsl-stylesheets-1.* 
+	do
+		if test -f $d/htmlhelp/htmlhelp.xsl; then
+			AC_MSG_RESULT($d)
+			XSL_DIR=$d
+			break
+		fi
+	done
+	if test -z "$XSL_DIR"; then
+		AC_MSG_RESULT(Not found)
+	fi
+])
+]) 
 
 AC_DEFUN([YAZ_INIT],
 [
@@ -12,7 +85,7 @@ AC_DEFUN([YAZ_INIT],
 	AC_SUBST(YAZVERSION)
 	yazconfig=NONE
 	yazpath=NONE
-	AC_ARG_WITH(yazconfig, [  --with-yazconfig=DIR    yaz-config in DIR (example /home/yaz-1.7)], [yazpath=$withval])
+	AC_ARG_WITH(yaz, [  --with-yaz=DIR          use yaz-config in DIR (example /home/yaz-1.7)], [yazpath=$withval])
 	if test "x$yazpath" != "xNONE"; then
 		yazconfig=$yazpath/yaz-config
 	else
@@ -61,3 +134,4 @@ AC_DEFUN([YAZ_INIT],
 		fi
 	fi
 ]) 
+
