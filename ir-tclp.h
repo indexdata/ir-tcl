@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.17  1995-10-16 17:00:56  adam
+ * Revision 1.18  1995-10-18 16:42:44  adam
+ * New settings: smallSetElementSetNames and mediumSetElementSetNames.
+ *
+ * Revision 1.17  1995/10/16  17:00:56  adam
  * New setting: elementSetNames.
  * Various client improvements. Medium presentation format looks better.
  *
@@ -105,6 +108,8 @@ typedef struct {
     char       *referenceId;
 
     char       *elementSetNames;
+    char       *smallSetElementSetNames;
+    char       *mediumSetElementSetNames;
 
     int         smallSetUpperBound;
     int         largeSetLowerBound;

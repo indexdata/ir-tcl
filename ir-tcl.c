@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.60  1995-10-18 15:43:31  adam
+ * Revision 1.61  1995-10-18 16:42:42  adam
+ * New settings: smallSetElementSetNames and mediumSetElementSetNames.
+ *
+ * Revision 1.60  1995/10/18  15:43:31  adam
  * In search: mediumSetElementSetNames and smallSetElementSetNames are
  * set to elementSetNames.
  *
@@ -1407,6 +1410,58 @@ static int do_elementSetNames (void *obj, Tcl_Interp *interp,
     return TCL_OK;
 }
 
+/*
+ * do_smallSetElementSetNames: Set/Get element Set Names
+ */
+static int do_smallSetElementSetNames (void *obj, Tcl_Interp *interp,
+                               int argc, char **argv)
+{
+    IrTcl_SetCObj *p = obj;
+
+    if (argc == 0)
+    {
+        p->smallSetElementSetNames = NULL;
+        return TCL_OK;
+    }
+    else if (argc == -1)
+        return ir_tcl_strdel (interp, &p->smallSetElementSetNames);
+    if (argc == 3)
+    {
+        free (p->smallSetElementSetNames);
+        if (ir_tcl_strdup (interp, &p->smallSetElementSetNames,
+                           argv[2]) == TCL_ERROR)
+            return TCL_ERROR;
+    }
+    Tcl_AppendResult (interp, p->smallSetElementSetNames, NULL);
+    return TCL_OK;
+}
+
+/*
+ * do_mediumSetElementSetNames: Set/Get element Set Names
+ */
+static int do_mediumSetElementSetNames (void *obj, Tcl_Interp *interp,
+                               int argc, char **argv)
+{
+    IrTcl_SetCObj *p = obj;
+
+    if (argc == 0)
+    {
+        p->mediumSetElementSetNames = NULL;
+        return TCL_OK;
+    }
+    else if (argc == -1)
+        return ir_tcl_strdel (interp, &p->mediumSetElementSetNames);
+    if (argc == 3)
+    {
+        free (p->mediumSetElementSetNames);
+        if (ir_tcl_strdup (interp, &p->mediumSetElementSetNames,
+                           argv[2]) == TCL_ERROR)
+            return TCL_ERROR;
+    }
+    Tcl_AppendResult (interp, p->mediumSetElementSetNames, NULL);
+    return TCL_OK;
+}
+
 
 static IrTcl_Method ir_method_tab[] = {
 { 1, "comstack",                    do_comstack },
@@ -1446,6 +1501,8 @@ static IrTcl_Method ir_set_c_method_tab[] = {
 { 0, "mediumSetPresentNumber",      do_mediumSetPresentNumber},
 { 0, "referenceId",                 do_referenceId },
 { 0, "elementSetNames",             do_elementSetNames },
+{ 0, "smallSetElementSetNames",     do_smallSetElementSetNames },
+{ 0, "mediumSetElementSetNames",    do_mediumSetElementSetNames },
 { 0, NULL, NULL}
 };
 
@@ -1588,6 +1645,8 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
     apdu = zget_APDU (p->odr_out, Z_APDU_searchRequest);
     req = apdu->u.searchRequest;
 
+    obj->start = 1;
+
     bib1.proto = p->protocol_type;
     bib1.class = CLASS_ATTSET;
     bib1.value = VAL_BIB1;
@@ -1619,23 +1678,32 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
     else
         req->preferredRecordSyntax = 0;
 
-    if (obj->set_inher.elementSetNames && *obj->set_inher.elementSetNames)
+    if (obj->set_inher.smallSetElementSetNames &&
+        *obj->set_inher.smallSetElementSetNames)
     {
         Z_ElementSetNames *esn = odr_malloc (p->odr_out, sizeof(*esn));
-
+        
         esn->which = Z_ElementSetNames_generic;
         esn->u.generic = obj->set_inher.elementSetNames;
-        req->mediumSetElementSetNames = esn;
         req->smallSetElementSetNames = esn;
     }
     else
-    {
-        req->mediumSetElementSetNames = NULL;
         req->smallSetElementSetNames = NULL; 
+    
+    if (obj->set_inher.mediumSetElementSetNames &&
+        *obj->set_inher.mediumSetElementSetNames)
+    {
+        Z_ElementSetNames *esn = odr_malloc (p->odr_out, sizeof(*esn));
+        
+        esn->which = Z_ElementSetNames_generic;
+        esn->u.generic = obj->set_inher.elementSetNames;
+        req->mediumSetElementSetNames = esn;
     }
-
+    else
+        req->mediumSetElementSetNames = NULL; 
+    
     req->query = &query;
-
+    
     if (!strcmp (obj->set_inher.queryType, "rpn"))
     {
         Z_RPNQuery *RPNquery;
@@ -1814,7 +1882,10 @@ static int do_type (void *o, Tcl_Interp *interp, int argc, char **argv)
         return TCL_ERROR;
     rl = find_IR_record (obj, offset);
     if (!rl)
+    {
+        logf (LOG_DEBUG, "No record at position %d", offset);
         return TCL_OK;
+    }
     switch (rl->which)
     {
     case Z_NamePlusRecord_databaseRecord:
@@ -2129,6 +2200,7 @@ static int do_present (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     else
         req->preferredRecordSyntax = 0;
+
     if (obj->set_inher.elementSetNames && *obj->set_inher.elementSetNames)
     {
         Z_ElementSetNames *esn = odr_malloc (p->odr_out, sizeof(*esn));
@@ -2303,6 +2375,16 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
             return TCL_ERROR;
 
         if (ir_tcl_strdup (interp, &dst->elementSetNames, src->elementSetNames)
+            == TCL_ERROR)
+            return TCL_ERROR;
+
+        if (ir_tcl_strdup (interp, &dst->smallSetElementSetNames,
+                           src->smallSetElementSetNames)
+            == TCL_ERROR)
+            return TCL_ERROR;
+
+        if (ir_tcl_strdup (interp, &dst->mediumSetElementSetNames,
+                           src->mediumSetElementSetNames)
             == TCL_ERROR)
             return TCL_ERROR;
 

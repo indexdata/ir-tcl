@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.78  1995-10-18 15:45:36  quinn
+# Revision 1.79  1995-10-18 16:42:37  adam
+# New settings: smallSetElementSetNames and mediumSetElementSetNames.
+#
+# Revision 1.78  1995/10/18  15:45:36  quinn
 # *** empty log message ***
 #
 # Revision 1.77  1995/10/18  15:37:46  adam
@@ -1164,8 +1167,12 @@ proc search-request {bflag} {
     }
     if {$elementSetNames == "None" } {
         z39.$setNo elementSetNames {}
+        z39.$setNo smallSetElementSetNames {}
+        z39.$setNo mediumSetElementSetNames {}
     } else {
         z39.$setNo elementSetNames $elementSetNames
+        z39.$setNo smallSetElementSetNames $elementSetNames
+        z39.$setNo mediumSetElementSetNames $elementSetNames
     }
     z39 callback {search-response}
     z39.$setNo search $query
@@ -1556,12 +1563,14 @@ proc add-title-lines {setno no offset} {
     global setNo
     global busy
 
+    dputs "add-title-lines offset=${offset} no=${no}"
     if {$setno != -1} {
         set setNo $setno
     } else {
         set setno $setNo
     }
     if {$offset == 1} {
+        
         .bot.a.set configure -text $setno
         .data.record delete 0.0 end
     }
@@ -1572,6 +1581,7 @@ proc add-title-lines {setno no offset} {
         set o [expr $i + $offset]
         set type [z39.$setno type $o]
         if {$type == ""} {
+            dputs "no more at $o"
             break
         }
         .data.record tag bind r$o <Any-Enter> {}
