@@ -3,7 +3,11 @@
  * (c) Index Data 1995
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.5  1995-03-10 18:00:15  adam
+ * Revision 1.6  1995-03-12 19:31:55  adam
+ * Pattern matching implemented when retrieving MARC records. More
+ * diagnostic functions.
+ *
+ * Revision 1.5  1995/03/10  18:00:15  adam
  * Actual presentation in line-by-line format. RPN query support.
  *
  * Revision 1.4  1995/03/09  16:15:08  adam
@@ -40,6 +44,8 @@ typedef struct {
     char *implementationName;
     char *implementationId;
 
+    char *hostname;
+   
     char *buf_out;
     int  len_out;
 
@@ -67,9 +73,17 @@ typedef struct {
 } IRObj;
 
 typedef struct IRRecordList_ {
-    int status;
-    Iso2709Rec rec;
     int no;
+    int which;
+    union {
+        struct {
+            Iso2709Rec rec;
+        } marc;
+        struct {
+            int code;
+            char *add_info;
+        } diag;
+    } u;
     struct IRRecordList_ *next;
 } IRRecordList;
 
@@ -84,6 +98,7 @@ typedef struct IRSetObj_ {
 } IRSetObj;
 
 typedef struct {
+    int type;
     char *name;
     int (*method) (void * obj, Tcl_Interp *interp, int argc, char **argv);
 } IRMethod;
@@ -122,16 +137,38 @@ static int get_parent_info (Tcl_Interp *interp, const char *name,
  * ir_method: Search for method in table and invoke method handler
  */
 int ir_method (void *obj, Tcl_Interp *interp, int argc, char **argv,
-                   IRMethod *tab)
+               IRMethod *tab)
 {
-    while (tab->name)
-    {
-        if (!strcmp (tab->name, argv[1]))
-            return (*tab->method)(obj, interp, argc, argv);
-        tab++;
-    }
-    Tcl_AppendResult (interp, "unknown method: ", argv[1], NULL);
+    IRMethod *t;
+    for (t = tab; t->name; t++)
+        if (!strcmp (t->name, argv[1]))
+            return (*t->method)(obj, interp, argc, argv);
+    Tcl_AppendResult (interp, "Bad method. Possible values:", NULL);
+    for (t = tab; t->name; t++)
+        Tcl_AppendResult (interp, " ", t->name, NULL);
     return TCL_ERROR;
+}
+
+/*
+ * ir_method_r: Get status for all readable elements
+ */
+int ir_method_r (void *obj, Tcl_Interp *interp, int argc, char **argv,
+                 IRMethod *tab)
+{
+    char *argv_n[3];
+    int argc_n;
+
+    argv_n[0] = argv[0];
+    argc_n = 2;
+    for (; tab->name; tab++)
+        if (tab->type)
+        {
+            argv_n[1] = tab->name;
+            Tcl_AppendResult (interp, "{", NULL);
+            (*tab->method)(obj, interp, argc_n, argv_n);
+            Tcl_AppendResult (interp, "} ", NULL);
+        }
+    return TCL_OK;
 }
 
 /*
@@ -160,11 +197,28 @@ int ir_strdup (Tcl_Interp *interp, char** p, char *s)
     *p = malloc (strlen(s)+1);
     if (!*p)
     {
-        interp->result = "malloc fail";
+        interp->result = "strdup fail";
         return TCL_ERROR;
     }
     strcpy (*p, s);
     return TCL_OK;
+}
+
+/*
+ * ir_malloc: Malloc function
+ */
+void *ir_malloc (Tcl_Interp *interp, size_t size)
+{
+    static char buf[128];
+    void *p = malloc (size);
+
+    if (!p)
+    {
+        sprintf (buf, "Malloc fail. %ld bytes requested", (long) size);
+        interp->result = buf;
+        return NULL;
+    }
+    return p;
 }
 
 /* ------------------------------------------------------- */
@@ -199,7 +253,8 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
 
     if (!z_APDU (p->odr_out, &apdup, 0))
     {
-        interp->result = odr_errlist [odr_geterror (p->odr_out)];
+        Tcl_AppendResult (interp, odr_errlist [odr_geterror (p->odr_out)],
+                          NULL);
         odr_reset (p->odr_out);
         return TCL_ERROR;
     }
@@ -236,40 +291,44 @@ static int do_options (void *obj, Tcl_Interp *interp,
 }
 
 /*
- * do_preferredMessageSize: Set preferred message size
+ * do_preferredMessageSize: Set/get preferred message size
  */
 static int do_preferredMessageSize (void *obj, Tcl_Interp *interp,
                                     int argc, char **argv)
 {
+    char buf[20];
     if (argc == 3)
     {
         if (Tcl_GetInt (interp, argv[2], 
                         &((IRObj *)obj)->preferredMessageSize)==TCL_ERROR)
             return TCL_ERROR;
     }
-    sprintf (interp->result, "%d", ((IRObj *)obj)->preferredMessageSize);
+    sprintf (buf, "%d", ((IRObj *)obj)->preferredMessageSize);
+    Tcl_AppendResult (interp, buf, NULL);
     return TCL_OK;
 }
 
 /*
- * do_maximumMessageSize: Set maximum message size
+ * do_maximumMessageSize: Set/get maximum message size
  */
 static int do_maximumMessageSize (void *obj, Tcl_Interp *interp,
                                     int argc, char **argv)
 {
+    char buf[20];
     if (argc == 3)
     {
         if (Tcl_GetInt (interp, argv[2], 
                         &((IRObj *)obj)->maximumMessageSize)==TCL_ERROR)
             return TCL_ERROR;
     }
-    sprintf (interp->result, "%d", ((IRObj *)obj)->maximumMessageSize);
+    sprintf (buf, "%d", ((IRObj *)obj)->maximumMessageSize);
+    Tcl_AppendResult (interp, buf, NULL);
     return TCL_OK;
 }
 
 
 /*
- * do_implementationName: Set Implementation Name.
+ * do_implementationName: Set/get Implementation Name.
  */
 static int do_implementationName (void *obj, Tcl_Interp *interp,
                                     int argc, char **argv)
@@ -287,7 +346,7 @@ static int do_implementationName (void *obj, Tcl_Interp *interp,
 }
 
 /*
- * do_implementationId: Set Implementation Name.
+ * do_implementationId: Set/get Implementation Id.
  */
 static int do_implementationId (void *obj, Tcl_Interp *interp,
                                 int argc, char **argv)
@@ -305,7 +364,7 @@ static int do_implementationId (void *obj, Tcl_Interp *interp,
 }
 
 /*
- * do_idAuthentication: Set id Authentication
+ * do_idAuthentication: Set/get id Authentication
  */
 static int do_idAuthentication (void *obj, Tcl_Interp *interp,
                                 int argc, char **argv)
@@ -331,38 +390,44 @@ static int do_connect (void *obj, Tcl_Interp *interp,
     void *addr;
     IRObj *p = obj;
 
-    if (argc < 3)
+    if (argc == 3)
     {
-        interp->result = "missing hostname";
-        return TCL_ERROR;
-    }
-    if (cs_type(p->cs_link) == tcpip_type)
-    {
-        addr = tcpip_strtoaddr (argv[2]);
-        if (!addr)
+        if (p->hostname)
         {
-            interp->result = "tcpip_strtoaddr fail";
+            interp->result = "already connected";
             return TCL_ERROR;
         }
-        printf ("tcp/ip connect %s\n", argv[2]);
-    }
-    else if (cs_type (p->cs_link) == mosi_type)
-    {
-        addr = mosi_strtoaddr (argv[2]);
-        if (!addr)
+        if (cs_type(p->cs_link) == tcpip_type)
         {
-            interp->result = "mosi_strtoaddr fail";
+            addr = tcpip_strtoaddr (argv[2]);
+            if (!addr)
+            {
+                interp->result = "tcpip_strtoaddr fail";
+                return TCL_ERROR;
+            }
+            printf ("tcp/ip connect %s\n", argv[2]);
+        }
+        else if (cs_type (p->cs_link) == mosi_type)
+        {
+            addr = mosi_strtoaddr (argv[2]);
+            if (!addr)
+            {
+                interp->result = "mosi_strtoaddr fail";
+                return TCL_ERROR;
+            }
+            printf ("mosi connect %s\n", argv[2]);
+        }
+        if (cs_connect (p->cs_link, addr) < 0)
+        {
+            interp->result = "cs_connect fail";
+            do_disconnect (p, interp, argc, argv);
             return TCL_ERROR;
         }
-        printf ("mosi connect %s\n", argv[2]);
+        if (ir_strdup (interp, &p->hostname, argv[2]) == TCL_ERROR)
+            return TCL_ERROR;
+        ir_select_add (cs_fileno (p->cs_link), p);
     }
-    if (cs_connect (p->cs_link, addr) < 0)
-    {
-        interp->result = "cs_connect fail";
-        do_disconnect (p, interp, argc, argv);
-        return TCL_ERROR;
-    }
-    ir_select_add (cs_fileno (p->cs_link), p);
+    Tcl_AppendResult (interp, p->hostname, NULL);
     return TCL_OK;
 }
 
@@ -374,7 +439,12 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
 {
     IRObj *p = obj;
 
-    ir_select_remove (cs_fileno (p->cs_link), p);
+    if (p->hostname)
+    {
+        free (p->hostname);
+        p->hostname = NULL;
+        ir_select_remove (cs_fileno (p->cs_link), p);
+    }
     if (cs_type (p->cs_link) == tcpip_type)
     {
         cs_close (p->cs_link);
@@ -394,11 +464,12 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
 }
 
 /*
- * do_comstack: comstack method on IR object
+ * do_comstack: Set/get comstack method on IR object
  */
 static int do_comstack (void *obj, Tcl_Interp *interp,
 		        int argc, char **argv)
 {
+    char *cs_type = NULL;
     if (argc == 3)
     {
         if (!strcmp (argv[2], "tcpip"))
@@ -412,9 +483,10 @@ static int do_comstack (void *obj, Tcl_Interp *interp,
         }
     }
     if (cs_type(((IRObj *)obj)->cs_link) == tcpip_type)
-        interp->result = "tcpip";
+        cs_type = "tcpip";
     else if (cs_type(((IRObj *)obj)->cs_link) == mosi_type)
-        interp->result = "comstack";
+        cs_type = "comstack";
+    Tcl_AppendResult (interp, cs_type, NULL);
     return TCL_OK;
 }
 
@@ -457,12 +529,9 @@ static int do_databaseNames (void *obj, Tcl_Interp *interp,
         free (p->databaseNames);
     }
     p->num_databaseNames = argc - 2;
-    if (!(p->databaseNames = malloc (sizeof(*p->databaseNames) *
-                               p->num_databaseNames)))
-    {
-        interp->result = "malloc fail";
+    if (!(p->databaseNames = ir_malloc (interp, 
+          sizeof(*p->databaseNames) * p->num_databaseNames)))
         return TCL_ERROR;
-    }
     for (i=0; i<p->num_databaseNames; i++)
     {
         if (ir_strdup (interp, &p->databaseNames[i], argv[2+i]) 
@@ -496,27 +565,24 @@ static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
                           int argc, char **argv)
 {
     static IRMethod tab[] = {
-    { "comstack",                do_comstack },
-    { "connect",                 do_connect },
-    { "protocolVersion",         do_protocolVersion },
-    { "options",                 do_options },
-    { "preferredMessageSize",    do_preferredMessageSize },
-    { "maximumMessageSize",      do_maximumMessageSize },
-    { "implementationName",      do_implementationName },
-    { "implementationId",        do_implementationId },
-    { "idAuthentication",        do_idAuthentication },
-    { "init",                    do_init_request },
-    { "disconnect",              do_disconnect },
-    { "callback",                do_callback },
-    { "databaseNames",           do_databaseNames},
-    { "query",                   do_query },
-    { NULL, NULL}
+    { 1, "comstack",                do_comstack },
+    { 1, "connect",                 do_connect },
+    { 0, "protocolVersion",         do_protocolVersion },
+    { 0, "options",                 do_options },
+    { 1, "preferredMessageSize",    do_preferredMessageSize },
+    { 1, "maximumMessageSize",      do_maximumMessageSize },
+    { 1, "implementationName",      do_implementationName },
+    { 1, "implementationId",        do_implementationId },
+    { 1, "idAuthentication",        do_idAuthentication },
+    { 0, "init",                    do_init_request },
+    { 0, "disconnect",              do_disconnect },
+    { 0, "callback",                do_callback },
+    { 0, "databaseNames",           do_databaseNames},
+    { 1, "query",                   do_query },
+    { 0, NULL, NULL}
     };
     if (argc < 2)
-    {
-        interp->result = "wrong # args";
-        return TCL_ERROR;
-    }
+        return ir_method_r (clientData, interp, argc, argv, tab);
     return ir_method (clientData, interp, argc, argv, tab);
 }
 
@@ -542,12 +608,8 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
         interp->result = "wrong # args";
         return TCL_ERROR;
     }
-    obj = malloc (sizeof(*obj));
-    if (!obj)
-    {
-        interp->result = "malloc fail";
+    if (!(obj = ir_malloc (interp, sizeof(*obj))))
         return TCL_ERROR;
-    }
     obj->cs_link = cs_create (tcpip_type);
 
     obj->maximumMessageSize = 32768;
@@ -569,6 +631,9 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     obj->replaceIndicator = 1;
     obj->databaseNames = NULL;
     obj->num_databaseNames = 0; 
+
+    obj->hostname = NULL;
+
     if (ir_strdup (interp, &obj->query_method, "rpn") == TCL_ERROR)
         return TCL_ERROR;
     obj->bibset = ccl_qual_mk (); 
@@ -589,12 +654,8 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     obj->odr_pr = odr_createmem (ODR_PRINT);
 
     obj->len_out = 10000;
-    obj->buf_out = malloc (obj->len_out);
-    if (!obj->buf_out)
-    {
-        interp->result = "malloc fail";
+    if (!(obj->buf_out = ir_malloc (interp, obj->len_out)))
         return TCL_ERROR;
-    }
     odr_setbuf (obj->odr_out, obj->buf_out, obj->len_out);
 
     obj->len_in = 0;
@@ -721,19 +782,35 @@ static int do_numberOfRecordsReturned (void *o, Tcl_Interp *interp,
     return TCL_OK;
 }
 
-static int get_marc_record(Tcl_Interp *interp, Iso2709Rec rec,
+static int marc_cmp (const char *field, const char *pattern)
+{
+    if (*pattern == '*')
+        return 0;
+    for (; *field && *pattern; field++, pattern++)
+    {
+        if (*pattern == '?')
+            continue;
+        if (*pattern != *field)
+            break;
+    }
+    return *field - *pattern;
+}
+
+static int get_marc_fields(Tcl_Interp *interp, Iso2709Rec rec,
                            int argc, char **argv)
 {
     struct iso2709_dir *dir;
     struct iso2709_field *field;
-    
+
     for (dir = rec->directory; dir; dir = dir->next)
     {
-        if (strcmp (dir->tag, argv[3]))
+        if (argc > 4 && marc_cmp (dir->tag, argv[4]))
+            continue;
+        if (argc > 5 && marc_cmp (dir->indicator, argv[5]))
             continue;
         for (field = dir->fields; field; field = field->next)
         {
-            if (argc > 4 && strcmp (field->identifier, argv[4]))
+            if (argc > 6 && marc_cmp (field->identifier, argv[6]))
                 continue;
             Tcl_AppendElement (interp, field->data);
         }
@@ -741,11 +818,36 @@ static int get_marc_record(Tcl_Interp *interp, Iso2709Rec rec,
     return TCL_OK;
 }
 
+static int get_marc_lines (Tcl_Interp *interp, Iso2709Rec rec,
+                           int argc, char **argv)
+{
+    struct iso2709_dir *dir;
+    struct iso2709_field *field;
+
+    for (dir = rec->directory; dir; dir = dir->next)
+    {
+        if (argc > 4 && marc_cmp (dir->tag, argv[4]))
+            continue;
+        if (argc > 5 && marc_cmp (dir->indicator, argv[5]))
+            continue;
+        Tcl_AppendResult (interp, "{", dir->tag, " ", dir->indicator, 
+                          " {", NULL);
+        for (field = dir->fields; field; field = field->next)
+        {
+            if (argc > 6 && marc_cmp (field->identifier, argv[6]))
+                continue;
+            Tcl_AppendResult (interp, field->identifier, " ", NULL);
+            Tcl_AppendElement (interp, field->data);
+        }
+        Tcl_AppendResult (interp, "} ", NULL);
+    }
+    return TCL_OK;
+}
+
 /*
- * do_getRecord: Get an ISO2709 Record
+ * do_recordType: Return record type (if any) at position.
  */
-static int do_getRecord (void *o, Tcl_Interp *interp,
-		       int argc, char **argv)
+static int do_recordType (void *o, Tcl_Interp *interp, int argc, char **argv)
 {
     IRSetObj *obj = o;
     int offset;
@@ -764,16 +866,101 @@ static int do_getRecord (void *o, Tcl_Interp *interp,
             break;
     }
     if (!rl)
+        return TCL_OK;
+    switch (rl->which)
+    {
+    case Z_NamePlusRecord_databaseRecord:
+        interp->result = "databaseRecord";
+        break;
+    case Z_NamePlusRecord_surrogateDiagnostic:
+        interp->result = "surrogateDiagnostic";
+        break;
+    default:
+        interp->result = "unknown";
+        break;
+    }
+    return TCL_OK;
+}
+
+/*
+ * do_recordDiag: Return diagnostic record info
+ */
+static int do_recordDiag (void *o, Tcl_Interp *interp, int argc, char **argv)
+{
+    IRSetObj *obj = o;
+    int offset;
+    IRRecordList *rl;
+    char buf[20];
+
+    if (argc < 3)
+    {
+        sprintf (interp->result, "wrong # args");
+        return TCL_ERROR;
+    }
+    if (Tcl_GetInt (interp, argv[2], &offset)==TCL_ERROR)
+        return TCL_ERROR;
+    for (rl = obj->record_list; rl; rl = rl->next)
+    {
+        if (rl->no == offset)
+            break;
+    }
+    if (!rl)
     {
         Tcl_AppendResult (interp, "No record at #", argv[2], NULL);
         return TCL_ERROR;
     }
-    if (!rl->rec)
+    if (rl->which != Z_NamePlusRecord_surrogateDiagnostic)
     {
-        Tcl_AppendResult (interp, "Not a MARC record at #", argv[2], NULL);
+        Tcl_AppendResult (interp, "No Diagnostic record at #", argv[2], NULL);
         return TCL_ERROR;
     }
-    return get_marc_record (interp, rl->rec, argc, argv);
+    sprintf (buf, "%d ", rl->u.diag.code);
+    Tcl_AppendResult (interp, buf, NULL);
+    if (rl->u.diag.add_info)
+        Tcl_AppendElement (interp, rl->u.diag.add_info);
+    else
+        Tcl_AppendElement (interp, "");
+    return TCL_OK;
+}
+
+/*
+ * do_recordMarc: Get ISO2709 Record lines/fields
+ */
+static int do_recordMarc (void *o, Tcl_Interp *interp, int argc, char **argv)
+{
+    IRSetObj *obj = o;
+    int offset;
+    IRRecordList *rl;
+
+    if (argc < 4)
+    {
+        sprintf (interp->result, "wrong # args");
+        return TCL_ERROR;
+    }
+    if (Tcl_GetInt (interp, argv[2], &offset)==TCL_ERROR)
+        return TCL_ERROR;
+    for (rl = obj->record_list; rl; rl = rl->next)
+        if (rl->no == offset)
+            break;
+    if (!rl)
+    {
+        Tcl_AppendResult (interp, "No record at #", argv[2], NULL);
+        return TCL_ERROR;
+    }
+    if (rl->which != Z_NamePlusRecord_databaseRecord)
+    {
+        Tcl_AppendResult (interp, "No MARC record at #", argv[2], NULL);
+        return TCL_ERROR;
+    }
+    if (!strcmp (argv[3], "field"))
+        return get_marc_fields (interp, rl->u.marc.rec, argc, argv);
+    else if (!strcmp (argv[3], "line"))
+        return get_marc_lines (interp, rl->u.marc.rec, argc, argv);
+    else
+    {
+        Tcl_AppendResult (interp, "field/line expected", NULL);
+        return TCL_ERROR;
+    }
 }
 
 /*
@@ -843,12 +1030,14 @@ static int ir_set_obj_method (ClientData clientData, Tcl_Interp *interp,
                           int argc, char **argv)
 {
     static IRMethod tab[] = {
-    { "search",                  do_search },
-    { "resultCount",             do_resultCount },
-    { "numberOfRecordsReturned", do_numberOfRecordsReturned },
-    { "present",                 do_present },
-    { "getRecord",               do_getRecord },
-    { NULL, NULL}
+    { 0, "search",                  do_search },
+    { 0, "resultCount",             do_resultCount },
+    { 0, "numberOfRecordsReturned", do_numberOfRecordsReturned },
+    { 0, "present",                 do_present },
+    { 0, "recordType",              do_recordType },
+    { 0, "recordMarc",              do_recordMarc },
+    { 0, "recordDiag",              do_recordDiag },
+    { 0, NULL, NULL}
     };
 
     if (argc < 2)
@@ -883,12 +1072,8 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
     }
     if (get_parent_info (interp, argv[1], &parent_info) == TCL_ERROR)
         return TCL_ERROR;
-    obj = malloc (sizeof(*obj));
-    if (!obj)
-    {
-        interp->result = "malloc fail";
+    if (!(obj = ir_malloc (interp, sizeof(*obj))))
         return TCL_ERROR;
-    }
     obj->z_records = NULL;
     obj->record_list = NULL;
     obj->parent = (IRObj *) parent_info.clientData;
@@ -911,16 +1096,10 @@ static void ir_searchResponse (void *o, Z_SearchResponse *searchrs)
     else
         printf("Search was a bloomin' failure.\n");
     printf("Number of hits: %d\n", *searchrs->resultCount);
-#if 0
-    if (searchrs->records)
-        display_records(searchrs->records);
-#endif
 }
 
 static void ir_initResponse (void *obj, Z_InitResponse *initrs)
 {
-    IRObj *p = obj;
-
     if (!*initrs->result)
         printf("Connection rejected by target.\n");
     else
@@ -981,8 +1160,8 @@ static void ir_presentResponse (void *o, Z_PresentResponse *presrs)
                 {
                     if (no == rl->no)
                     {
-                        if (rl->rec)
-                            iso2709_rm (rl->rec);
+                        if (rl->which != Z_NamePlusRecord_surrogateDiagnostic)
+                            iso2709_rm (rl->u.marc.rec);
                         break;
                     }
                 }
@@ -992,21 +1171,20 @@ static void ir_presentResponse (void *o, Z_PresentResponse *presrs)
                     assert (rl);
                     rl->next = setobj->record_list;
                     rl->no = no;
-                    rl->status = 0;
                     setobj->record_list = rl;
                 }
-                if (zrs->u.databaseOrSurDiagnostics->records[offset]->which ==
-                    Z_NamePlusRecord_surrogateDiagnostic)
+                rl->which = zrs->u.databaseOrSurDiagnostics->
+                            records[offset]->which;
+                if (rl->which == Z_NamePlusRecord_surrogateDiagnostic)
                 {
-                    rl->status = -1;
-                    rl->rec = NULL;
+                    rl->u.diag.code = 0;
+                    rl->u.diag.add_info = NULL;
                 }
                 else
                 {
                     Z_DatabaseRecord *zr; 
                     Odr_external *oe;
                     
-                    rl->status = 0;
                     zr = zrs->u.databaseOrSurDiagnostics->records[offset]
                         ->u.databaseRecord;
                     oe = (Odr_external*) zr;
@@ -1014,8 +1192,10 @@ static void ir_presentResponse (void *o, Z_PresentResponse *presrs)
                         && zr->u.octet_aligned->len)
                     {
                         const char *buf = (char*) zr->u.octet_aligned->buf;
-                        rl->rec = iso2709_cvt (buf);
+                        rl->u.marc.rec = iso2709_cvt (buf);
                     }
+                    else
+                        rl->u.marc.rec = NULL;
                 }
             }
         }
@@ -1034,7 +1214,7 @@ void ir_select_proc (ClientData clientData)
     
     do
     {
-        if ((r=cs_get (p->cs_link, &p->buf_in, &p->len_in))  < 0)
+        if ((r=cs_get (p->cs_link, &p->buf_in, &p->len_in))  <= 0)
         {
             printf ("cs_get failed\n");
             ir_select_remove (cs_fileno (p->cs_link), p);

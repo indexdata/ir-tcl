@@ -1,6 +1,10 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.2  1995-03-10 18:00:15  adam
+# Revision 1.3  1995-03-12 19:31:52  adam
+# Pattern matching implemented when retrieving MARC records. More
+# diagnostic functions.
+#
+# Revision 1.2  1995/03/10  18:00:15  adam
 # Actual presentation in line-by-line format. RPN query support.
 #
 # Revision 1.1  1995/03/09  16:15:07  adam
@@ -167,8 +171,8 @@ proc present-response {} {
     puts "Returned $no records, setOffset $setOffset"
     for {set i 0} {$i < $no} {incr i} {
         set o [expr $i + $setOffset]
-        set title [lindex [z39.$SetNo getRecord $o 245 a] 0]
-        set year  [lindex [z39.$SetNo getRecord $o 260 c] 0]
+        set title [lindex [z39.$SetNo getMARC $o field 245 a] 0]
+        set year  [lindex [z39.$SetNo getMARC $o field 260 c] 0]
         .data.list insert end "$title - $year"
     }
     set setOffset [expr $setOffset + $no]
