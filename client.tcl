@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.101  1997-11-19 11:20:56  adam
+# Revision 1.102  1997-11-19 13:19:54  adam
+# Font fix.
+#
+# Revision 1.101  1997/11/19 11:20:56  adam
 # New target profile format - associative arrrays instead of LONG lists.
 #
 # Revision 1.100  1997/09/09 10:19:50  adam
@@ -494,7 +497,7 @@ wm minsize . 0 0
 set setOffset 0
 set setMax 0
 
-if {[lindex [split $tk_version .] 0] > 4} {
+if {[lindex [split $tk_version .] 0] < 5} {
     set font(bb,normal) -Adobe-Helvetica-Medium-R-Normal-*-240-*
     set font(bb,bold) -Adobe-Helvetica-Bold-R-Normal-*-240-*
     set font(b,normal) -Adobe-Helvetica-Medium-R-Normal-*-180-*
