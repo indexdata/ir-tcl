@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: line.tcl,v $
-# Revision 1.3  1995-06-16 12:29:00  adam
+# Revision 1.4  1995-06-19 08:10:21  adam
+# Inverse highligt colours in monochrome mode.
+#
+# Revision 1.3  1995/06/16  12:29:00  adam
 # Use insertWithTags on diagnostic errors.
 #
 # Revision 1.2  1995/06/13  14:39:06  adam
@@ -20,10 +23,17 @@
 proc display-line {sno no w hflag} {
     set type [z39.$sno type $no] 
     if {$hflag} {
-        $w tag bind r$no <Any-Enter> \
+        if {[tk colormodel .] == "color"} {
+            $w tag bind r$no <Any-Enter> \
                 [list $w tag configure r$no -background gray80]
-        $w tag bind r$no <Any-Leave> \
+            $w tag bind r$no <Any-Leave> \
                 [list $w tag configure r$no -background {}]
+        } else {
+            $w tag bind r$no <Any-Enter> \
+                [list $w tag configure r$no -background black -foreground white]
+            $w tag bind r$no <Any-Leave> \
+                [list $w tag configure r$no -background {} -foreground {}]
+        }
     } else {
         $w delete 0.0 end
     }
