@@ -1,11 +1,14 @@
 /*
  * IR toolkit for tcl/tk
- * (c) Index Data 1995
+ * (c) Index Data 1995-1998
  * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: mem.c,v $
- * Revision 1.3  1996-07-03 13:31:14  adam
+ * Revision 1.4  1998-10-13 21:23:37  adam
+ * Fixed log message.
+ *
+ * Revision 1.3  1996/07/03 13:31:14  adam
  * The xmalloc/xfree functions from YAZ are used to manage memory.
  *
  * Revision 1.2  1995/08/29  15:30:15  adam
@@ -56,7 +59,7 @@ int ir_tcl_strdup (Tcl_Interp *interp, char** p, const char *s)
     {
         if (!interp) 
         {
-            logf (LOG_FATAL, "Out of memory in strdup. %ld bytes", len);
+            logf (LOG_FATAL, "Out of memory in strdup. %d bytes", len);
             exit (1);
         }
         interp->result = "strdup fail";
