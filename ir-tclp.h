@@ -1,10 +1,14 @@
 /*
  * IR toolkit for tcl/tk
  * (c) Index Data 1995
+ * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.4  1995-05-26 11:44:10  adam
+ * Revision 1.5  1995-05-29 08:44:25  adam
+ * Work on delete of objects.
+ *
+ * Revision 1.4  1995/05/26  11:44:10  adam
  * Bugs fixed. More work on MARC utilities and queries. Test
  * client is up-to-date again.
  *
@@ -62,6 +66,8 @@ typedef struct {
 } IRSetCObj;
     
 typedef struct {
+    int         ref_count;
+
     char       *cs_type;
     char       *protocol_type;
     int         connectFlag;
@@ -104,8 +110,6 @@ typedef struct {
 #if CCL2RPN
     CCL_bibset  bibset;
 #endif
-
-    oident      bib1;
 
     struct IRSetObj_ *set_child;
     struct IRScanObj_ *scan_child;

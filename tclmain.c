@@ -1,10 +1,14 @@
 /*
  * IR toolkit for tcl/tk
  * (c) Index Data 1995
+ * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: tclmain.c,v $
- * Revision 1.5  1995-03-20 08:53:30  adam
+ * Revision 1.6  1995-05-29 08:44:28  adam
+ * Work on delete of objects.
+ *
+ * Revision 1.5  1995/03/20  08:53:30  adam
  * Event loop in tclmain.c rewritten. New method searchStatus.
  *
  * Revision 1.4  1995/03/17  07:50:31  adam

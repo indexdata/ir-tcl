@@ -1,10 +1,14 @@
 /*
  * IR toolkit for tcl/tk
  * (c) Index Data 1995
+ * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: marc.c,v $
- * Revision 1.2  1995-05-26 11:44:11  adam
+ * Revision 1.3  1995-05-29 08:44:26  adam
+ * Work on delete of objects.
+ *
+ * Revision 1.2  1995/05/26  11:44:11  adam
  * Bugs fixed. More work on MARC utilities and queries. Test
  * client is up-to-date again.
  *
@@ -24,7 +28,7 @@
 #define ISO2709_FS 036
 #define ISO2709_IDFS 037
 
-int atoi_n (const char *buf, int len)
+static int atoi_n (const char *buf, int len)
 {
     int val = 0;
 
@@ -52,8 +56,6 @@ static int marc_compare (const char *f, const char *p)
     }
     return *f - *p;
 }
-
-FILE *outf = stderr;
 
 char *ir_tcl_fread_marc (FILE *inf, size_t *size)
 {
