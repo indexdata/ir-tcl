@@ -4,7 +4,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.16  1995-03-21 08:26:06  adam
+ * Revision 1.17  1995-03-21 13:41:03  adam
+ * Comstack cs_create not used too often. Non-blocking connect.
+ *
+ * Revision 1.16  1995/03/21  08:26:06  adam
  * New method, setName, to specify the result set name (other than Default).
  * New method, responseStatus, which returns diagnostic info, if any, after
  * present response / search response.
@@ -59,7 +62,10 @@
 #include <iso2709p.h>
 #include <comstack.h>
 #include <tcpip.h>
+
+#if MOSI
 #include <xmosi.h>
+#endif
 
 #include <odr.h>
 #include <proto.h>
@@ -72,7 +78,10 @@
 #define CS_BLOCK 0
 
 typedef struct {
+    char       *cs_type;
+    int         connectFlag;
     COMSTACK    cs_link;
+
 
     int         preferredMessageSize;
     int         maximumRecordSize;
@@ -483,6 +492,7 @@ static int do_connect (void *obj, Tcl_Interp *interp,
 {
     void *addr;
     IRObj *p = obj;
+    int r;
 
     if (argc == 3)
     {
@@ -491,8 +501,9 @@ static int do_connect (void *obj, Tcl_Interp *interp,
             interp->result = "already connected";
             return TCL_ERROR;
         }
-        if (cs_type(p->cs_link) == tcpip_type)
+        if (!strcmp (p->cs_type, "tcpip"))
         {
+            p->cs_link = cs_create (tcpip_type, CS_BLOCK);
             addr = tcpip_strtoaddr (argv[2]);
             if (!addr)
             {
@@ -501,8 +512,10 @@ static int do_connect (void *obj, Tcl_Interp *interp,
             }
             printf ("tcp/ip connect %s\n", argv[2]);
         }
-        else if (cs_type (p->cs_link) == mosi_type)
+#if MOSI
+        else if (!strcmp (p->cs_type, "mosi"))
         {
+            p->cs_link = cs_create (mosi_type, CS_BLOCK);
             addr = mosi_strtoaddr (argv[2]);
             if (!addr)
             {
@@ -511,17 +524,33 @@ static int do_connect (void *obj, Tcl_Interp *interp,
             }
             printf ("mosi connect %s\n", argv[2]);
         }
-        if (cs_connect (p->cs_link, addr) < 0)
+#endif
+        else 
         {
-            interp->result = "cs_connect fail";
-            do_disconnect (p, interp, argc, argv);
+            interp->result = "unknown cs type";
             return TCL_ERROR;
         }
         if (ir_strdup (interp, &p->hostname, argv[2]) == TCL_ERROR)
             return TCL_ERROR;
+        if ((r=cs_connect (p->cs_link, addr)) < 0)
+        {
+            interp->result = "cs_connect fail";
+            return TCL_ERROR;
+        }
         ir_select_add (cs_fileno (p->cs_link), p);
+        if (r == 1)
+        {
+            ir_select_add_write (cs_fileno (p->cs_link), p);
+            p->connectFlag = 1;
+        }
+        else
+        {
+            p->connectFlag = 0;
+            if (p->callback)
+                Tcl_Eval (p->interp, p->callback);
+        }
     }
-    Tcl_AppendResult (interp, p->hostname, NULL);
+    Tcl_AppendElement (interp, p->hostname);
     return TCL_OK;
 }
 
@@ -538,21 +567,10 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
         free (p->hostname);
         p->hostname = NULL;
         ir_select_remove (cs_fileno (p->cs_link), p);
-    }
-    if (cs_type (p->cs_link) == tcpip_type)
-    {
+
+        assert (p->cs_link);
         cs_close (p->cs_link);
-        p->cs_link = cs_create (tcpip_type, CS_BLOCK);
-    }
-    else if (cs_type (p->cs_link) == mosi_type)
-    {
-        cs_close (p->cs_link);
-        p->cs_link = cs_create (mosi_type, CS_BLOCK);
-    }
-    else
-    {
-        interp->result = "unknown comstack type";
-        return TCL_ERROR;
+        p->cs_link = NULL;
     }
     return TCL_OK;
 }
@@ -560,28 +578,18 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
 /*
  * do_comstack: Set/get comstack method on IR object
  */
-static int do_comstack (void *obj, Tcl_Interp *interp,
+static int do_comstack (void *o, Tcl_Interp *interp,
 		        int argc, char **argv)
 {
-    char *cs_type = NULL;
+    IRObj *obj = o;
+
     if (argc == 3)
     {
-        cs_close (((IRObj*) obj)->cs_link);
-        if (!strcmp (argv[2], "tcpip"))
-            ((IRObj *)obj)->cs_link = cs_create (tcpip_type, CS_BLOCK);
-        else if (!strcmp (argv[2], "mosi"))
-            ((IRObj *)obj)->cs_link = cs_create (mosi_type, CS_BLOCK);
-        else
-        {
-            interp->result = "wrong comstack type";
+        free (obj->cs_type);
+        if (ir_strdup (interp, &obj->cs_type, argv[2]) == TCL_ERROR)
             return TCL_ERROR;
-        }
     }
-    if (cs_type(((IRObj *)obj)->cs_link) == tcpip_type)
-        cs_type = "tcpip";
-    else if (cs_type(((IRObj *)obj)->cs_link) == mosi_type)
-        cs_type = "comstack";
-    Tcl_AppendResult (interp, cs_type, NULL);
+    Tcl_AppendElement (interp, obj->cs_type);
     return TCL_OK;
 }
 
@@ -727,10 +735,13 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     }
     if (!(obj = ir_malloc (interp, sizeof(*obj))))
         return TCL_ERROR;
-    obj->cs_link = cs_create (tcpip_type, CS_BLOCK);
+    if (ir_strdup (interp, &obj->cs_type, "tcpip") == TCL_ERROR)
+        return TCL_ERROR;
+    obj->cs_link = NULL;
 
     obj->maximumRecordSize = 32768;
     obj->preferredMessageSize = 4096;
+    obj->connectFlag = 0;
 
     obj->idAuthentication = NULL;
 
@@ -1473,7 +1484,24 @@ void ir_select_read (ClientData clientData)
     IRObj *p = clientData;
     Z_APDU *apdu;
     int r;
-    
+
+    if (p->connectFlag)
+    {
+        r = cs_rcvconnect (p->cs_link);
+        if (r == 1)
+            return;
+        p->connectFlag = 0;
+        if (r < 0)
+        {
+            printf ("cs_rcvconnect error\n");
+            ir_select_remove_write (cs_fileno (p->cs_link), p);
+            return;
+        }
+        ir_select_remove_write (cs_fileno (p->cs_link), p);
+        if (p->callback)
+	    Tcl_Eval (p->interp, p->callback);
+        return;
+    }
     do
     {
         if ((r=cs_get (p->cs_link, &p->buf_in, &p->len_in))  <= 0)
@@ -1520,6 +1548,23 @@ void ir_select_write (ClientData clientData)
     int r;
 
     printf ("In write handler.....\n");
+    if (p->connectFlag)
+    {
+        r = cs_rcvconnect (p->cs_link);
+        if (r == 1)
+            return;
+        p->connectFlag = 0;
+        if (r < 0)
+        {
+            printf ("cs_rcvconnect error\n");
+            ir_select_remove_write (cs_fileno (p->cs_link), p);
+            return;
+        }
+        ir_select_remove_write (cs_fileno (p->cs_link), p);
+        if (p->callback)
+	    Tcl_Eval (p->interp, p->callback);
+        return;
+    }
     if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
     {   
         printf ("select write fail\n");

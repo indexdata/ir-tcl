@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.11  1995-03-21 10:39:06  adam
+# Revision 1.12  1995-03-21 13:41:03  adam
+# Comstack cs_create not used too often. Non-blocking connect.
+#
+# Revision 1.11  1995/03/21  10:39:06  adam
 # Diagnostic error message displayed with tkerror.
 #
 # Revision 1.10  1995/03/20  15:24:06  adam
@@ -44,7 +47,7 @@ set hostid Default
 set settingsChanged 0
 set setNo 0
 
-wm minsize . 360 200
+wm minsize . 300 200
 
 if {[file readable "~/.tk-c"]} {
     source "~/.tk-c"
@@ -136,11 +139,10 @@ proc show-full-marc {no} {
         frame $w.top -relief raised -border 1
         frame $w.bot -relief raised -border 1
 
-        #        pack  $w.top $w.bot -side top -fill both -expand yes
         pack  $w.top -side top -fill both -expand yes
         pack  $w.bot -fill both
 
-        text $w.top.record -width 60 -height 10 -wrap word \
+        text $w.top.record -width 60 -height 12 -wrap word \
                 -yscrollcommand [list $w.top.s set]
         scrollbar $w.top.s -command [list $w.top.record yview]
 
@@ -245,6 +247,12 @@ proc define-target-action {} {
     destroy .target-define
 }
 
+proc connect-response {target} {
+    puts "connect-response"
+    show-target $target
+    init-request
+}
+
 proc open-target {target base} {
     global profile
 
@@ -264,9 +272,9 @@ proc open-target {target base} {
     } else {
         z39 databaseNames $base
     }
-    show-target $target
-    z39 connect  [lindex $profile($target) 1]:[lindex $profile($target) 2]
-    init-request
+    show-status {Connecting} 1
+    z39 callback [list connect-response $target]
+    z39 connect [lindex $profile($target) 1]:[lindex $profile($target) 2]
 }
 
 proc load-set-action {} {
@@ -320,7 +328,6 @@ proc init-request {} {
 
 proc init-response {} {
     show-status {Ready} 0
-    pack .mid.searchlabel .mid.searchentry -side left
     bind .mid.searchentry <Return> search-request
     focus .mid.searchentry
 }
@@ -474,7 +481,8 @@ proc define-target-dialog {} {
 }
 
 proc close-target {} {
-    pack forget .mid.searchlabel .mid.searchentry
+    # pack forget .mid.searchlabel .mid.searchentry
+    .mid.searchentry -state disabled
     z39 disconnect
     show-target {None}
     show-status {Not connected} 0
@@ -853,7 +861,9 @@ pack .top.file .top.target .top.database -side left
 pack .top.help -side right
 
 label .mid.searchlabel -text {Search:}
-entry .mid.searchentry -width 40 -relief sunken
+entry .mid.searchentry -width 32 -relief sunken
+pack .mid.searchlabel  -side left
+pack .mid.searchentry -side left -fill x -expand yes
 
 bind .mid.searchentry <Left> {left-cursor .mid.searchentry}
 bind .mid.searchentry <Right> {right-cursor .mid.searchentry}
@@ -867,9 +877,11 @@ pack .data.scroll -side right -fill y
 message .bot.target -text "None" -aspect 1000 -relief sunken -border 1
 label .bot.status -text "Not connected" -width 12 -relief \
     sunken -anchor w -border 1
-label .bot.message -text "" -width 20 -relief \
+label .bot.set -textvariable setNo -width 5 -relief \
     sunken -anchor w -border 1
-pack .bot.target .bot.status .bot.message -anchor nw -side left -padx 2 -pady 2
+label .bot.message -text "" -width 14 -relief \
+    sunken -anchor w -border 1
+pack .bot.target .bot.status .bot.set .bot.message -anchor nw -side left -padx 2 -pady 2
 
 bind .data.list <Double-Button-1> {set indx [.data.list nearest %y]
 show-full-marc $indx}
