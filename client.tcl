@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.32  1995-06-07 09:16:37  adam
+# Revision 1.33  1995-06-09 11:17:35  adam
+# Start work on geometry management.
+#
+# Revision 1.32  1995/06/07  09:16:37  adam
 # New presentation format.
 #
 # Revision 1.31  1995/06/06  16:31:09  adam
@@ -123,6 +126,26 @@ set queryButtons { { {I 0} {I 1} {I 2} } }
 set queryInfo { { {Title {1=4}} {Author {1=1}} \
         {Subject {1=21}} {Any {1=1016}} } }
 
+set windowGeometry(.scan-window) {}
+
+proc destroyG {w} {
+    global windowGeometry
+    set windowGeometry($w) [wm geometry $w]
+    destroy $w
+}
+
+proc toplevelG {w} {
+    global windowGeometry
+
+    toplevel $w
+    if {[info exists windowGeometry($w)]} {
+        set g $windowGeometry($w)
+        if {$g != ""} {
+            wm geometry $w $g
+        }
+    }
+}
+
 wm minsize . 0 0
 
 if {[file readable "clientrc.tcl"]} {
@@ -147,7 +170,7 @@ proc top-down-ok-cancel {w ok-action g} {
             -command ${ok-action}
     pack $w.bot.left.ok -expand yes -ipadx 2 -ipady 2 -padx 3 -pady 3
     button $w.bot.cancel -width 6 -text {Cancel} \
-            -command "destroy $w"
+            -command [list destroy $w]
     pack $w.bot.cancel -side left -expand yes    
 
     if {$g} {
@@ -270,10 +293,9 @@ proc insertWithTags {w text args} {
 proc about-target {} {
     set w .about-target-w
 
-    toplevel $w
+    toplevelG $w
 
     wm title $w "About target"
-    place-force $w .
     top-down-window $w
 
     set i [z39 targetImplementationName]
@@ -287,13 +309,13 @@ proc about-target {} {
 
     pack $w.top.in $w.top.ii $w.top.iv $w.top.op -side top -anchor nw
 
-    bottom-buttons $w [list {Close} [list destroy $w]] 1
+    bottom-buttons $w [list {Close} [list destroyG $w]] 1
 }
 
 proc about-origin {} {
     set w .about-origin-w
 
-    toplevel $w
+    toplevelG $w
 
     wm title $w "About IrTcl"
     place-force $w .
@@ -306,7 +328,7 @@ proc about-origin {} {
 
     pack $w.top.in $w.top.ii -side top -anchor nw
 
-    bottom-buttons $w [list {Close} [list destroy $w]] 1
+    bottom-buttons $w [list {Close} [list destroyG $w]] 1
 }
 
 proc display-raw {sno no w} {
@@ -453,7 +475,11 @@ proc show-full-marc {sno no b} {
         set new 0
     } else {
 
-        toplevel $w
+        if {$b} {
+            toplevel $w
+        } else {
+            toplevelG $w
+        }
 
         wm minsize $w 0 0
         
@@ -732,7 +758,7 @@ proc scan-request {attr} {
     ir-scan z39.scan z39
 
     if {![winfo exists $w]} {
-        toplevel $w
+        toplevelG $w
         
         wm title $w "Scan"
         
@@ -755,7 +781,7 @@ proc scan-request {attr} {
             pack $w.top.list -side left -fill both -expand yes
         }
         
-        bottom-buttons $w [list {Close} [list destroy $w] \
+        bottom-buttons $w [list {Close} [list destroyG $w] \
                 {Up} [list scan-up $attr] \
                 {Down} [list scan-down $attr]] 0
         bind $w.top.list <Up> [list scan-up $attr]
@@ -1175,7 +1201,7 @@ proc protocol-setup-action {target} {
 
     cascade-target-list
     puts $profile($target)
-    destroy $w
+    destroyG $w
 }
 
 proc place-force {window parent} {
@@ -1238,7 +1264,6 @@ proc delete-database {target} {
 }
 
 proc protocol-setup {target} {
-
     global profile
     global csRadioType
     global protocolRadioType
@@ -1249,10 +1274,9 @@ proc protocol-setup {target} {
     set wno [lindex $profile($target) 12]
     set w .setup-${wno}
 
-    toplevel $w
+    toplevelG $w
 
     wm title $w "Setup $target"
-    place-force $w .
 
     top-down-window $w
     
@@ -1282,7 +1306,7 @@ proc protocol-setup {target} {
             maximumRecordSize preferredMessageSize} \
             {{Description:} {Host:} {Port:} {Id Authentication:} \
             {Maximum Record Size:} {Preferred Message Size:}} \
-            [list protocol-setup-action $target] [list destroy $w]
+            [list protocol-setup-action $target] [list destroyG $w]
     
     foreach sub {description host port idAuthentication \
             maximumRecordSize preferredMessageSize} {
@@ -1367,7 +1391,9 @@ proc protocol-setup {target} {
             -padx 4 -side top -fill x
 
     # Ok-cancel
-    top-down-ok-cancel $w [list protocol-setup-action $target] 0
+    bottom-buttons $w [list {Ok} [list protocol-setup-action $target] \
+            {Cancel} [list destroyG $w]] 0   
+#    top-down-ok-cancel $w [list protocol-setup-action $target] 0
 }
 
 proc database-select-action {} {
@@ -1476,6 +1502,8 @@ proc save-settings {} {
     global queryTypes
     global queryButtons
     global queryInfo
+
+    destroyG .
 
     set f [open "clientrc.tcl" w]
     puts $f "# Setup file"
@@ -1914,6 +1942,13 @@ proc search-fields {w buttondefs} {
     focus $w.0.e
     $w.0 configure -background red
 }
+
+if {[info exists windowGeometry(.w)]} {
+    set g $windowGeometry(.w)
+    if {$g != ""} {
+        wm geometry .w $g
+    }
+}    
 
 frame .top  -border 1 -relief raised
 frame .lines  -border 1 -relief raised
