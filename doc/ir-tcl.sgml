@@ -1,13 +1,13 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.7 1995-06-19 08:09:35 adam Exp $
+  $Id: ir-tcl.sgml,v 1.8 1995-06-19 13:06:23 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference
 <author>Index Data, <tt/info@index.ping.dk/
-<date>$Revision: 1.7 $
+<date>$Revision: 1.8 $
 <abstract>
 This document describes IrTcl &mdash an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
@@ -213,9 +213,9 @@ connected to a target yet.
 
 <p>
 A connection is established by the <tt/connect/ action which is
-immediately followed by a hostname. Obviously, these settings should
-be set <bf/before/ connecting.
-The settings that affect the <tt/connect/ action are:
+immediately followed by a hostname. A number of settings affect the
+<tt/connect/ action. Obviously, these settings should be set
+<bf/before/ connecting. The settings are:
 
 <descrip>
 <tag><tt>comstack </tt><tt>mosi|tcpip</tt></tag>
@@ -254,19 +254,23 @@ The init related settings are:
  Implementation-name of origin system. 
 <tag><tt>implementationId</tt></tag>
  Implementation-id of origin system. This setting is read-only.
+<tag><tt>implementationVersion</tt></tag>
+ Implementation-version of origin system. This settings is read-only.
 <tag><tt>options </tt><em>list</em></tag>
  Options to be negotiated in the init service. The list contains 
- the options that are set. These are <tt>search</tt>, <tt>present</tt>,
- <tt>delSet</tt>, <tt>resourceReport</tt>, <tt>triggerResourceCtrl</tt>,
- <tt>resourceCtrl</tt>, <tt>accessCtrl</tt>, <tt>scan</tt>, <tt>sort</tt>,
+ the options that are set. Possible values are <tt>search</tt>, 
+ <tt>present</tt>, <tt>delSet</tt>, <tt>resourceReport</tt>, 
+ <tt>triggerResourceCtrl</tt>, <tt>resourceCtrl</tt>,
+ <tt>accessCtrl</tt>, <tt>scan</tt>, <tt>sort</tt>, 
  <tt>extendedServices</tt>, <tt>level-1Segmentation</tt>, 
  <tt>level-2Segmentation</tt>, <tt>concurrentOperations</tt> and
  <tt>namedResultSets</tt>. Currently the default options are:
  <tt>search</tt>, <tt>present</tt>, <tt>scan</tt> and 
- <tt>namedResultSets</tt>. The options setting is set to its default
- value when an ir object is created and when a disconnect is performed.
+ <tt>namedResultSets</tt>. The <tt>options</tt> setting is set to its default
+ value when an ir object is created and when a <tt>disconnect</tt>
+ action is performed.
 <tag><tt>protocolVersion </tt><em>integer</em></tag>
- Protocol version: 2, 3, etc. 
+ Protocol version: 2, 3, etc. Default is 2.
 <tag><tt>initResponse </tt><em>list</em></tag>
  Init-response Tcl script. Note: not implemented - use <tt>callback</tt>
  instead.
@@ -293,11 +297,11 @@ below:
 <tag><tt>targetImplementationVersion </tt><em>string</em></tag>
  Implementation-version of target system.
 <tag><tt>options </tt><em>list</em></tag>
- Options negotiated after init. The list contains the options that are set.
+ Options negotiated in init. The list contains the options that are set.
 <tag><tt>protocolVersion </tt><em>integer</em></tag>
  Protocol version: 2, 3, etc.
 <tag><tt>userInformationField </tt><em>string</em></tag>
- User information field
+ User information field.
 </descrip>
 
 <bf/Example/
@@ -320,7 +324,7 @@ The Tcl code below defines, connect and initialize the
 targets in <tt/targetList/:
 
 <tscreen><verb>
-\foreach target $targetList {
+foreach target $targetList {
     set assoc [lindex $target 0]
     ir $assoc
     $assoc comstack [lindex $target 1]
@@ -359,6 +363,7 @@ is necessary here because the argument contains variables
 After the connect operation, the <tt/init-response/ handler
 is defined in much the same way as the failback handler.
 And, finally, an init request is executed.
+
 <bf/End of example/
 
 <sect1>Disconnect
@@ -581,6 +586,7 @@ Note that we actually didn't inspect the search status (setting
 <tt/searchStatus/) to determine whether the search was successful or not, 
 because the standard specifies that one or more non-surrogate
 diagnostics should be returned by the target in case of errors.
+
 <bf/End of example/
 
 If one or more records are returned from the target they
@@ -699,6 +705,7 @@ search-response handler as argument <tt/rset/.
 Each item in the result set is examined. 
 If an item is a diagnostic message it is displayed; otherwise
 if it's a database record its type is displayed.
+
 <bf/End of example/
 
 <sect1>MARC records
@@ -878,11 +885,11 @@ that should be used in a response handler.
 <tag><tt>positionOfTerm</tt></tag>
  An integer describing the position of term.
 <tag><tt>scanLine </tt> <em>integer</em></tag>
- This function returns information about a given scan line at a given
+ This function returns information about a given scan line (entry) at a given
  index specified by the integer. The first scan line is numbered zero;
  the second 1 and so on. A list is returned by the <tt>scanLine</tt>
- setting. The first element is <tt>T</tt> if the scan entry
- is a normal term and <tt>SD</tt> if the scan entry is a surrogate 
+ setting. The first element is <tt>T</tt> if the scan line
+ is a normal term and <tt>SD</tt> if the scan line is a surrogate 
  diagnostic. In the first case (normal) the scan term is second element 
  in the list and the number of occurences is the third element.
  In the other case (surrogate diagnostic), the second element
