@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.23 1996-07-25 15:29:08 adam Exp $
+$Id: CHANGELOG,v 1.24 1996-07-25 15:51:54 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -59,36 +59,35 @@ $Id: CHANGELOG,v 1.23 1996-07-25 15:29:08 adam Exp $
 11/28/95 Release of ir-tcl-1.0
 ------------------------------------------------------
 
-04/01/96 New setting: eventType. Returns type of last event: connect, init,
+01/04/96 New setting: eventType. Returns type of last event: connect, init,
          search, present or scan.
 
-10/01/96 Implemented APDU specific callback handlers: initResponse,
+01/10/96 Implemented APDU specific callback handlers: initResponse,
          searchResponse, presentResponse and scanResponse.
 
-11/01/96 Release of ir-tcl-1.1
+01/11/96 Release of ir-tcl-1.1
 ------------------------------------------------------
 
-19/01/96 New feature: apduInfo - returns information about last incoming
+01/19/96 New feature: apduInfo - returns information about last incoming
          APDU. Three elements returned: length offset dump.
 
-19/01/96 Bug fix: When running in Windows NT/95 displayFormats wasn't
+01/19/96 Bug fix: When running in Windows NT/95 displayFormats wasn't
          properly read from the subdirectory formats.
 
-29/01/96 Bug fix: cs_type member in ir-tclp.h renamed to comstackType to
+01/29/96 Bug fix: cs_type member in ir-tclp.h renamed to comstackType to
          avoid conflict with cs_type macro defined by YAZ.
 
-
-20/02/96 Identification of record syntaxes, etc. are handled by the YAZ
+02/20/96 Identification of record syntaxes, etc. are handled by the YAZ
          oid utilities.
 
-29/05/96 Bug fix: Memory release of GRS-1 records was buggy.
+05/29/96 Bug fix: Memory release of GRS-1 records was buggy.
 
-29/05/96 GRS-1 record management function getGrs enhanced so that specific
+05/29/96 GRS-1 record management function getGrs enhanced so that specific
          elements can be extracted by (<tagType>,<tagVal>) - pairs.
 
-24/06/96 Quick reference man pages added: ir-assoc, ir-set and ir-scan.
+06/24/96 Quick reference man pages added: ir-assoc, ir-set and ir-scan.
 
-27/06/96 Ported ir-tcl to Tcl7.5/tk4.1.
+06/27/96 Ported ir-tcl to Tcl7.5/tk4.1.
 
-25/07/96 Release of ir-tcl-1.2
+07/25/96 Release of ir-tcl-1.2
 ------------------------------------------------------
