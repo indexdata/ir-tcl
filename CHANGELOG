@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.53 2003-03-05 18:02:08 adam Exp $
+$Id: CHANGELOG,v 1.54 2003-03-05 22:13:11 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -163,3 +163,9 @@ $Id: CHANGELOG,v 1.53 2003-03-05 18:02:08 adam Exp $
 ------------------------------------------------------
 
 05/03/03 Fix bug with idAuthentication that didn't work for empty group.
+
+05/03/03 Sets largeSetLowerBound to 1 instead of 2 by default.
+
+05/03/03 APDU dump : written to same file as log when DEBUG is enabled.
+
+05/03/03 IRTCL.DLL is using Tcl stubs on Win32. 
