@@ -2,7 +2,7 @@
 # (c) Index Data 1995
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.4 1995-06-22 13:46:52 adam Exp $
+# $Id: Makefile.in,v 1.5 1995-06-23 10:58:10 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -53,12 +53,17 @@ O=ir-tcl.o marc.o
 
 all: ir-tk ir-tcl
 
-ir-tk: $(O) tkmain.o
-	$(CC) $(CFLAGS) $(O) tkmain.o -o ir-tk $(YAZLIB) $(TKLIB) \
+ir-tk: libirtcl.a tkmain.o
+	$(CC) $(CFLAGS) tkmain.o -o ir-tk libirtcl.a $(YAZLIB) $(TKLIB) \
 	$(TCLLIB) $(XLIB) $(LIBS)
 
-ir-tcl: $(O) tclmain.o
-	$(CC) $(CFLAGS) $(O) tclmain.o -o ir-tcl $(YAZLIB) $(TCLLIB) $(LIBS)
+ir-tcl: libirtcl.a tclmain.o
+	$(CC) $(CFLAGS) tclmain.o -o ir-tcl libirtcl.a $(YAZLIB) $(TCLLIB) $(LIBS)
+
+libirtcl.a: $(O)
+	rm -f libirtcl.a
+	ar qc libirtcl.a $(O)
+	$(RANLIB) libirtcl.a
 
 install-tcl: ir-tcl
 	for d in $(IRTCLDIR) $(IRTCLDIR)/formats $(IRTCLDIR)/bitmaps; do \
