@@ -16,7 +16,7 @@ Description: Documentation for the IR Tcl.
 Package: ir-tcl
 Section: net
 Architecture: any
-Depends: ${shlibs:Depends}
+Depends: ${shlibs:Depends}, tcl8.3, tk8.3
 Description: Information Retrieval Toolkit for Tcl.
  IR Tcl is a extension for Tcl that offers a Z39.50 client functionality.
 
