@@ -4,7 +4,11 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: line.tcl,v $
-# Revision 1.4  1995-06-19 08:10:21  adam
+# Revision 1.5  1995-06-22 13:16:28  adam
+# Feature: SUTRS. Setting getSutrs implemented.
+# Work on display formats.
+#
+# Revision 1.4  1995/06/19  08:10:21  adam
 # Inverse highligt colours in monochrome mode.
 #
 # Revision 1.3  1995/06/16  12:29:00  adam
@@ -37,23 +41,29 @@ proc display-line {sno no w hflag} {
     } else {
         $w delete 0.0 end
     }
+    if {$hflag} {
+        set nostr [format "%5d " $no]
+        insertWithTags $w $nostr marc-tag
+    }
     if {$type == "DB"} {
-        if {$hflag} {
-            set nostr [format "%5d " $no]
-            insertWithTags $w $nostr marc-tag
+        set rtype [z39.$sno recordType $no]
+        if {$rtype == "SUTRS"} {
+            insertWithTags $w [join [z39.$sno getSutrs $no]]
+        } else {
+            if {[catch {
+                set title [lindex [z39.$sno getMarc $no field 245 * a] 0]
+                set year  [lindex [z39.$sno getMarc $no field 260 * c] 0]
+                insertWithTags $w "$title - $year\n" marc-data
+            }]} {
+                insertWithTags $w "Unknown record type: $rtype\n" marc-id
+            }
         }
-        set title [lindex [z39.$sno getMarc $no field 245 * a] 0]
-        set year  [lindex [z39.$sno getMarc $no field 260 * c] 0]
-        insertWithTags $w "$title - $year\n" marc-data
-        $w tag bind marc-data 
     } elseif {$type == "SD"} {
         set err [lindex [z39.$sno diag $no] 1]
         set add [lindex [z39.$sno diag $no] 2]
         if {$add != {}} {
             set add " :${add}"
         }
-        insertWithTags $w "Error ${err}${add}\n" marc-data
-    } elseif {$type == ""} {
-        return
-    }
+        insertWithTags $w "Error ${err}${add}\n" marc-id
+    } 
 }

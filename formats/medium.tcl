@@ -4,7 +4,11 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: medium.tcl,v $
-# Revision 1.4  1995-06-14 12:16:42  adam
+# Revision 1.5  1995-06-22 13:16:29  adam
+# Feature: SUTRS. Setting getSutrs implemented.
+# Work on display formats.
+#
+# Revision 1.4  1995/06/14  12:16:42  adam
 # Minor presentation format changes.
 #
 # Revision 1.3  1995/06/13  14:39:06  adam
@@ -23,7 +27,29 @@ proc display-medium {sno no w hflag} {
     } else {
         $w delete 0.0 end
     }
-    set i [z39.$sno getMarc $no field 245 * a]
+    set type [z39.$sno type $no]
+    if {$type == "SD"} {
+        set err [lindex [z39.$sno diag $no] 1]
+        set add [lindex [z39.$sno diag $no] 2]
+        if {$add != {}} {
+            set add " :${add}"
+        }
+        insertWithTags $w "Error ${err}${add}\n" marc-id
+        return
+    }
+    if {$type != "DB"} {
+        return
+    }
+    set rtype [z39.$sno recordType $no]
+    if {$rtype == "SUTRS"} {
+        insertWithTags $w [join [z39.$sno getSutrs $no]] {}
+        $w insert end "\n"
+        return
+    } 
+    if {[catch {set i [z39.$sno getMarc $no field 245 * a]}]} {
+        insertWithTags $w "Unknown record type: $rtype\n" marc-id
+        return
+    }
     if {"x$i" != "x"} {
         insertWithTags $w "Title:      " marc-tag
         insertWithTags $w [string trimright [lindex $i 0] /] marc-data

@@ -4,7 +4,11 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: raw.tcl,v $
-# Revision 1.3  1995-06-14 12:16:42  adam
+# Revision 1.4  1995-06-22 13:16:29  adam
+# Feature: SUTRS. Setting getSutrs implemented.
+# Work on display formats.
+#
+# Revision 1.3  1995/06/14  12:16:42  adam
 # Minor presentation format changes.
 #
 # Revision 1.2  1995/06/12  15:18:10  adam
@@ -18,7 +22,29 @@ proc display-raw {sno no w hflag} {
     } else {
         $w delete 0.0 end
     }
-    set r [z39.$sno getMarc $no list * * *]
+    set type [z39.$sno type $no]
+    if {$type == "SD"} {
+        set err [lindex [z39.$sno diag $no] 1]
+        set add [lindex [z39.$sno diag $no] 2]
+        if {$add != {}} {
+            set add " :${add}"
+        }
+        insertWithTags $w "Error ${err}${add}\n" marc-id
+        return
+    }
+    if {$type != "DB"} {
+        return
+    }
+    set rtype [z39.$sno recordType $no]
+    if {$rtype == "SUTRS"} {
+        insertWithTags $w [join [z39.$sno getSutrs $no]] {}
+        $w insert end "\n"
+        return
+    } 
+    if {[catch {set r [z39.$sno getMarc $no list * * *]}]} {
+        insertWithTags $w "Unknown record type: $rtype\n" marc-id
+        return
+    }
     foreach line $r {
         set tag [lindex $line 0]
         set indicator [lindex $line 1]
@@ -35,7 +61,6 @@ proc display-raw {sno no w hflag} {
             if {$id != ""} {
                 insertWithTags $w " $id " marc-id
             }
-            set start [$w index insert]
             insertWithTags $w $data {}
         }
         $w insert end "\n"
