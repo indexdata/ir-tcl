@@ -1,14 +1,15 @@
-dnl aclocal.m4 generated automatically by aclocal 1.4-p4
+# generated automatically by aclocal 1.7.9 -*- Autoconf -*-
 
-dnl Copyright (C) 1994, 1995-8, 1999 Free Software Foundation, Inc.
-dnl This file is free software; the Free Software Foundation
-dnl gives unlimited permission to copy and/or distribute it,
-dnl with or without modifications, as long as this notice is preserved.
+# Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002
+# Free Software Foundation, Inc.
+# This file is free software; the Free Software Foundation
+# gives unlimited permission to copy and/or distribute it,
+# with or without modifications, as long as this notice is preserved.
 
-dnl This program is distributed in the hope that it will be useful,
-dnl but WITHOUT ANY WARRANTY, to the extent permitted by law; without
-dnl even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-dnl PARTICULAR PURPOSE.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY, to the extent permitted by law; without
+# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+# PARTICULAR PURPOSE.
 
 # Use this m4 funciton for autoconf if you use YAZ in your own
 # configure script.
@@ -54,11 +55,21 @@ AC_DEFUN([YAZ_INIT],
 			YAZINC=`$yazconfig --cflags $1`
 			YAZVERSION=`$yazconfig --version`
 		fi
-		AC_MSG_RESULT($yazconfig)
+		AC_MSG_RESULT([$yazconfig])
 	else
 		AC_MSG_RESULT(Not found)
 		YAZVERSION=NONE
 	fi
-])
-	
+	if test "X$YAZVERSION" != "XNONE"; then
+		AC_MSG_CHECKING([for YAZ version])
+		AC_MSG_RESULT([$YAZVERSION])
+		if test "$2"; then
+			have_yaz_version=`echo "$YAZVERSION" | awk 'BEGIN { FS = "."; } { printf "%d", ([$]1 * 1000 + [$]2) * 1000 + [$]3;}'`
+			req_yaz_version=`echo "$2" | awk 'BEGIN { FS = "."; } { printf "%d", ([$]1 * 1000 + [$]2) * 1000 + [$]3;}'`
+			if test "$have_yaz_version" -lt "$req_yaz_version"; then
+				AC_MSG_ERROR([$YAZVERSION. Requires $2 or later])
+			fi
+		fi
+	fi
+]) 
 
