@@ -1,46 +1,29 @@
 dnl IR toolkit for tcl/tk
-dnl (c) Index Data 1995
+dnl (c) Index Data 1996
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.13 1996-01-11 12:14:53 adam Exp $
+dnl $Id: configure.in,v 1.14 1996-03-27 08:38:32 adam Exp $
 AC_INIT(ir-tcl.h)
 CC=${CC-cc}
+dnl ------ Substitutions
 AC_SUBST(CC)
-AC_PROG_RANLIB
-AC_PROG_INSTALL
-checkBoth=0
-AC_CHECK_FUNC(connect, tk_checkSocket=0, tk_checkSocket=1)
-if test "$tk_checkSocket" = 1; then
-    AC_CHECK_LIB(socket, main, LIBS="$LIBS -lsocket", checkBoth=1)
-fi
-if test "$checkBoth" = 1; then
-    tk_oldLibs=$LIBS
-    LIBS="$LIBS -lsocket -lnsl"
-    AC_CHECK_FUNC(accept, , [LIBS=$tk_oldLibs])
-fi
-AC_CHECK_FUNC(gethostbyname, , AC_CHECK_LIB(nsl, main, [LIBS="$LIBS -lnsl"]))
-AC_STDC_HEADERS
 AC_SUBST(TCLLIB)
 AC_SUBST(TKLIB)
 AC_SUBST(TCLINCLUDE)
-TCLLIB=-ltcl
-TKLIB=-ltk
-TCLINCLUDE=" # -I.. Tcl/Tk include path"
-for i in .a 7.4.a 7.5.a; do
-	if test -r /usr/local/lib/libtcl$i; then
-		TCLLIB=/usr/local/lib/libtcl$i
-		TCLINCLUDE=-I/usr/local/include
-	fi
-done
-for i in .a 4.0.a 4.1.a; do
-	if test -r /usr/local/lib/libtk$i; then
-		TKLIB=/usr/local/lib/libtk$i
-	fi
-done
 AC_SUBST(YAZDIR)
 AC_SUBST(MOSI)
 AC_SUBST(MOSIDIR)
 AC_SUBST(MOSILIB)
 AC_SUBST(MOSIINC)
+AC_SUBST(XINCLUDES)
+AC_SUBST(XLIBSW)
+dnl ------ Preliminary settings
+AC_PROG_INSTALL
+AC_PREFIX_PROGRAM(tclsh)
+AC_STDC_HEADERS
+if test "$ac_cv_header_stdc" = no; then
+	AC_MSG_WARN(Your system doesn't seem to support ANSI C)
+fi
+dnl ------ look for YAZ/XTImOSI
 AC_MSG_CHECKING(for YAZ directory)
 AC_ARG_WITH(yazdir,[  --with-yazdir           Yaz directory], [YAZDIR=$withval])
 if test "$YAZDIR" = "yes"; then
@@ -78,6 +61,63 @@ else
         MOSITELL=no
 fi
 AC_MSG_RESULT($MOSITELL)
+dnl ------ look for Tcl
+if test "x$prefix" = xNONE; then
+	trylib=/usr/local/lib
+else
+	trylib=${prefix}/lib
+fi
+if test -r ${trylib}/tclConfig.sh; then
+	AC_MSG_CHECKING(for Tcl)
+	source ${trylib}/tclConfig.sh
+	LIBS=$TCL_LIBS
+	if test "$TCL_LIB_VERSIONS_OK" = "yes"; then
+		TCLLIB="-L${TCL_PREFIX}/lib -ltcl${TCL_VERSION}"
+	else
+		TCLLIB=${TCL_PREFIX}/lib/${TCL_LIB_FILE}
+	fi
+	TCLINCLUDE=-I${TCL_PREFIX}/include
+	RANLIB=$TCL_RANLIB
+	AC_MSG_RESULT($TCL_VERSION)
+else
+	AC_PROG_RANLIB
+	checkBoth=0
+	AC_CHECK_FUNC(connect, tk_checkSocket=0, tk_checkSocket=1)
+	if test "$tk_checkSocket" = 1; then
+	AC_CHECK_LIB(socket, main, LIBS="$LIBS -lsocket", checkBoth=1)
+	fi
+	if test "$checkBoth" = 1; then
+		tk_oldLibs=$LIBS
+		LIBS="$LIBS -lsocket -lnsl"
+		AC_CHECK_FUNC(accept, , [LIBS=$tk_oldLibs])
+	fi
+	AC_CHECK_FUNC(gethostbyname, , AC_CHECK_LIB(nsl, main, [LIBS="$LIBS -lnsl"]))
+	AC_MSG_CHECKING(for Tcl)
+	TCL_VERSION=nope
+	for i in "" 7.4 7.5; do
+		if test -r ${trylib}/libtcl${i}.a; then
+			TCL_VERSION=$i
+		fi
+	done
+	if test "$TCL_VERSION" = nope; then
+		AC_MSG_WARN(Didn't find Tcl)
+		TCLLIB=-ltcl
+		TCLINCLUDE=" # -I.. Tcl/Tk include path"
+	else
+		AC_MSG_RESULT($TCL_VERSION)
+		TCLLIB=${trylib}/libtcl${TCL_VERSION}.a
+		TCLINCLUDE=-I${trylib}
+	fi
+	LIBS="${LIBS} -lm"
+fi
+dnl ------ look for Tk
+TKLIB=-ltk
+for i in .a 4.0.a 4.1.a; do
+	if test -r /usr/local/lib/libtk$i; then
+		TKLIB=/usr/local/lib/libtk$i
+	fi
+done
+dnl ------ look for X11
 AC_PATH_X
 not_really_there=""
 if test "$no_x" = ""; then
@@ -112,7 +152,6 @@ if test "$XINCLUDES" = nope; then
   echo "Warning:  couldn't find any X11 include files."
   XINCLUDES="# no include files found"
 fi
-AC_SUBST(XINCLUDES)
 if test "$no_x" = yes; then
     XLIBSW=nope
     if test "$XLIBSW" = nope; then
@@ -137,5 +176,4 @@ if test "$XLIBSW" = nope ; then
     echo "Warning:  couldn't find the X11 library archive.  Using -lX11."
     XLIBSW=-lX11
 fi
-AC_SUBST(XLIBSW)
 AC_OUTPUT(Makefile)

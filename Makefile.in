@@ -2,7 +2,7 @@
 # (c) Index Data 1995
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.31 1996-03-20 13:54:01 adam Exp $
+# $Id: Makefile.in,v 1.32 1996-03-27 08:38:30 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -21,7 +21,7 @@ INCDIR=$(prefix)/include
 IRTCLDIR=$(prefix)/lib/irtcl
 
 YAZDIR=@YAZDIR@
-LIBS=@LIBS@ -lm
+LIBS=@LIBS@
 
 CC=@CC@
 
@@ -57,7 +57,7 @@ RANLIB = @RANLIB@
 
 O=ir-tcl.o marc.o queue.o mem.o grs.o
 
-all: ir-tk ir-tcl
+all: ir-tcl ir-tk
 
 ir-tk: libirtcl.a tkinit.o
 	$(CC) $(CFLAGS) tkinit.o -o ir-tk libirtcl.a $(YAZLIB) $(TKLIB) \
