@@ -3,7 +3,10 @@
  * (c) Index Data 1995
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.9  1995-03-15 13:59:24  adam
+ * Revision 1.10  1995-03-15 16:14:50  adam
+ * Blocking arg in cs_create changed.
+ *
+ * Revision 1.9  1995/03/15  13:59:24  adam
  * Minor changes.
  *
  * Revision 1.8  1995/03/15  08:25:16  adam
@@ -506,12 +509,12 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
     if (cs_type (p->cs_link) == tcpip_type)
     {
         cs_close (p->cs_link);
-        p->cs_link = cs_create (tcpip_type, 0);
+        p->cs_link = cs_create (tcpip_type, 1);
     }
     else if (cs_type (p->cs_link) == mosi_type)
     {
         cs_close (p->cs_link);
-        p->cs_link = cs_create (mosi_type, 0);
+        p->cs_link = cs_create (mosi_type, 1);
     }
     else
     {
@@ -531,9 +534,9 @@ static int do_comstack (void *obj, Tcl_Interp *interp,
     if (argc == 3)
     {
         if (!strcmp (argv[2], "tcpip"))
-            ((IRObj *)obj)->cs_link = cs_create (tcpip_type, 0);
+            ((IRObj *)obj)->cs_link = cs_create (tcpip_type, 1);
         else if (!strcmp (argv[2], "mosi"))
-            ((IRObj *)obj)->cs_link = cs_create (mosi_type, 0);
+            ((IRObj *)obj)->cs_link = cs_create (mosi_type, 1);
         else
         {
             interp->result = "wrong comstack type";
@@ -668,7 +671,7 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     }
     if (!(obj = ir_malloc (interp, sizeof(*obj))))
         return TCL_ERROR;
-    obj->cs_link = cs_create (tcpip_type, 0);
+    obj->cs_link = cs_create (tcpip_type, 1);
 
     obj->maximumRecordSize = 32768;
     obj->preferredMessageSize = 4096;
