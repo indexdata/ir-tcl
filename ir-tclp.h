@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.6  1995-05-31 08:36:40  adam
+ * Revision 1.7  1995-06-01 07:31:28  adam
+ * Rename of many typedefs -> IrTcl_...
+ *
+ * Revision 1.6  1995/05/31  08:36:40  adam
  * Bug fix in client.tcl: didn't save options on clientrc.tcl.
  * New method: referenceId. More work on scan.
  *
@@ -39,9 +42,6 @@
 #if CCL2RPN
 #include <yaz-ccl.h>
 #endif
-#if 0
-#include <iso2709.h>
-#endif
 
 #include <comstack.h>
 #include <tcpip.h>
@@ -68,7 +68,7 @@ typedef struct {
     int         smallSetUpperBound;
     int         largeSetLowerBound;
     int         mediumSetPresentNumber;
-} IRSetCObj;
+} IrTcl_SetCObj;
     
 typedef struct {
     int         ref_count;
@@ -116,13 +116,13 @@ typedef struct {
     CCL_bibset  bibset;
 #endif
 
-    struct IRSetObj_ *set_child;
-    struct IRScanObj_ *scan_child;
+    struct IrTcl_SetObj_ *set_child;
+    struct IrTcl_ScanObj_ *scan_child;
 
-    IRSetCObj   set_inher;
-} IRObj;
+    IrTcl_SetCObj   set_inher;
+} IrTcl_Obj;
 
-typedef struct IRRecordList_ {
+typedef struct IrTcl_RecordList_ {
     int no;
     int which;
     union {
@@ -135,11 +135,11 @@ typedef struct IRRecordList_ {
             char *addinfo;
         } diag;
     } u;
-    struct IRRecordList_ *next;
-} IRRecordList;
+    struct IrTcl_RecordList_ *next;
+} IrTcl_RecordList;
 
-typedef struct IRSetObj_ {
-    IRObj      *parent;
+typedef struct IrTcl_SetObj_ {
+    IrTcl_Obj  *parent;
     int         searchStatus;
     int         presentStatus;
     int         resultCount;
@@ -152,11 +152,11 @@ typedef struct IRSetObj_ {
     int         which;
     int         condition;
     char       *addinfo;
-    IRRecordList *record_list;
-    IRSetCObj   set_inher;
-} IRSetObj;
+    IrTcl_RecordList *record_list;
+    IrTcl_SetCObj set_inher;
+} IrTcl_SetObj;
 
-typedef struct IRScanEntry_ {
+typedef struct IrTcl_ScanEntry_ {
     int         which;
     union {
         struct {
@@ -168,14 +168,14 @@ typedef struct IRScanEntry_ {
 	    char *addinfo;
 	} diag;
     } u;
-} IRScanEntry;
+} IrTcl_ScanEntry;
 
-typedef struct IRScanDiag_ {
+typedef struct IrTcl_ScanDiag_ {
     int         dummy;
-} IRScanDiag;
+} IrTcl_ScanDiag;
 
-typedef struct IRScanObj_ {
-    IRObj      *parent;
+typedef struct IrTcl_ScanObj_ {
+    IrTcl_Obj   *parent;
     int         stepSize;
     int         numberOfTermsRequested;
     int         preferredPositionInResponse;
@@ -190,9 +190,9 @@ typedef struct IRScanObj_ {
     int         num_entries;
     int         num_diagRecs;
 
-    IRScanEntry *entries;
-    IRScanDiag  *nonSurrogateDiagnostics;
-} IRScanObj;
+    IrTcl_ScanEntry *entries;
+    IrTcl_ScanDiag  *nonSurrogateDiagnostics;
+} IrTcl_ScanObj;
 
 struct ir_named_entry {
     char *name;
