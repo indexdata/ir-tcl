@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.75  1996-02-19 15:41:53  adam
+ * Revision 1.76  1996-02-20 16:09:51  adam
+ * Bug fix: didn't set element set names stamp correctly on result
+ * set records when element set names were set to the empty string.
+ *
+ * Revision 1.75  1996/02/19  15:41:53  adam
  * Better log messages.
  * Minor improvement of connect method.
  *
@@ -297,6 +301,8 @@ static IrTcl_RecordList *new_IR_record (IrTcl_SetObj *setobj,
 {
     IrTcl_RecordList *rl;
 
+    if (elements && !*elements)
+        elements = NULL;
     for (rl = setobj->record_list; rl; rl = rl->next)
     {
         if (no == rl->no && (!rl->elements || !elements ||
@@ -2021,7 +2027,10 @@ static int do_resultCount (void *o, Tcl_Interp *interp,
     IrTcl_SetObj *obj = o;
 
     if (argc <= 0)
+    {
+        obj->resultCount = 0;
         return TCL_OK;
+    }
     return get_set_int (&obj->resultCount, interp, argc, argv);
 }
 
