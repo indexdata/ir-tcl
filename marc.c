@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: marc.c,v $
- * Revision 1.10  1999-02-08 09:22:31  franck
+ * Revision 1.11  2005-03-10 13:54:38  adam
+ * Define irtcl_atoi_n rather than the YAZ function atoi_n
+ *
+ * Revision 1.10  1999/02/08 09:22:31  franck
  * Added a grs mode for ir_tcl_get_marc which returns MARC records in a TCL
  * structure similar to that of ir_tcl_get_grs.
  *
@@ -56,7 +59,7 @@
 #define ISO2709_FS 036
 #define ISO2709_IDFS 037
 
-static int atoi_n (const char *buf, int len)
+static int irtcl_atoi_n (const char *buf, int len)
 {
     int val = 0;
 
@@ -115,7 +118,7 @@ char *ir_tcl_fread_marc (FILE *inf, size_t *size)
 
     if (fread (length, 1, 5, inf) != 5)
         return NULL;
-    *size = atoi_n (length, 5);
+    *size = irtcl_atoi_n (length, 5);
     if (*size <= 6)
         return NULL;
     if (!(buf = xmalloc (*size+1)))
@@ -160,19 +163,19 @@ int ir_tcl_get_marc (Tcl_Interp *interp, const char *buf,
         Tcl_AppendResult (interp, "Not a MARC record", NULL);
         return TCL_ERROR;
     }
-    record_length = atoi_n (buf, 5);
+    record_length = irtcl_atoi_n (buf, 5);
     if (record_length < 25)
     {
         Tcl_AppendResult (interp, "Not a MARC record", NULL);
         return TCL_ERROR;
     }
-    indicator_length = atoi_n (buf+10, 1);
-    identifier_length = atoi_n (buf+11, 1);
-    base_address = atoi_n (buf+12, 4);
+    indicator_length = irtcl_atoi_n (buf+10, 1);
+    identifier_length = irtcl_atoi_n (buf+11, 1);
+    base_address = irtcl_atoi_n (buf+12, 4);
 
-    length_data_entry = atoi_n (buf+20, 1);
-    length_starting = atoi_n (buf+21, 1);
-    length_implementation = atoi_n (buf+22, 1);
+    length_data_entry = irtcl_atoi_n (buf+20, 1);
+    length_starting = irtcl_atoi_n (buf+21, 1);
+    length_implementation = irtcl_atoi_n (buf+22, 1);
 
     for (entry_p = 24; buf[entry_p] != ISO2709_FS; )
         entry_p += 3+length_data_entry+length_starting;
@@ -191,9 +194,9 @@ int ir_tcl_get_marc (Tcl_Interp *interp, const char *buf,
         memcpy (tag, buf+entry_p, 3);
 	entry_p += 3;
         tag[3] = '\0';
-	data_length = atoi_n (buf+entry_p, length_data_entry);
+	data_length = irtcl_atoi_n (buf+entry_p, length_data_entry);
 	entry_p += length_data_entry;
-	data_offset = atoi_n (buf+entry_p, length_starting);
+	data_offset = irtcl_atoi_n (buf+entry_p, length_starting);
 	entry_p += length_starting;
 	i = data_offset + base_address;
 	end_offset = i+data_length-1;
