@@ -4,7 +4,10 @@
  * See the file LICENSE for details.
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.123  2003-03-05 21:21:41  adam
+ * Revision 1.124  2003-03-05 22:02:47  adam
+ * Add Tcl_InitStubs
+ *
+ * Revision 1.123  2003/03/05 21:21:41  adam
  * APDU log. default largeSetLowerBound changed from 2 to 1
  *
  * Revision 1.122  2003/03/05 18:02:08  adam
@@ -4716,6 +4719,11 @@ DllEntryPoint(hInst, reason, reserved)
  */
 EXPORT (int,Irtcl_Init) (Tcl_Interp *interp)
 {
+#if USE_TCL_STUBS
+    if (Tcl_InitStubs(interp, "8.1", 0) == NULL) {
+        return TCL_ERROR;
+    }
+#endif
     Tcl_CreateCommand (interp, "ir", ir_obj_mk, (ClientData) NULL,
                        (Tcl_CmdDeleteProc *) NULL);
     Tcl_CreateCommand (interp, "ir-set", ir_set_obj_mk,
