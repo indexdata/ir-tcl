@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.83  1996-03-05 09:21:09  adam
+ * Revision 1.84  1996-03-07 12:42:49  adam
+ * Better logging when callback is invoked.
+ *
+ * Revision 1.83  1996/03/05  09:21:09  adam
  * Bug fix: memory used by GRS records wasn't freed.
  * Rewrote some of the error handling code - the connection is always
  * closed before failback is called.
@@ -346,6 +349,7 @@ static void delete_IR_record (IrTcl_RecordList *rl)
             ir_tcl_grs_del (&rl->u.dbrec.u.grs1);
             break;
         default:
+            break;
         }
         free (rl->u.dbrec.buf);
         break;
@@ -394,7 +398,7 @@ int ir_tcl_eval (Tcl_Interp *interp, const char *command)
     char *tmp = ir_tcl_malloc (strlen(command)+1);
     int r;
 
-    logf (LOG_DEBUG, "Invoking %.17s ...", command);
+    logf (LOG_DEBUG, "Invoking %.23s ...", command);
     strcpy (tmp, command);
     r = Tcl_Eval (interp, tmp);
     if (r == TCL_ERROR)
@@ -3484,7 +3488,7 @@ static void ir_select_read (ClientData clientData)
     logf(LOG_DEBUG, "Read handler fd=%d", cs_fileno(p->cs_link));
     if (p->state == IR_TCL_R_Connecting)
     {
-	logf(LOG_DEBUG, "Connect handler");
+	logf(LOG_DEBUG, "read: connect");
         r = cs_rcvconnect (p->cs_link);
         if (r == 1)
         {
@@ -3657,7 +3661,7 @@ static void ir_select_write (ClientData clientData)
     logf (LOG_DEBUG, "Write handler fd=%d", cs_fileno(p->cs_link));
     if (p->state == IR_TCL_R_Connecting)
     {
-	logf(LOG_DEBUG, "Connect handler");
+	logf(LOG_DEBUG, "write: connect");
         r = cs_rcvconnect (p->cs_link);
         if (r == 1)
         {
