@@ -1,16 +1,16 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.32 2001-12-03 18:52:06 adam Exp $
+  $Id: ir-tcl.sgml,v 1.33 2003-03-05 22:32:36 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference 
 <author><htmlurl url="http://www.indexdata.dk/" name="Index Data">,
 <tt><htmlurl url="mailto:info@indexdata.dk" name="info@indexdata.dk"></tt>
-<date>$Date: 2001-12-03 18:52:06 $
+<date>$Date: 2003-03-05 22:32:36 $
 <abstract>
-IrTcl version 1.4 -- a Tcl extension that allows you to build
+IrTcl version 1.4.1 -- a Tcl extension that allows you to build
 Z39.50 clients.
 </abstract>
 
@@ -688,7 +688,7 @@ The settings that affect the search are listed below:
 <tag><tt>smallSetUpperBound </tt><em>integer</em></tag>
  Small set upper bound. Default 0.
 <tag><tt>largeSetLowerBound </tt><em>integer</em></tag>
- Large set lower bound. Default 2.
+ Large set lower bound. Default 1.
 <tag><tt>mediumSetPresentNumber </tt><em>integer</em></tag>
  Medium set present number. Default 0.
 <tag><tt>replaceIndicator </tt><em>boolean</em></tag>
@@ -1408,7 +1408,7 @@ been created.
 <sect>License
 
 <p>
-Copyright &copy; 1995-2001, Index Data ApS.
+Copyright &copy; 1995-2003, Index Data ApS.
 
 Permission to use, copy, modify, distribute, and sell this software and
 its documentation, in whole or in part, for any purpose, is hereby granted,
