@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.86  1996-01-22 09:29:01  adam
+# Revision 1.87  1996-01-22 17:13:34  adam
+# Wrote comments.
+#
+# Revision 1.86  1996/01/22  09:29:01  adam
 # Wrote comments.
 #
 # Revision 1.85  1996/01/19  16:22:36  adam
@@ -1149,8 +1152,9 @@ proc reopen-target {target base} {
 
 # Procedure define-target-action
 # Prepares the setup of a new target. The name of the target
-# is read from the dialog .target-define dialog and the target
-# definition window is displayed by a call to protocol-setup.
+# is read from the dialog .target-define dialog (procedure
+# define-target-dialog) and the target definition window is displayed by
+# a call to protocol-setup.
 proc define-target-action {} {
     global profile
     
@@ -1296,6 +1300,9 @@ proc close-target {} {
     configure-enable-e .top.target.m 0
 }
 
+# Procedure load-set-action
+# Loads records from a file. The filename is read from the entry
+# .load-set.filename.entry (see function load-set)
 proc load-set-action {} {
     global setNoLast
 
@@ -1318,6 +1325,9 @@ proc load-set-action {} {
     show-status Ready 0 {}
 }
 
+# Procedure load-set
+# Dialog that asks for a filename with records to be loaded
+# into a result set.
 proc load-set {} {
     set w .load-set
     toplevel $w
@@ -1336,6 +1346,9 @@ proc load-set {} {
     focus $oldFocus
 }
 
+# Procedure init-request
+# Sends an initialize request to the target. This procedure is called
+# when a connect has been established.
 proc init-request {} {
     global cancelFlag
 
@@ -1352,6 +1365,10 @@ proc init-request {} {
     }
 }
 
+# Procedure init-response
+# Handles and incoming init-response. The service buttons
+# are enabled. The global $scanEnable indicates whether the target
+# supports scan.
 proc init-response {} {
     global cancelFlag
     global scanEnable
@@ -1377,6 +1394,12 @@ proc init-response {} {
     }
 }
 
+# Procedure search-request
+#  bflag     flag to indicate if this procedure calls itself
+# Performs a search. If $busy is 1, the search-request is performed
+# at a later time (when another response arrives). This procedure
+# sets many search-related Z39-settings. The global $setNo is set
+# to the result set number (z39.$setNo).
 proc search-request {bflag} {
     global setNo
     global setNoLast
@@ -1449,6 +1472,11 @@ proc search-request {bflag} {
     show-status Searching 1 0
 }
 
+# Procedure scan-copy {y entry}
+#  y       y-position of mouse pointer
+#  entry   a search entry in the top
+# Copies the term in the list nearest $y to the query entry specified
+# by $entry
 proc scan-copy {y entry} {
     set w .scan-window
     set no [$w.top.list nearest $y]
@@ -1457,6 +1485,9 @@ proc scan-copy {y entry} {
     .lines.$entry.e insert 0 [string range [$w.top.list get $no] 8 end]
 }
 
+# Procedure scan-request
+# Performs a scan on term "0" with the current attributes in entry
+# specified by the global $curIndexEntry.
 proc scan-request {} {
     set w .scan-window
 
@@ -1526,6 +1557,11 @@ proc scan-request {} {
     show-status Scanning 1 0
 }
 
+# Procedure scan-term-h {attr} 
+# attr    attribute specification
+# This procedure is called whenever a key is released in the entry in the
+# scan window (.scan-window). A scan is then initiated with the new contents
+# of the entry as the starting term.
 proc scan-term-h {attr} {
     global busy
     global scanTerm
@@ -1551,6 +1587,16 @@ proc scan-term-h {attr} {
     show-status Scanning 1 0
 }
 
+# Procedure scan-response {attr start toget}
+#  attr   attribute specification
+#  start  position of first term in the response
+#  toget  number of total terms to get
+# This procedure handles all scan-responses. $start specifies the list
+# entry number of the first incoming term. The $toget indicates the total
+# number of terms to be retrieved from the target. The $toget may be
+# negative in which case, scan is performed 'backwards' (- $toget is
+# the total number of terms in this case). This procedure usually calls
+# itself several times in order to get small scan-term-list chunks.
 proc scan-response {attr start toget} {
     global cancelFlag
     global delayRequest
@@ -1661,6 +1707,11 @@ proc scan-response {attr start toget} {
     show-status Ready 0 1
 }
 
+# Procedure scan-down {attr}
+#  attr   attribute specification
+# This procedure is called when the user hits the Down button the scan
+# window. A new scan is initiated with a positive $toget passed to the
+# scan-response handler.
 proc scan-down {attr} {
     global scanView
     global cancelFlag
@@ -1692,6 +1743,11 @@ proc scan-down {attr} {
     $w.top.list yview $scanView
 }
 
+# Procedure scan-up {attr}
+#  attr   attribute specification
+# This procedure is called when the user hits the Up button the scan
+# window. A new scan is initiated with a negative $toget passed to the
+# scan-response handler.
 proc scan-up {attr} {
     global scanView
     global cancelFlag
@@ -1721,6 +1777,13 @@ proc scan-up {attr} {
     $w.top.list yview $scanView
 }
 
+# Procedure search-response
+# This procedure handles search-responses. If the search is successful
+# this procedure will try to retrieve a total of 20 records from the target;
+# however not more than $presentChunk records at a time. This procedure
+# affects the following globals:
+#   $setOffset        current record position offset
+#   $setMax           total number of records to be retrieved
 proc search-response {} {
     global setNo
     global setOffset
@@ -1784,6 +1847,13 @@ proc search-response {} {
     }
 }
 
+# Procedure present-more {number}
+#  number      number of records to be retrieved
+# This procedure starts a present-request. The $number variable indicates
+# the total number of records to be retrieved. The global $presentChunk
+# specifies the number of records to be retrieved at a time. If $number
+# is the empty string all remaining records in the result set are 
+# retrieved.
 proc present-more {number} {
     global setNo
     global setOffset
@@ -1836,10 +1906,19 @@ proc present-more {number} {
     show-status Retrieving 1 0
 }
 
+# Procedure init-title-lines 
+# Utility that cleans the main record window.
 proc init-title-lines {} {
     .data.record delete 0.0 end
 }
 
+# Procedure add-title-lines {setno no offset}
+#  setno    Set number
+#  no       Number of records
+#  offset   Starting offset
+# This procedure displays the records $offset .. $offset+$no-1 in result
+# set $setno in the main record window by using the display format in the
+# global $displayFormat
 proc add-title-lines {setno no offset} {
     global displayFormats
     global displayFormat
@@ -1853,7 +1932,6 @@ proc add-title-lines {setno no offset} {
         set setno $setNo
     }
     if {$offset == 1} {
-        
         .bot.a.set configure -text $setno
         .data.record delete 0.0 end
     }
@@ -1881,6 +1959,10 @@ proc add-title-lines {setno no offset} {
     }
 }
 
+# Procedure present-response
+# Present-response handler. The incoming records are displayed and a new
+# present request is performed until all records ($setMax) is returned
+# from the target.
 proc present-response {} {
     global setNo
     global setOffset
@@ -1924,6 +2006,9 @@ proc present-response {} {
     }
 }
 
+# Procedure left-cursor {w}
+#  w    entry widget
+# Tries to move the cursor left in entry window $w
 proc left-cursor {w} {
     set i [$w index insert]
     if {$i > 0} {
@@ -1933,6 +2018,9 @@ proc left-cursor {w} {
     dputs left
 }
 
+# Procedure right-cursor {w}
+#  w    entry widget
+# Tries to move the cursor right in entry window $w
 proc right-cursor {w} {
     set i [$w index insert]
     incr i
@@ -1940,6 +2028,12 @@ proc right-cursor {w} {
     $w icursor $i
 }
 
+# Procedure bind-fields {list returnAction escapeAction}
+#  list          list of entry widgets
+#  returnAction  return script
+#  escapeAction  escape script
+# Each widget in list are assigned bindings for <Tab>, <Left>, <Right>,
+# <Return> and <Escape>.
 proc bind-fields {list returnAction escapeAction} {
     set max [expr [llength $list]-1]
     for {set i 0} {$i < $max} {incr i} {
@@ -1964,6 +2058,12 @@ proc bind-fields {list returnAction escapeAction} {
     focus [lindex $list 0]
 }
 
+# Procedure entry-fields {parent list tlist returnAction escapeAction}
+#  list          list of frame widgets
+#  tlist         list of text to be used as lead of each entry
+#  returnAction  return script
+#  escapeAction  escape script
+# Makes label and entry widgets in each widget in $list.
 proc entry-fields {parent list tlist returnAction escapeAction} {
     set alist {}
     set i 0
@@ -1980,6 +2080,8 @@ proc entry-fields {parent list tlist returnAction escapeAction} {
     bind-fields $alist $returnAction $escapeAction
 }
 
+# Procedure define-target-dialog
+# Dialog that asks for new target to be defined.
 proc define-target-dialog {} {
     set w .target-define
 
@@ -1995,6 +2097,9 @@ proc define-target-dialog {} {
     top-down-ok-cancel $w {define-target-action} 1
 }
 
+# Procedure protocol-setup-delete
+# This procedure is invoked when the user tries to delete a target
+# definition. If user is sure, the target definition is deleted.
 proc protocol-setup-delete {target w} {
     global profile
     global settingsChanged
@@ -2010,6 +2115,12 @@ definition $target ?"]
     }
 }
 
+# Procedure protocol-setup-action {target w}
+# target     target to be defined
+# w          target definition toplevel widget
+# This procedure reads all appropriate globals and makes a new/modified
+# profile for the target. The global array $targetS contains most of the
+# information the user may modify.
 proc protocol-setup-action {target w} {
     global profile
     global settingsChanged
@@ -2047,6 +2158,10 @@ proc protocol-setup-action {target w} {
     destroy $w
 }
 
+# Procedure place-force {window parent}
+#  window      new top level widget
+#  parent      parent widget used as base
+# Sets geometry of $window relative to $parent window.
 proc place-force {window parent} {
     set g [wm geometry $parent]
 
@@ -2058,6 +2173,11 @@ proc place-force {window parent} {
     wm geometry $window +${x}+${y}
 }
 
+# Procedure add-database-action {target w}
+#  target      target to be defined
+#  w           top level widget for the target definition
+# Adds the contents of .database-select.top.database.entry to list of
+# databases.
 proc add-database-action {target w} {
     global profile
 
@@ -2066,6 +2186,10 @@ proc add-database-action {target w} {
     destroy .database-select
 }
 
+# Procedure add-database {target wp}
+#  target      target to be defined
+#  wp          top level widget for the target definition
+# Makes a dialog in which the user enters new database
 proc add-database {target wp} {
     global profile
 
@@ -2089,6 +2213,11 @@ proc add-database {target wp} {
     focus $oldFocus
 }
 
+# Procedure delete-database {target w}
+#  target     target to be defined
+#  w          top level widget for the target definition
+# Asks the user if he/she really wishes to delete a database and removes
+# the database from the database-list if requested.
 proc delete-database {target w} {
     global profile
 
@@ -2106,6 +2235,11 @@ proc delete-database {target w} {
     }
 }
 
+# Procedure protocol-setup {target}
+#  target     target to be defined
+# Makes a dialog in which the user may modify/view a target definition
+# (profile). The $targetS - array holds the initial definition of the
+# target.
 proc protocol-setup {target} {
     global profile
     global targetS
@@ -2244,7 +2378,11 @@ proc protocol-setup {target} {
             {Cancel} [list destroy $w]] 0   
 }
 
-
+# Procedure advanced-setup {target b}
+#  target     target to be defined
+#  b          window number of target top level
+# Makes a dialog in which the user may modify/view advanced settings
+# of a target definition (profile).
 proc advanced-setup {target b} {
     global profile
     global targetS
@@ -2293,6 +2431,11 @@ proc advanced-setup {target b} {
             {Cancel} [list destroy $w]] 0   
 }
 
+# Procedure advanced-setup-action {target b}
+#  target     target to be defined
+#  b          window number of target top level
+# This procedure is called when the user hits Ok in the advanced target
+# setup dialog. The temporary result is stored in the $targetS - array.
 proc advanced-setup-action {target b} {
     set w .advanced-setup-$b
     global targetS
@@ -2308,6 +2451,9 @@ proc advanced-setup-action {target b} {
     destroy $w
 }
 
+# Procedure database-select-action
+# Called when the user commits a database select change. See procedure
+# database-select.
 proc database-select-action {} {
     set w .database-select.top
     set b {}
@@ -2320,6 +2466,8 @@ proc database-select-action {} {
     destroy .database-select
 }
 
+# Procedure database-select
+# Makes a dialog in which the user may select a database
 proc database-select {} {
     set w .database-select
     global profile
@@ -2354,6 +2502,10 @@ proc database-select {} {
     focus $oldFocus
 }
 
+# Procedure cascade-target-list
+# Makes all target/databases available in the Target|Connect
+# menu as well as all targets in the Target|Setup menu.
+# This procedure is called whenever target definitions occur.
 proc cascade-target-list {} {
     global profile
     
@@ -2385,6 +2537,11 @@ proc cascade-target-list {} {
     }
 }
 
+# Procedure query-select {i}
+#  i       Query type number (integer)
+# This procedure is called when the user selects a Query type. The current
+# query type information given by the globals $queryButtonsFind and
+# $queryInfoFind are affected by this operation.
 proc query-select {i} {
     global queryButtonsFind
     global queryInfoFind
@@ -2397,6 +2554,9 @@ proc query-select {i} {
     index-lines .lines 1 $queryButtonsFind $queryInfoFind activate-index
 }
 
+# Procedure query-new-action 
+# Commits a new query type definition by extending the globals
+# $queryTypes, $queryButtons and $queryInfo.
 proc query-new-action {} {
     global queryTypes
     global queryButtons
@@ -2412,6 +2572,9 @@ proc query-new-action {} {
     cascade-query-list
 }
 
+# Procedure query-new
+# Makes a dialog in which the user is requested to enter the name of a
+# new query type.
 proc query-new {} {
     set w .query-new
 
@@ -2429,6 +2592,9 @@ proc query-new {} {
     focus $oldFocus
 }
 
+# Procedure query-delete-action {queryNo}
+#  queryNo     query type number (integer)
+# Procedure that deletes the query type specified by $queryNo.
 proc query-delete-action {queryNo} {
     global queryTypes
     global queryButtons
@@ -2444,6 +2610,10 @@ proc query-delete-action {queryNo} {
     cascade-query-list
 }
 
+# Procedure query-delete {queryNo}
+#  queryNo     query type number (integer)
+# Asks if the user really want to delete a given query type; calls
+# query-delete-action if 'yes'.
 proc query-delete {queryNo} {
     global queryTypes
 
@@ -2462,6 +2632,8 @@ query type $n ?"  -aspect 300
                             {Cancel} [list destroy $w]] 1
 }
 
+# Procedure cascade-query-list
+# Updates the enties below Options|Query to list all query types.
 proc cascade-query-list {} {
     global queryTypes
     set w .top.options.m.query
@@ -2487,6 +2659,11 @@ proc cascade-query-list {} {
     }
 }
 
+# Procedure save-geometry
+# This procedure saves the per-user related settings in ~/.clientrc.tcl.
+# The geometry information stored in the global array $windowGeometry is
+# saved. Also a few other user settings, such as current display format, are
+# saved.
 proc save-geometry {} {
     global windowGeometry
     global hotTargets
@@ -2521,6 +2698,10 @@ proc save-geometry {} {
     close $f
 }
 
+# Procedure save-settings
+# This procedure saves the per-host related settings clientrc.tcl which
+# is normally kept in the directory /usr/local/lib/irtcl.
+# All query types and target defintion profiles are saved.
 proc save-settings {} {
     global profile
     global libdir
@@ -2561,6 +2742,11 @@ proc save-settings {} {
     set settingsChanged 0
 }
 
+# Procedure alert {ask}
+#  ask    prompt string
+# Makes a grabbed dialog in which the user is requested to answer
+# "Ok" or "Cancel". This procedure returns 1 if the user hits "Ok"; 0
+# otherwise.
 proc alert {ask} {
     set w .alert
 
@@ -2583,12 +2769,17 @@ proc alert {ask} {
     return $alertAnswer
 }
 
+# Procedure alert-action
+# Called when the user hits "Ok" in the .alert-window.
 proc alert-action {} {
     global alertAnswer
     set alertAnswer 1
     destroy .alert
 }
 
+# Procedure exit-action
+# This procedure is called if the user tries to exit without saving the
+# system settings.
 proc exit-action {} {
     global settingsChanged
 
@@ -2602,11 +2793,28 @@ proc exit-action {} {
     exit 0
 }
 
+# Procedure listbuttonaction {w name h user i}
+#  w       menubutton widget
+#  name    name information
+#  h       handler to be invoked
+#  user    user information to be passed to handler $h
+#  i       index passed as second argument to handler $h
+# Utility function to emulate a listbutton. Called when the user
+# Modifies the listbutton. See procedure listbuttonx.
 proc listbuttonaction {w name h user i} {
     $w configure -text [lindex $name 0]
     $h [lindex $name 1] $user $i
 }
-    
+
+# Procedure listbuttonx {button no names handle user}
+#  button  menubutton widget
+#  no      initial value index (integer)
+#  names   list of name entries. The first entry in each name
+#          entry is the actual name
+#  handle  user function to be called when the listbutton changes
+#          its value
+#  user    user argument to the $handle function
+# Makes an extended listbutton.
 proc listbuttonx {button no names handle user} {
     if {[winfo exists $button]} {
         $button configure -text [lindex [lindex $names $no] 0]
@@ -2625,6 +2833,12 @@ proc listbuttonx {button no names handle user} {
     }
 }
 
+# Procedure listbutton {button no names}
+#  button  menubutton widget
+#  no      initial value index (integer)
+#  names   list of possible values.
+# Makes a listbutton. The functionality is emulated by the use menubutton-
+# and menu widgets.
 proc listbutton {button no names} {
     menubutton $button -text [lindex $names $no] -width 10 -menu ${button}.m \
             -relief raised -border 1
@@ -2635,6 +2849,12 @@ proc listbutton {button no names} {
     }
 }
 
+# Procedure listbuttonv-action {button var names i}
+#  button   menubutton widget
+#  var      global variable to be affected
+#  names    list of possible names and values
+# This procedure is called when the user alters a menu created by the
+# listbuttonv procedure. The global variable $var is updated.
 proc listbuttonv-action {button var names i} {
     global $var
 
@@ -2642,6 +2862,13 @@ proc listbuttonv-action {button var names i} {
     $button configure -text [lindex $names $i]
 }
 
+# Procedure listbuttonv {button var names}
+#  button   menubutton widget
+#  var      global variable to be affected
+#  names    List of name/value pairs, i.e. {n1 v1 n2 v2 ...}.
+# This procedure emulates a listbutton by means of menu/menubutton widgets.
+# The global variable $var is automatically updated and set to one of the
+# values v1, v2, ...
 proc listbuttonv {button var names} {
     global $var
 
@@ -2668,6 +2895,9 @@ proc listbuttonv {button var names} {
     }
 }
 
+# Procedure query-add-index-action {queryNo}
+#  queryNo       query type number (integer)
+# Handler that makes a new query index.
 proc query-add-index-action {queryNo} {
     set w .query-setup
 
@@ -2684,6 +2914,9 @@ proc query-add-index-action {queryNo} {
     #pack $w.top.lines -side left -pady 6 -padx 6 -fill y
 }
 
+# Procedure query-add-line
+#  queryNo      query type number (integer)
+# Handler that adds new query line.
 proc query-add-line {queryNo} {
     set w .query-setup
 
@@ -2698,6 +2931,9 @@ proc query-add-line {queryNo} {
     #pack $w.top.lines -side left -pady 6 -padx 6 -fill y
 }
 
+# Procedure query-del-line
+#  queryNo      query type number (integer)
+# Handler that removes query line.
 proc query-del-line {queryNo} {
     set w .query-setup
 
@@ -2713,6 +2949,9 @@ proc query-del-line {queryNo} {
     index-lines $w.top.lines 0 $queryButtonsTmp $queryInfoTmp activate-e-index
 }
 
+# Procedure query-add-index
+#  queryNo      query type number (integer)
+# Handler that adds new query index.
 proc query-add-index {queryNo} {
     set w .query-add-index
 
@@ -2730,6 +2969,11 @@ proc query-add-index {queryNo} {
     focus $oldFocus
 }
 
+# Procedure query-setup-action
+#  queryNo      query type number (integer)
+# Handler that updates the query information database stored in the
+# globals $queryInfo and $queryButtons. This procedure is executed when
+# the user commits the query setup changes by pressing button "Ok".
 proc query-setup-action {queryNo} {
     global queryButtons
     global queryInfo
@@ -3591,7 +3835,7 @@ if {[catch {ir z39}]} {
     ir z39
     puts "ok"
 }
-#z39 logLevel all
+#z39 logLevel all {} mylog
 
 if {$hostid != "Default"} {
     catch {open-target $hostid $hostbase}
