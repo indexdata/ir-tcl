@@ -5,7 +5,12 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.91  1996-07-03 13:31:11  adam
+ * Revision 1.92  1996-08-09 15:33:07  adam
+ * Modified the code to use tk4.1/tcl7.5 patch level 1. The time-driven
+ * polling is no longer activated on Windows since asynchrounous I/O works
+ * better.
+ *
+ * Revision 1.91  1996/07/03  13:31:11  adam
  * The xmalloc/xfree functions from YAZ are used to manage memory.
  *
  * Revision 1.90  1996/06/27  14:21:00  adam
@@ -327,7 +332,11 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#ifdef WINDOWS
+
+#else
 #include <unistd.h>
+#endif
 #include <time.h>
 #include <assert.h>
 
@@ -925,7 +934,11 @@ static int do_implementationVersion (void *obj, Tcl_Interp *interp,
 
     if (argc == 0)
         return ir_tcl_strdup (interp, &p->implementationVersion, 
-                          "YAZ: " YAZ_VERSION " / IrTcl: " IR_TCL_VERSION);
+                          "YAZ: " YAZ_VERSION
+#ifdef IR_TCL_VERSION
+                          " / Irtcl: " IR_TCL_VERSION
+#endif
+                          );
     else if (argc == -1)
         return ir_tcl_strdel (interp, &p->implementationVersion);
     Tcl_AppendResult (interp, p->implementationVersion, (char*) NULL);
