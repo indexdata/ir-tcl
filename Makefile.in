@@ -1,7 +1,7 @@
 # IR toolkit for tcl/tk
 # (c) Index Data 1995-2004
 # See the file LICENSE for details.
-# $Id: Makefile.in,v 1.63 2004-05-04 19:42:56 adam Exp $
+# $Id: Makefile.in,v 1.64 2005-03-10 13:55:31 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -47,7 +47,7 @@ YAZINC=@YAZINC@
 INCLUDE=-I. $(YAZINC) $(TKINC) $(TCLINC) 
 
 # All command line options except CFLAGS
-DEFS=-DCCL2RPN=1 @DEFS@ -DIRTCLDIR=\"$(IRTCLDIR)\" \
+DEFS=-DCCL2RPN=0 @DEFS@ -DIRTCLDIR=\"$(IRTCLDIR)\" \
 	$(INCLUDE) -DIR_TCL_VERSION=\"$(VERSION)\"
 
 INSTALL = @INSTALL@
