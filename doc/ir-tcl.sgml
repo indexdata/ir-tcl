@@ -1,13 +1,13 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.10 1995-06-26 10:20:45 adam Exp $
+  $Id: ir-tcl.sgml,v 1.11 1995-06-30 12:39:49 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference
 <author>Index Data, <tt/info@index.ping.dk/
-<date>$Revision: 1.10 $
+<date>$Revision: 1.11 $
 <abstract>
 This document describes IrTcl &mdash; an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
@@ -50,21 +50,15 @@ testing purposes.
 In order to compile you need:
 <itemize>
 <item> An ANSI C compiler such as GNU C.
-<item> Tcl 7.3. 
+<item> Tcl. Version 7.3 and 7.4 has been tested.
 <item> YAZ version 1.0b or higher
 </itemize>
 
 As an option you may want:
 <itemize>
-<item> Tk 3.6.
+<item> Tk. Version 3.6 and 4.0b4 has been tested.
 <item> XTI/mosi
 </itemize>
-
-Newer versions of Tcl and Tk have been released. These packages
-will <em/not/ work with <sf/IrTcl/. The <sf/IrTcl/ package will
-probably be able to use the newer versions soon. Fortunately this
-move will not change the <sf/IrTcl/ API &mdash; only the Tk code of the
-test client will be modified.
 
 Unpack the <sf/IrTcl/ package at the same directory level as <bf/YAZ/. 
 
@@ -148,13 +142,25 @@ as a script.
 
 <p>
 <tt>ir-tk</tt> is a program that works like <tt>wish</tt> except that
-<tt>ir-tk</tt> include the new set of commands.
+<tt>ir-tk</tt> include the new set of commands. All options accepted
+by <tt>wish</tt> are also accepted by <tt>ir-tk</tt>. 
 
-The enclosed script <tt>client.tcl</tt> for <tt>ir-tk</tt> 
-is a graphical client which demonstates an example of a user interface
-for the Z39.50/SR protocols.
+The enclosed script <tt>client.tcl</tt> for <tt>ir-tk</tt> is a graphical 
+client which demonstates an example of a user interface for the Z39.50/SR 
+protocols. 
 At first the script was relatively small but it has grown since the 
-beginning. At present it is about 3000 lines.
+beginning. At present it is about 3000 lines. 
+
+The client can be started directly from the top level directory 
+of <sf/IrTcl/ by typing:
+<tscreen><verb>
+$ ir-tk -f client.tcl
+</verb></tscreen>
+
+Or, if you have installed <sf/IrTcl/ you may also type:
+<tscreen><verb>
+$ irclient
+</verb></tscreen>
 
 The client lets up define targets and query types within the interface.
 Hence, you will not need to modify configation files. 
@@ -294,8 +300,8 @@ returned is stored in the variable <tt/ret/.
 
 <tscreen><verb>
 ir z
-ir-set z.1 z
 z databaseNames books
+ir-set z.1 z
 z callback {connect-response}
 z connect fake.com
 
