@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.64  1995-11-13 15:39:18  adam
+ * Revision 1.65  1995-11-28 13:53:00  quinn
+ * Windows port.
+ *
+ * Revision 1.64  1995/11/13  15:39:18  adam
  * Bug fix: {small,medium}SetElementSetNames weren't set correctly.
  * Bug fix: idAuthentication weren't set correctly.
  *
@@ -229,7 +232,11 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#ifdef WINDOWS
+#include <time.h>
+#else
 #include <sys/time.h>
+#endif
 #include <assert.h>
 
 #define CS_BLOCK 0
@@ -253,7 +260,7 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
 
 static IrTcl_RecordList *new_IR_record (IrTcl_SetObj *setobj, 
                                         int no, int which, 
-					const char *elements)
+                                        const char *elements)
 {
     IrTcl_RecordList *rl;
 
@@ -266,8 +273,8 @@ static IrTcl_RecordList *new_IR_record (IrTcl_SetObj *setobj,
             switch (rl->which)
             {
             case Z_NamePlusRecord_databaseRecord:
-	        free (rl->u.dbrec.buf);
-		rl->u.dbrec.buf = NULL;
+                free (rl->u.dbrec.buf);
+                rl->u.dbrec.buf = NULL;
                 break;
             case Z_NamePlusRecord_surrogateDiagnostic:
                 ir_deleteDiags (&rl->u.surrogateDiagnostics.list,
@@ -376,15 +383,15 @@ static void delete_IR_records (IrTcl_SetObj *setobj)
         switch (rl->which)
         {
         case Z_NamePlusRecord_databaseRecord:
-	    free (rl->u.dbrec.buf);
+            free (rl->u.dbrec.buf);
             break;
         case Z_NamePlusRecord_surrogateDiagnostic:
             ir_deleteDiags (&rl->u.surrogateDiagnostics.list,
                             &rl->u.surrogateDiagnostics.num);
             break;
-	}
-	rl1 = rl->next;
-	free (rl);
+        }
+        rl1 = rl->next;
+        free (rl);
     }
     setobj->record_list = NULL;
 }
@@ -416,12 +423,12 @@ int ir_method (Tcl_Interp *interp, int argc, char **argv, IrTcl_Methods *tab)
 
     for (tab_i = tab; tab_i->tab; tab_i++)
         for (t = tab_i->tab; t->name; t++)
-	    if (argc <= 0)
-	    {
-	        if ((*t->method)(tab_i->obj, interp, argc, argv) == TCL_ERROR)
-		    return TCL_ERROR;
+            if (argc <= 0)
+            {
+                if ((*t->method)(tab_i->obj, interp, argc, argv) == TCL_ERROR)
+                    return TCL_ERROR;
             }
-	    else
+            else
                 if (!strcmp (t->name, argv[1]))
                     return (*t->method)(tab_i->obj, interp, argc, argv);
 
@@ -497,9 +504,9 @@ static void set_referenceId (ODR o, Z_ReferenceId **dst, const char *src)
     else
     {
         *dst = odr_malloc (o, sizeof(**dst));
-	(*dst)->size = (*dst)->len = strlen(src);
-	(*dst)->buf = odr_malloc (o, (*dst)->len);
-	memcpy ((*dst)->buf, src, (*dst)->len);
+        (*dst)->size = (*dst)->len = strlen(src);
+        (*dst)->buf = odr_malloc (o, (*dst)->len);
+        memcpy ((*dst)->buf, src, (*dst)->len);
     }
 }
 
@@ -509,7 +516,7 @@ static void get_referenceId (char **dst, Z_ReferenceId *src)
     if (!src)
     {
         *dst = NULL;
-	return;
+        return;
     }
     *dst = ir_tcl_malloc (src->len+1);
     memcpy (*dst, src->buf, src->len);
@@ -599,8 +606,8 @@ static int do_protocolVersion (void *obj, Tcl_Interp *interp,
     if (argc <= 0)
     {
         ODR_MASK_ZERO (&p->protocolVersion);
-	ODR_MASK_SET (&p->protocolVersion, 0);
-	ODR_MASK_SET (&p->protocolVersion, 1);
+        ODR_MASK_SET (&p->protocolVersion, 0);
+        ODR_MASK_SET (&p->protocolVersion, 1);
         return TCL_OK;
     }
     if (argc == 3)
@@ -647,12 +654,12 @@ static int do_options (void *obj, Tcl_Interp *interp,
     if (argc <= 0)
     {
         ODR_MASK_ZERO (&p->options);
-	ODR_MASK_SET (&p->options, 0);
-	ODR_MASK_SET (&p->options, 1);
+        ODR_MASK_SET (&p->options, 0);
+        ODR_MASK_SET (&p->options, 1);
         ODR_MASK_SET (&p->options, 4);
-	ODR_MASK_SET (&p->options, 7);
-	ODR_MASK_SET (&p->options, 14);
-	return TCL_OK;
+        ODR_MASK_SET (&p->options, 7);
+        ODR_MASK_SET (&p->options, 14);
+        return TCL_OK;
     }
     return ir_named_bits (options_tab, &p->options, interp, argc-2, argv+2);
 }
@@ -668,7 +675,7 @@ static int do_failInfo (void *obj, Tcl_Interp *interp, int argc, char **argv)
     if (argc <= 0)
     {
         p->failInfo = 0;
-	return TCL_OK;
+        return TCL_OK;
     }
     sprintf (buf, "%d", p->failInfo);
     switch (p->failInfo)
@@ -710,7 +717,7 @@ static int do_preferredMessageSize (void *obj, Tcl_Interp *interp,
     if (argc <= 0)
     {
         p->preferredMessageSize = 30000;
-	return TCL_OK;
+        return TCL_OK;
     }
     return get_set_int (&p->preferredMessageSize, interp, argc, argv);
 }
@@ -726,7 +733,7 @@ static int do_maximumRecordSize (void *obj, Tcl_Interp *interp,
     if (argc <= 0)
     {
         p->maximumRecordSize = 30000;
-	return TCL_OK;
+        return TCL_OK;
     }
     return get_set_int (&p->maximumRecordSize, interp, argc, argv);
 }
@@ -813,7 +820,7 @@ static int do_targetImplementationName (void *obj, Tcl_Interp *interp,
     if (argc == 0)
     {
         p->targetImplementationName = NULL;
-	return TCL_OK;
+        return TCL_OK;
     }
     else if (argc == -1)
         return ir_tcl_strdel (interp, &p->targetImplementationName);
@@ -832,7 +839,7 @@ static int do_targetImplementationId (void *obj, Tcl_Interp *interp,
     if (argc == 0)
     {
         p->targetImplementationId = NULL;
-	return TCL_OK;
+        return TCL_OK;
     }
     else if (argc == -1)
         return ir_tcl_strdel (interp, &p->targetImplementationId);
@@ -851,7 +858,7 @@ static int do_targetImplementationVersion (void *obj, Tcl_Interp *interp,
     if (argc == 0)
     {
         p->targetImplementationVersion = NULL;
-	return TCL_OK;
+        return TCL_OK;
     }
     else if (argc == -1)
         return ir_tcl_strdel (interp, &p->targetImplementationVersion);
@@ -923,7 +930,7 @@ static int do_idAuthentication (void *obj, Tcl_Interp *interp,
  * do_connect: connect method on IR object
  */
 static int do_connect (void *obj, Tcl_Interp *interp,
-		       int argc, char **argv)
+                       int argc, char **argv)
 {
     void *addr;
     IrTcl_Obj *p = obj;
@@ -1009,7 +1016,7 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
     {
         p->state = IR_TCL_R_Idle;
         p->hostname = NULL;
-	p->cs_link = NULL;
+        p->cs_link = NULL;
         return TCL_OK;
     }
     if (p->hostname)
@@ -1026,15 +1033,15 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
         p->cs_link = NULL;
 
         ODR_MASK_ZERO (&p->options);
-	ODR_MASK_SET (&p->options, 0);
-	ODR_MASK_SET (&p->options, 1);
-	ODR_MASK_SET (&p->options, 4);
-	ODR_MASK_SET (&p->options, 7);
-	ODR_MASK_SET (&p->options, 14);
+        ODR_MASK_SET (&p->options, 0);
+        ODR_MASK_SET (&p->options, 1);
+        ODR_MASK_SET (&p->options, 4);
+        ODR_MASK_SET (&p->options, 7);
+        ODR_MASK_SET (&p->options, 14);
 
         ODR_MASK_ZERO (&p->protocolVersion);
-	ODR_MASK_SET (&p->protocolVersion, 0);
-	ODR_MASK_SET (&p->protocolVersion, 1);
+        ODR_MASK_SET (&p->protocolVersion, 0);
+        ODR_MASK_SET (&p->protocolVersion, 1);
         ir_tcl_del_q (p);
     }
     assert (!p->cs_link);
@@ -1045,7 +1052,7 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
  * do_comstack: Set/get comstack method on IR object
  */
 static int do_comstack (void *o, Tcl_Interp *interp,
-		        int argc, char **argv)
+                        int argc, char **argv)
 {
     IrTcl_Obj *obj = o;
 
@@ -1092,20 +1099,20 @@ static int do_callback (void *obj, Tcl_Interp *interp,
     if (argc == 0)
     {
         p->callback = NULL;
-	return TCL_OK;
+        return TCL_OK;
     }
     else if (argc == -1)
         return ir_tcl_strdel (interp, &p->callback);
     if (argc == 3)
     {
         free (p->callback);
-	if (argv[2][0])
-	{
+        if (argv[2][0])
+        {
             if (ir_tcl_strdup (interp, &p->callback, argv[2]) == TCL_ERROR)
                 return TCL_ERROR;
-	}
-	else
-	    p->callback = NULL;
+        }
+        else
+            p->callback = NULL;
     }
     return TCL_OK;
 }
@@ -1121,20 +1128,20 @@ static int do_failback (void *obj, Tcl_Interp *interp,
     if (argc == 0)
     {
         p->failback = NULL;
-	return TCL_OK;
+        return TCL_OK;
     }
     else if (argc == -1)
         return ir_tcl_strdel (interp, &p->failback);
     else if (argc == 3)
     {
         free (p->failback);
-	if (argv[2][0])
-	{
+        if (argv[2][0])
+        {
             if (ir_tcl_strdup (interp, &p->failback, argv[2]) == TCL_ERROR)
                 return TCL_ERROR;
-	}
-	else
-	    p->failback = NULL;
+        }
+        else
+            p->failback = NULL;
     }
     return TCL_OK;
 }
@@ -1221,8 +1228,8 @@ static int do_databaseNames (void *obj, Tcl_Interp *interp,
     if (argc <= 0)
     {
         p->num_databaseNames = 0;
-	p->databaseNames = NULL;
-	return TCL_OK;
+        p->databaseNames = NULL;
+        return TCL_OK;
     }
     if (argc < 3)
     {
@@ -1259,7 +1266,7 @@ static int do_replaceIndicator (void *obj, Tcl_Interp *interp,
     if (argc <= 0)
     {
         p->replaceIndicator = 1;
-	return TCL_OK;
+        return TCL_OK;
     }
     return get_set_int (&p->replaceIndicator, interp, argc, argv);
 }
@@ -1268,7 +1275,7 @@ static int do_replaceIndicator (void *obj, Tcl_Interp *interp,
  * do_queryType: Set/Get query method
  */
 static int do_queryType (void *obj, Tcl_Interp *interp,
-		       int argc, char **argv)
+                       int argc, char **argv)
 {
     IrTcl_SetCObj *p = obj;
 
@@ -1297,7 +1304,7 @@ static int do_userInformationField (void *obj, Tcl_Interp *interp,
     if (argc == 0)
     {
         p->userInformationField = NULL;
-	return TCL_OK;
+        return TCL_OK;
     }
     else if (argc == -1)
         return ir_tcl_strdel (interp, &p->userInformationField);
@@ -1309,14 +1316,14 @@ static int do_userInformationField (void *obj, Tcl_Interp *interp,
  * do_smallSetUpperBound: Set/get small set upper bound
  */
 static int do_smallSetUpperBound (void *o, Tcl_Interp *interp,
-		       int argc, char **argv)
+                       int argc, char **argv)
 {
     IrTcl_SetCObj *p = o;
 
     if (argc <= 0)
     {
         p->smallSetUpperBound = 0;
-	return TCL_OK;
+        return TCL_OK;
     }
     return get_set_int (&p->smallSetUpperBound, interp, argc, argv);
 }
@@ -1332,7 +1339,7 @@ static int do_largeSetLowerBound (void *o, Tcl_Interp *interp,
     if (argc <= 0)
     {
         p->largeSetLowerBound = 2;
-	return TCL_OK;
+        return TCL_OK;
     }
     return get_set_int (&p->largeSetLowerBound, interp, argc, argv);
 }
@@ -1348,7 +1355,7 @@ static int do_mediumSetPresentNumber (void *o, Tcl_Interp *interp,
     if (argc <= 0)
     {
         p->mediumSetPresentNumber = 0;
-	return TCL_OK;
+        return TCL_OK;
     }
     return get_set_int (&p->mediumSetPresentNumber, interp, argc, argv);
 }
@@ -1357,7 +1364,7 @@ static int do_mediumSetPresentNumber (void *o, Tcl_Interp *interp,
  * do_referenceId: Set/Get referenceId
  */
 static int do_referenceId (void *obj, Tcl_Interp *interp,
-		           int argc, char **argv)
+                           int argc, char **argv)
 {
     IrTcl_SetCObj *p = obj;
 
@@ -1603,8 +1610,8 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     obj->bibset = ccl_qual_mk (); 
     if ((inf = fopen ("default.bib", "r")))
     {
-    	ccl_qual_file (obj->bibset, inf);
-    	fclose (inf);
+        ccl_qual_file (obj->bibset, inf);
+        fclose (inf);
     }
 #endif
 
@@ -1733,8 +1740,8 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
         Z_RPNQuery *RPNquery;
 
         RPNquery = p_query_rpn (p->odr_out, argv[2]);
-	if (!RPNquery)
-	{
+        if (!RPNquery)
+        {
             Tcl_AppendResult (interp, "Syntax error in query", NULL);
             return TCL_ERROR;
         }
@@ -1755,7 +1762,7 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
         if (error)
         {
             Tcl_AppendResult (interp, "CCL error: ", 
-	                      ccl_err_msg(error), NULL);
+                              ccl_err_msg(error), NULL);
             return TCL_ERROR;
         }
         ccl_pr_tree (rpn, stderr);
@@ -1787,7 +1794,7 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
  * do_resultCount: Get number of hits
  */
 static int do_resultCount (void *o, Tcl_Interp *interp,
-		       int argc, char **argv)
+                       int argc, char **argv)
 {
     IrTcl_SetObj *obj = o;
 
@@ -1800,7 +1807,7 @@ static int do_resultCount (void *o, Tcl_Interp *interp,
  * do_searchStatus: Get search status (after search response)
  */
 static int do_searchStatus (void *o, Tcl_Interp *interp,
-		            int argc, char **argv)
+                            int argc, char **argv)
 {
     IrTcl_SetObj *obj = o;
 
@@ -1813,7 +1820,7 @@ static int do_searchStatus (void *o, Tcl_Interp *interp,
  * do_presentStatus: Get search status (after search/present response)
  */
 static int do_presentStatus (void *o, Tcl_Interp *interp,
-		            int argc, char **argv)
+                            int argc, char **argv)
 {
     IrTcl_SetObj *obj = o;
 
@@ -1843,7 +1850,7 @@ static int do_nextResultSetPosition (void *o, Tcl_Interp *interp,
  * do_setName: Set result Set name
  */
 static int do_setName (void *o, Tcl_Interp *interp,
-		       int argc, char **argv)
+                       int argc, char **argv)
 {
     IrTcl_SetObj *obj = o;
 
@@ -1890,12 +1897,12 @@ static int do_type (void *o, Tcl_Interp *interp, int argc, char **argv)
     if (argc == 0)
     {
         obj->record_list = NULL;
-	return TCL_OK;
+        return TCL_OK;
     }
     else if (argc == -1)
     {
         delete_IR_records (obj);
-	return TCL_OK;
+        return TCL_OK;
     }
     if (argc != 3)
     {
@@ -1934,11 +1941,11 @@ static int do_recordType (void *o, Tcl_Interp *interp, int argc, char **argv)
 
     if (argc == 0)
     {
-	return TCL_OK;
+        return TCL_OK;
     }
     else if (argc == -1)
     {
-	return TCL_OK;
+        return TCL_OK;
     }
     if (argc != 3)
     {
@@ -1971,7 +1978,7 @@ static int do_recordElements (void *o, Tcl_Interp *interp,
     if (argc == 0)
     {
         obj->recordElements = NULL;
-	return TCL_OK;
+        return TCL_OK;
     }
     else if (argc == -1)
         return ir_tcl_strdel (NULL, &obj->recordElements);
@@ -2166,7 +2173,7 @@ static int do_responseStatus (void *o, Tcl_Interp *interp,
         obj->recordFlag = 0;
         obj->nonSurrogateDiagnosticNum = 0;
         obj->nonSurrogateDiagnosticList = NULL;
-	return TCL_OK;
+        return TCL_OK;
     }
     else if (argc == -1)
     {
@@ -2182,7 +2189,7 @@ static int do_responseStatus (void *o, Tcl_Interp *interp,
     switch (obj->which)
     {
     case Z_Records_DBOSD:
-    	Tcl_AppendElement (interp, "DBOSD");
+        Tcl_AppendElement (interp, "DBOSD");
         break;
     case Z_Records_NSD:
         Tcl_AppendElement (interp, "NSD");
@@ -2305,7 +2312,7 @@ static int do_loadFile (void *o, Tcl_Interp *interp,
         rl = new_IR_record (setobj, no, Z_NamePlusRecord_databaseRecord, "F");
         rl->u.dbrec.type = VAL_USMARC;
         rl->u.dbrec.buf = buf;
-	rl->u.dbrec.size = size;
+        rl->u.dbrec.size = size;
         no++;
     }
     setobj->numberOfRecordsReturned = no-1;
@@ -2496,12 +2503,12 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     if (!p->set_inher.num_databaseNames)
     {
         interp->result = "no databaseNames";
-	return TCL_ERROR;
+        return TCL_ERROR;
     }
     if (!p->cs_link)
     {
         interp->result = "scan: not connected";
-	return TCL_ERROR;
+        return TCL_ERROR;
     }
 
     bib1.proto = p->protocol_type;
@@ -2520,7 +2527,7 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     if (!(req->termListAndStartPoint = p_query_scan (p->odr_out, argv[2])))
     {
         Tcl_AppendResult (interp, "Syntax error in query", NULL);
-	return TCL_ERROR;
+        return TCL_ERROR;
     }
 #else
     rpn = ccl_find_str(p->bibset, argv[2], &r, &pos);
@@ -2645,25 +2652,25 @@ static int do_scanLine (void *obj, Tcl_Interp *interp, int argc, char **argv)
     if (argc == 0)
     {
         p->entries_flag = 0;
-	p->entries = NULL;
-	p->nonSurrogateDiagnosticNum = 0;
+        p->entries = NULL;
+        p->nonSurrogateDiagnosticNum = 0;
         p->nonSurrogateDiagnosticList = 0;
-	return TCL_OK;
+        return TCL_OK;
     }
     else if (argc == -1)
     {
         p->entries_flag = 0;
-	/* release entries */
+        /* release entries */
         p->entries = NULL;
 
         ir_deleteDiags (&p->nonSurrogateDiagnosticList, 
                         &p->nonSurrogateDiagnosticNum);
-	return TCL_OK;
+        return TCL_OK;
     }
     if (argc != 3)
     {
         interp->result = "wrong # args";
-	return TCL_ERROR;
+        return TCL_ERROR;
     }
     if (Tcl_GetInt (interp, argv[2], &i) == TCL_ERROR)
         return TCL_ERROR;
@@ -2674,18 +2681,18 @@ static int do_scanLine (void *obj, Tcl_Interp *interp, int argc, char **argv)
     {
     case Z_Entry_termInfo:
         Tcl_AppendElement (interp, "T");
-	if (p->entries[i].u.term.buf)
-	    Tcl_AppendElement (interp, p->entries[i].u.term.buf);
-	else
-	    Tcl_AppendElement (interp, "");
-	sprintf (numstr, "%d", p->entries[i].u.term.globalOccurrences);
-	Tcl_AppendElement (interp, numstr);
-	break;
+        if (p->entries[i].u.term.buf)
+            Tcl_AppendElement (interp, p->entries[i].u.term.buf);
+        else
+            Tcl_AppendElement (interp, "");
+        sprintf (numstr, "%d", p->entries[i].u.term.globalOccurrences);
+        Tcl_AppendElement (interp, numstr);
+        break;
     case Z_Entry_surrogateDiagnostic:
         Tcl_AppendElement (interp, "SD");
         return ir_diagResult (interp, p->entries[i].u.diag.list,
                               p->entries[i].u.diag.num);
-	break;
+        break;
     }
     return TCL_OK;
 }
@@ -2756,7 +2763,7 @@ static int ir_scan_obj_mk (ClientData clientData, Tcl_Interp *interp,
     if (!Tcl_GetCommandInfo (interp, argv[2], &parent_info))
     {
         interp->result = "No parent";
-	return TCL_ERROR;
+        return TCL_ERROR;
     }
     obj = ir_tcl_malloc (sizeof(*obj));
     obj->parent = (IrTcl_Obj *) parent_info.clientData;
@@ -2881,7 +2888,7 @@ static void ir_handleRecords (void *o, Z_Records *zrs, IrTcl_SetObj *setobj,
             rl = new_IR_record (setobj, setobj->start + offset,
                                 zrs->u.databaseOrSurDiagnostics->
                                 records[offset]->which,
-				elements);
+                                elements);
             if (rl->which == Z_NamePlusRecord_surrogateDiagnostic)
             {
                 ir_handleDiags (&rl->u.surrogateDiagnostics.list,
@@ -2899,7 +2906,7 @@ static void ir_handleRecords (void *o, Z_Records *zrs, IrTcl_SetObj *setobj,
                 zr = zrs->u.databaseOrSurDiagnostics->records[offset]
                     ->u.databaseRecord;
                 oe = (Z_External*) zr;
-		rl->u.dbrec.size = zr->u.octet_aligned->len;
+                rl->u.dbrec.size = zr->u.octet_aligned->len;
 
                 if ((ident = oid_getentbyoid (oe->direct_reference)))
                     rl->u.dbrec.type = ident->value;
@@ -2910,7 +2917,7 @@ static void ir_handleRecords (void *o, Z_Records *zrs, IrTcl_SetObj *setobj,
                 {
                     char *buf = (char*) zr->u.octet_aligned->buf;
                     if ((rl->u.dbrec.buf = ir_tcl_malloc (rl->u.dbrec.size)))
-		        memcpy (rl->u.dbrec.buf, buf, rl->u.dbrec.size);
+                        memcpy (rl->u.dbrec.buf, buf, rl->u.dbrec.size);
                 }
                 else if (rl->u.dbrec.type == VAL_SUTRS && 
                          oe->which == Z_External_sutrs)
@@ -2966,7 +2973,7 @@ static void ir_searchResponse (void *o, Z_SearchResponse *searchrs,
     if (!setobj)
     {
         logf (LOG_DEBUG, "Search response, no object!");
-	return;
+        return;
     }
     setobj->searchStatus = searchrs->searchStatus ? 1 : 0;
     get_referenceId (&setobj->set_inher.referenceId, searchrs->referenceId);
@@ -3001,7 +3008,7 @@ static void ir_presentResponse (void *o, Z_PresentResponse *presrs,
     if (!setobj)
     {
         logf (LOG_DEBUG, "Present response, no object!");
-	return;
+        return;
     }
     setobj->presentStatus = *presrs->presentStatus;
     get_referenceId (&setobj->set_inher.referenceId, presrs->referenceId);
@@ -3048,50 +3055,50 @@ static void ir_scanResponse (void *o, Z_ScanResponse *scanrs,
     if (scanrs->entries)
     {
         int i;
-	Z_Entry *ze;
+        Z_Entry *ze;
 
         scanobj->entries_flag = 1;
         scanobj->which = scanrs->entries->which;
-	switch (scanobj->which)
-	{
-	case Z_ListEntries_entries:
-	    scanobj->num_entries = scanrs->entries->u.entries->num_entries;
-	    scanobj->entries = ir_tcl_malloc (scanobj->num_entries * 
-	                               sizeof(*scanobj->entries));
+        switch (scanobj->which)
+        {
+        case Z_ListEntries_entries:
+            scanobj->num_entries = scanrs->entries->u.entries->num_entries;
+            scanobj->entries = ir_tcl_malloc (scanobj->num_entries * 
+                                       sizeof(*scanobj->entries));
             for (i=0; i<scanobj->num_entries; i++)
-	    {
-	        ze = scanrs->entries->u.entries->entries[i];
+            {
+                ze = scanrs->entries->u.entries->entries[i];
                 scanobj->entries[i].which = ze->which;
-		switch (ze->which)
-		{
-		case Z_Entry_termInfo:
-		    if (ze->u.termInfo->term->which == Z_Term_general)
-		    {
+                switch (ze->which)
+                {
+                case Z_Entry_termInfo:
+                    if (ze->u.termInfo->term->which == Z_Term_general)
+                    {
                         int l = ze->u.termInfo->term->u.general->len;
                         scanobj->entries[i].u.term.buf = ir_tcl_malloc (1+l);
-			memcpy (scanobj->entries[i].u.term.buf, 
-			        ze->u.termInfo->term->u.general->buf,
+                        memcpy (scanobj->entries[i].u.term.buf, 
+                                ze->u.termInfo->term->u.general->buf,
                                 l);
                         scanobj->entries[i].u.term.buf[l] = '\0';
-		    }
-		    else
+                    }
+                    else
                         scanobj->entries[i].u.term.buf = NULL;
-		    if (ze->u.termInfo->globalOccurrences)
-		        scanobj->entries[i].u.term.globalOccurrences = 
-		            *ze->u.termInfo->globalOccurrences;
-		    else
-		        scanobj->entries[i].u.term.globalOccurrences = 0;
+                    if (ze->u.termInfo->globalOccurrences)
+                        scanobj->entries[i].u.term.globalOccurrences = 
+                            *ze->u.termInfo->globalOccurrences;
+                    else
+                        scanobj->entries[i].u.term.globalOccurrences = 0;
                     break;
-		case Z_Entry_surrogateDiagnostic:
+                case Z_Entry_surrogateDiagnostic:
                     ir_handleDiags (&scanobj->entries[i].u.diag.list,
                                     &scanobj->entries[i].u.diag.num,
                                     &ze->u.surrogateDiagnostic,
                                     1);
-		    break;
-		}
-	    }
+                    break;
+                }
+            }
             break;
-	case Z_ListEntries_nonSurrogateDiagnostics:
+        case Z_ListEntries_nonSurrogateDiagnostics:
             ir_handleDiags (&scanobj->nonSurrogateDiagnosticList,
                             &scanobj->nonSurrogateDiagnosticNum,
                             scanrs->entries->u.nonSurrogateDiagnostics->
@@ -3099,7 +3106,7 @@ static void ir_scanResponse (void *o, Z_ScanResponse *scanrs,
                             scanrs->entries->u.nonSurrogateDiagnostics->
                             num_diagRecs);
             break;
-	}
+        }
     }
     else
         scanobj->entries_flag = 0;
@@ -3140,17 +3147,17 @@ void ir_select_read (ClientData clientData)
         }
         p->state = IR_TCL_R_Idle;
         if (p->callback)
-	    IrTcl_eval (p->interp, p->callback);
+            IrTcl_eval (p->interp, p->callback);
         if (p->cs_link && p->request_queue && p->state == IR_TCL_R_Idle)
             ir_tcl_send_q (p, p->request_queue, "x");
         return;
     }
     do
     {
-	/* signal one more use of ir object - callbacks must not
-	   release the ir memory (p pointer) */
+        /* signal one more use of ir object - callbacks must not
+           release the ir memory (p pointer) */
         p->state = IR_TCL_R_Reading;
-	++(p->ref_count);
+        ++(p->ref_count);
 
         /* read incoming APDU */
         if ((r=cs_get (p->cs_link, &p->buf_in, &p->len_in)) <= 0)
@@ -3163,8 +3170,8 @@ void ir_select_read (ClientData clientData)
                 p->failInfo = IR_TCL_FAIL_READ;
                 IrTcl_eval (p->interp, p->failback);
             }
-	    /* release ir object now if callback deleted it */
-	    ir_obj_delete (p);
+            /* release ir object now if callback deleted it */
+            ir_obj_delete (p);
             return;
         }        
         if (r == 1)
@@ -3174,15 +3181,15 @@ void ir_select_read (ClientData clientData)
         logf (LOG_DEBUG, "cs_get ok, got %d", r);
         if (!z_APDU (p->odr_in, &apdu, 0))
         {
-            logf (LOG_DEBUG, "%s", odr_errlist [odr_geterror (p->odr_in)]);
+            logf (LOG_DEBUG, "%s", odr_errmsg (odr_geterror (p->odr_in)));
             do_disconnect (p, NULL, 2, NULL);
             if (p->failback)
             {
                 p->failInfo = IR_TCL_FAIL_IN_APDU;
                 IrTcl_eval (p->interp, p->failback);
             }
-	    /* release ir object now if failback deleted it */
-	    ir_obj_delete (p);
+            /* release ir object now if failback deleted it */
+            ir_obj_delete (p);
             return;
         }
         /* handle APDU and invoke callback */
@@ -3235,12 +3242,12 @@ void ir_select_read (ClientData clientData)
         free (rq->object_name);
         free (rq);
         odr_reset (p->odr_in);
-	if (p->ref_count == 1)
-	{
-	    ir_obj_delete (p);
-	    return;
-	}
-	--(p->ref_count);
+        if (p->ref_count == 1)
+        {
+            ir_obj_delete (p);
+            return;
+        }
+        --(p->ref_count);
     } while (p->cs_link && cs_more (p->cs_link));
     if (p->cs_link && p->request_queue && p->state == IR_TCL_R_Idle)
         ir_tcl_send_q (p, p->request_queue, "x");
@@ -3276,10 +3283,12 @@ void ir_select_write (ClientData clientData)
         }
         ir_select_remove_write (cs_fileno (p->cs_link), p);
         if (p->callback)
-	    IrTcl_eval (p->interp, p->callback);
+            IrTcl_eval (p->interp, p->callback);
         return;
     }
     rq = p->request_queue;
+    if (!rq || !rq->buf_out)
+        return;
     assert (rq);
     if ((r=cs_put (p->cs_link, rq->buf_out, rq->len_out)) < 0)
     {
@@ -3312,9 +3321,9 @@ int Irtcl_Init (Tcl_Interp *interp)
     Tcl_CreateCommand (interp, "ir", ir_obj_mk, (ClientData) NULL,
                        (Tcl_CmdDeleteProc *) NULL);
     Tcl_CreateCommand (interp, "ir-set", ir_set_obj_mk,
-    		       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
+                       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
     Tcl_CreateCommand (interp, "ir-scan", ir_scan_obj_mk,
-    		       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
+                       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
     return TCL_OK;
 }
 

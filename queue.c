@@ -6,7 +6,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: queue.c,v $
- * Revision 1.4  1995-10-17 12:18:59  adam
+ * Revision 1.5  1995-11-28 13:53:40  quinn
+ * Windows port.
+ *
+ * Revision 1.4  1995/10/17  12:18:59  adam
  * Bug fix: when target connection closed, the connection was not
  * properly reestablished.
  *
@@ -36,7 +39,7 @@ int ir_tcl_send_APDU (Tcl_Interp *interp, IrTcl_Obj *p, Z_APDU *apdu,
 
     if (!z_APDU (p->odr_out, &apdu, 0))
     {
-        Tcl_AppendResult (interp, odr_errlist [odr_geterror (p->odr_out)],
+        Tcl_AppendResult (interp, odr_errmsg (odr_geterror (p->odr_out)),
                           NULL);
         odr_reset (p->odr_out);
         return TCL_ERROR;
