@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.59  1995-10-17 12:18:58  adam
+ * Revision 1.60  1995-10-18 15:43:31  adam
+ * In search: mediumSetElementSetNames and smallSetElementSetNames are
+ * set to elementSetNames.
+ *
+ * Revision 1.59  1995/10/17  12:18:58  adam
  * Bug fix: when target connection closed, the connection was not
  * properly reestablished.
  *
@@ -1601,8 +1605,6 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
     req->databaseNames = obj->set_inher.databaseNames;
     for (r=0; r < obj->set_inher.num_databaseNames; r++)
         logf (LOG_DEBUG, " Database %s", obj->set_inher.databaseNames[r]);
-    req->smallSetElementSetNames = 0;
-    req->mediumSetElementSetNames = 0;
     if (obj->set_inher.preferredRecordSyntax)
     {
         struct oident ident;
@@ -1624,9 +1626,13 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
         esn->which = Z_ElementSetNames_generic;
         esn->u.generic = obj->set_inher.elementSetNames;
         req->mediumSetElementSetNames = esn;
+        req->smallSetElementSetNames = esn;
     }
     else
+    {
         req->mediumSetElementSetNames = NULL;
+        req->smallSetElementSetNames = NULL; 
+    }
 
     req->query = &query;
 
