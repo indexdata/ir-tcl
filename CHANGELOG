@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.28 1996-09-03 13:52:09 adam Exp $
+$Id: CHANGELOG,v 1.29 1996-11-14 17:11:03 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -111,4 +111,6 @@ $Id: CHANGELOG,v 1.28 1996-09-03 13:52:09 adam Exp $
 09/02/96 Updated IrTcl to work with tcl7.6b1/tk4.2b1.
 
 09/03/96 Bug fix: configure script could fail if yaz couldn't be located.
+
+11/14/96 Added some Explain documentation.
 

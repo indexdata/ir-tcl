@@ -1,5 +1,5 @@
 # Setup file
-set {profile(Penn)} {{Penn State's Library} 128.118.88.200 210 {} 16384 8192 tcpip CATALOG 1 {} {} Z39 2 {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}
+set {profile(Penn)} {{Penn State's Library} 128.118.88.200 210 {} 16384 8192 tcpip CATALOG 1 {} {} Z39 2 {} {} {} {} {} 847978115 {} {} {} {} {} {} {} {} {} {}}
 
 set {profile(DanBib, SR)} {{SR Target DANBIB} 0103/find2.denet.dk 4500 {} 8192 8192 mosi danbib 1 {} 1 SR 8 {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}
 
@@ -13,7 +13,7 @@ set {profile(Default)} {{} {} {210} {} 50000 30000 tcpip {} 1 {} {} Z39 34 2 0 0
 
 set {profile(RLG)} {{Research Libraries group} rlg.stanford.edu 210 {} 32768 32768 tcpip {DEM} 1 {} 1 Z39 5 {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}
 
-set {profile(ztest9999)} {{YAZ server on localhost} localhost 9999 {} 50000 30000 tcpip Default {} {} {} Z39 33 2 0 0 4 842607655 842611277 842611107 {} {} {} {} {} {} {} {} {}}
+set {profile(ztest9999)} {{YAZ server on localhost} localhost 9999 {} 50000 30000 tcpip Default {} {} {} Z39 33 2 0 0 4 842607655 844779204 842611107 {} {} {} {} {} {} {} {} {}}
 
 set {profile(AT&T server)} {{AT&T Z39 Server} z3950.research.att.com 210 {} 90000 90000 tcpip {explain books gils netlib ftp z39dbs ahd books books books factbook russian outside-marc} 1 {} {} Z39 21 {} {} {} {} {} 842605350 842605239 {Lucent Technologies Research Server} {} 100 600000 {} {} 0 {Salutations - this is Lucent Technologies experimental Z39.50 server. No guarentees, but free and unlimited access!} {}}
 
@@ -25,7 +25,10 @@ set {profile(CARL)} {{CARL systems} z3950.marmot.org 210 {} 32768 32768 tcpip {A
 
 set {profile(CLSI)} {CLSI inet-gw.clsi.us.geac.com 210 {} 16384 8192 tcpip cl_default 1 {} {} Z39 13 {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}
 
-set {profile(AULS)} {{Acadia university} auls.acadiau.ca 210 {} 16384 8192 tcpip AULS 1 {} {} Z39 14 {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}
+set {profile(AULS)} {{Acadia university
+} auls.acadiau.ca 210 {} 16384 8192 tcpip {AULS mad} 1 {} {} Z39 14 {} {} {} {} {} {} {} {
+} {
+} {} {} {} {} {} {} {}}
 
 set {profile(dranet)} {dranet dranet.dra.com 210 {} 16384 16384 tcpip drewdb 1 {} 1 Z39 15 {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}
 

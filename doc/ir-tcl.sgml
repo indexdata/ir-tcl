@@ -1,14 +1,14 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.21 1996-08-08 14:41:57 adam Exp $
+  $Id: ir-tcl.sgml,v 1.22 1996-11-14 17:11:14 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference 
 <author><htmlurl url="http://www.indexdata.dk/" name="Index Data">,
 <tt><htmlurl url="mailto:info@index.ping.dk" name="info@index.ping.dk"></tt>
-<date>$Revision: 1.21 $
+<date>$Revision: 1.22 $
 <abstract>
 This document describes IrTcl -- an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
@@ -596,6 +596,9 @@ operators. They are:
  Proximity operation on op1 and op2. Not implemented yet.
 <tag><tt>@set </tt><em>name</em></tag>
  Result set reference
+<tag><tt>@attrset </tt><em>set</em></tag>
+ Whole query uses the specified attribute <em>set</em>. If this operator is
+ used it must be defined at the beginning of the query.
 </descrip>
 
 It is simple to build RPN queries in <sf/IrTcl/. Search terms
@@ -625,6 +628,12 @@ term is right truncated:
 
 <tscreen><verb>
    @attr 1=4 @and @attr 5=1 tech beta
+</verb></tscreen>
+
+To search for the DatabaseInfo records from an Explain server, we 
+could use
+<tscreen><verb>
+   @attrset exp1 @attr 1=1 DatabaseInfo
 </verb></tscreen>
 
 <sect1>Search
@@ -1054,6 +1063,99 @@ record.
 <p>
 In <sf/IrTcl/ a SUTRS record is treated as one single string. To retrieve
 a SUTRS record use the <tt>getSutrs</tt> followed by an index.
+
+<sect1>GRS-1
+<p>
+To be written.
+
+<sect1>Explain
+<p>
+Explain records are retrieved like other records. The method,
+<tt>getExplain</tt> is followed by an index and, and an optional
+Explain record pattern.
+
+The returned record is a canonical representation of the Explain record.
+An ASN.1 sequence is represented as a list. Each item in the list
+consists of the name of the element, followed by its value if the value
+is supplied.
+
+The optional pattern that follows the index after <tt>getExplain</tt>
+consists of one or more elements, that is matched against the elements
+of the actual record.
+
+<bf/Example/
+
+One of the few targets that support explain is the ATT research server
+at <tt>z3950.research.att.com</tt>.
+
+The targetInfo record was returned by the target and it's stored in
+position 1 in the result set, <tt>z.1</tt>. To retrieve the whole
+record we must use
+<tscreen><verb>
+z.1 getExplain 1
+</verb></tscreen>
+
+and we get in return
+
+<tscreen><verb>
+{targetInfo commonInfo {name {Lucent Technologies Research Server}}
+recentNews icon {namedResultSets 1} {multipleDBsearch 0}
+{maxResultSets 100} {maxResultSize 600000} maxTerms timeoutInterval
+{welcomeMessage {strings { {language eng}
+{text
+{Salutations - this is Lucent Technologies experimental Z39.50 server.
+No guarentees, but free and unlimited access!}} } } }
+{contactInfo {name {Robert Waldstein}} {description {strings
+{ {language eng}
+{text {Librarian system designer - no legal anythings}} } } }
+{address {strings { {language eng} {text {Room 3D-591
+600 Mountain Ave
+Murray Hill
+N.J. USA 07974}} } } } {email wald@lucent.com} {phone {908 582-6171}} }
+description nicknames {usageRest {strings { {language eng}
+{text {None - as long as nonProfit research}} } } } paymentAddr
+{hours {strings { {language eng} {text {Should never be down}} } } }
+dbCombinations addresses commonAccessInfo } 
+</verb></tscreen>
+
+The <tt>targetInfo</tt> above indicates the the record is really a
+<tt>targetInfo</tt> record. The <tt>commonInfo</tt>, which is optional, is
+not supplied by this server. The <tt>name</tt>, however is supplied,
+with the value <tt>Lucent Technologies Research Server</tt>.
+
+To retrieve the <tt>contactInfo</tt> from the record above we can
+extract the element from the record by using Tcl's list manipulation
+facilities, for example by doing
+<tscreen><verb>
+set ti [z.1 getExplain 1]
+lindex [lindex $ti 0] 12 
+</verb></tscreen>
+which will return
+<tscreen><verb>
+contactInfo {name {Robert Waldstein}} {description {strings
+{ {language eng}
+{text {Librarian system designer - no legal anythings}} }
+} } {address {strings { {language eng} {text {Room 3D-591
+600 Mountain Ave
+Murray Hill
+N.J. USA 07974}} } } } {email wald@lucent.com} {phone {908 582-6171}}
+</verb></tscreen>
+
+We can also extract almost the same by doing
+<tscreen><verb>
+z.1 getExplain 1 targetInfo contactInfo
+</verb></tscreen>
+which will return
+<tscreen><verb>
+{name {Robert Waldstein}} {description {strings { {language eng}
+{text {Librarian system designer - no legal anythings}} } } }
+{address {strings { {language eng} {text {Room 3D-591
+600 Mountain Ave
+Murray Hill
+N.J. USA 07974}} } } } {email wald@lucent.com} {phone {908 582-6171}}
+</verb></tscreen>
+
+<bf/End of example/
 
 <sect>Scan
 

@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.96  1996-10-08 13:02:50  adam
+ * Revision 1.97  1996-11-14 17:11:07  adam
+ * Added Explain documentaion.
+ *
+ * Revision 1.96  1996/10/08  13:02:50  adam
  * When dealing with records, odr_choice_enable_bias function is used to
  * prevent decoding of externals.
  *
@@ -3453,7 +3456,7 @@ static void ir_handleDBRecord (IrTcl_Obj *p, IrTcl_RecordList *rl,
         switch (etype->what)
         {
         case Z_External_sutrs:
-            logf (LOG_LOG, "Z_External_sutrs");
+            logf (LOG_DEBUG, "Z_External_sutrs");
             oe->u.sutrs = rr;
             if ((rl->u.dbrec.buf = ir_tcl_malloc (oe->u.sutrs->len+1)))
             {
@@ -3464,12 +3467,12 @@ static void ir_handleDBRecord (IrTcl_Obj *p, IrTcl_RecordList *rl,
             rl->u.dbrec.size = oe->u.sutrs->len;
             break;
         case Z_External_grs1:
-            logf (LOG_LOG, "Z_External_grs1");
+            logf (LOG_DEBUG, "Z_External_grs1");
             oe->u.grs1 = rr;
             ir_tcl_grs_mk (oe->u.grs1, &rl->u.dbrec.u.grs1);
             break;
         case Z_External_explainRecord:
-            logf (LOG_LOG, "Z_External_explainRecord");
+            logf (LOG_DEBUG, "Z_External_explainRecord");
             if ((rl->u.dbrec.buf = ir_tcl_malloc (rl->u.dbrec.size)))
             {
                 memcpy (rl->u.dbrec.buf, oe->u.octet_aligned->buf,

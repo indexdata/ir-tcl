@@ -2,7 +2,7 @@
 # (c) Index Data 1995-1996
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.41 1996-08-20 09:33:23 adam Exp $
+# $Id: Makefile.in,v 1.42 1996-11-14 17:11:04 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -128,6 +128,10 @@ install: ir-tcl
 			echo "Installing clientrc.tcl"; \
 			$(INSTALL_DATA) clientrc.tcl $(IRTCLDIR); \
 		fi; \
+		for f in *.tcl; do \
+			echo "Installing $$f"; \
+			$(INSTALL_DATA) $$f $(IRTCLDIR); \
+		done; \
 		echo "Installing LICENSE" ; \
 		$(INSTALL_DATA) LICENSE $(IRTCLDIR); \
 		echo "Installing display format scripts"; \

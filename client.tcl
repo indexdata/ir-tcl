@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.97  1996-09-13 10:54:22  adam
+# Revision 1.98  1996-11-14 17:11:04  adam
+# Added Explain documentaion.
+#
+# Revision 1.97  1996/09/13  10:54:22  adam
 # Started work on Explain in client.
 #
 # Revision 1.96  1996/08/09  15:30:18  adam
@@ -484,7 +487,7 @@ set setMax 0
 # Procedure tkerror {err}
 #   err   error message
 # Override the Tk error handler function.
-proc tkerrorx err {
+proc tkerror err {
     set w .tkerrorw
 
     if {[winfo exists $w]} {
@@ -1938,6 +1941,7 @@ proc search-response {} {
         set msg [lindex $status 2]
         set addinfo [lindex $status 3]
         tkerror "NSD$code: $msg: $addinfo"
+	dputs "xxxxxxxxxxxxxxx"
         return
     }
     show-message "${setMax} hits"
@@ -2869,8 +2873,10 @@ proc save-settings {} {
     global queryTypes
     global queryButtons
     global queryInfo
-   
-    if {![file writable "${libdir}/clientrc.tcl"]} {
+
+    if {[file exists clientrc.tcl]} {
+        set f [open "clientrc.tcl" w]
+    } elseif {![file writable "${libdir}/clientrc.tcl"]} {
         set a [alert "Cannot open ${libdir}/clientrc.tcl for writing. Do you \
                 wish to save clientrc.tcl in the current directory instead?"]
         if {! $a} {
