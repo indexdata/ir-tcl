@@ -1,6 +1,14 @@
+# IR toolkit for tcl/tk
+# (c) Index Data 1995
+# See the file LICENSE for details.
+# Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.34  1995-06-12 07:59:07  adam
+# Revision 1.35  1995-06-12 15:17:31  adam
+# Text widget used in main window (instead of listbox) to support
+# better presentation formats.
+#
+# Revision 1.34  1995/06/12  07:59:07  adam
 # More work on geometry handling.
 #
 # Revision 1.33  1995/06/09  11:17:35  adam
@@ -119,10 +127,11 @@ set profile(Default) {{} {} {210} {} 16384 8192 tcpip {} 1 {} {} z39v2}
 set hostid Default
 set settingsChanged 0
 set setNo 0
+set lastSetNo 0
 set cancelFlag 0
 set searchEnable 0
 set fullMarcSeq 0
-set displayFormat nice
+set displayFormat 1
 
 set queryTypes {Simple}
 set queryButtons { { {I 0} {I 1} {I 2} } }
@@ -138,7 +147,17 @@ proc read-formats {} {
         set l [expr [string length $f] - 5]
  	lappend displayFormats [string range $f 8 $l]
     }
-    puts $displayFormats
+}
+
+proc set-display-format {f} {
+    global displayFormat
+    global setNo
+
+    set displayFormat $f
+    if {$setNo == 0} {
+        return
+    }
+    add-title-lines 0 10000 1
 }
 
 proc destroyG {w} {
@@ -158,7 +177,6 @@ proc toplevelG {w} {
         }
     }
 }
-
 
 if {[file readable "clientrc.tcl"]} {
     source "clientrc.tcl"
@@ -347,9 +365,10 @@ proc about-origin {} {
     bottom-buttons $w [list {Close} [list destroyG $w]] 1
 }
 
-proc show-full-marc {sno no b} {
+proc popup-marc {sno no b df} {
     global fullMarcSeq
-    global displayFormat
+    global displayFormats
+    global popupMarcOdf
 
     if {[z39.$sno type $no] != "DB"} {
         return
@@ -378,22 +397,23 @@ proc show-full-marc {sno no b} {
                 -yscrollcommand [list $w.top.s set]
         scrollbar $w.top.s -command [list $w.top.record yview]
 
+        if {[tk colormodel .] == "color"} {
+            $w.top.record tag configure marc-tag -foreground blue
+            $w.top.record tag configure marc-id -foreground red
+        } else {
+            $w.top.record tag configure marc-tag -foreground black
+            $w.top.record tag configure marc-id -foreground black
+        }
+        $w.top.record tag configure marc-data -foreground black
         set new 1
     }
-    if {[tk colormodel .] == "color"} {
-        $w.top.record tag configure marc-tag -foreground blue
-        $w.top.record tag configure marc-id -foreground red
-    } else {
-        $w.top.record tag configure marc-tag -foreground black
-        $w.top.record tag configure marc-id -foreground black
-    }
-    $w.top.record tag configure marc-data -foreground black
+    $w.top.record delete 0.0 end
 
-    if {$displayFormat == "nice"} {
-        display-nice $sno $no $w.top.record
-    } else {
-        display-raw $sno $no $w.top.record
-    }
+    set ffunc [lindex $displayFormats $df]
+    set ffunc "display-$ffunc"
+
+    $ffunc $sno $no  $w.top.record 0
+
     if {$new} {
         bind $w.top.record <Return> {destroy .full-marc}
         
@@ -403,18 +423,39 @@ proc show-full-marc {sno no b} {
         if {$b} {
             bottom-buttons $w [list \
                 {Close} [list destroy $w] \
-                {Raw} [list display-raw $sno $no $w.top.record] \
-                {Duplicate} [list show-full-marc $sno $no 1]] 0
+                {Duplicate} [list popup-marc $sno $no 1 $df]] 0
+            menubutton $w.bot.formats -text "Format" -menu $w.bot.formats.m
+            menu $w.bot.formats.m
+            set i 0
+            foreach f $displayFormats {
+                $w.bot.formats.m add radiobutton -label $f \
+                        -command [list display-$f $sno $no $w.top.record 0]
+                incr i
+            }
+            pack $w.bot.formats -expand yes -ipadx 2 -ipady 2 \
+                    -padx 3 -pady 3 -side left
         } else {
             bottom-buttons $w [list \
                 {Close} [list destroyG $w] \
-                {Raw} [list display-raw $sno $no $w.top.record] \
-                {Duplicate} [list show-full-marc $sno $no 1]] 0
+                {Duplicate} [list popup-marc $sno $no 1 $df]] 0
+            menubutton $w.bot.formats -text "Format" -menu $w.bot.formats.m
+            menu $w.bot.formats.m
+            set i 0
+            foreach f $displayFormats {
+                $w.bot.formats.m add radiobutton -label $f \
+                        -command [list display-$f $sno $no $w.top.record 0]
+                incr i
+            }
+            pack $w.bot.formats -expand yes -ipadx 2 -ipady 2 \
+                    -padx 3 -pady 3 -side left
         }
-
     } else {
-        $w.bot.2 configure -command [list display-raw $sno $no $w.top.record]
-        $w.bot.4 configure -command [list show-full-marc $sno $no 1]
+        set i 0
+        foreach f $displayFormats {
+            $w.bot.formats.m entryconfigure $i \
+                    -command [list display-f $sno $no $w.top.record 0]
+            incr i
+        }
     }
 }
 
@@ -684,8 +725,9 @@ proc scan-request {attr} {
                 {Down} [list scan-down $attr]] 0
         bind $w.top.list <Up> [list scan-up $attr]
         bind $w.top.list <Down> [list scan-down $attr]
+
+#       bind $w.top <Any-Enter> [list focus $w.top.entry]
     }
-    focus $w.top.entry
     z39 callback [list scan-response $attr 0 35]
     z39.scan numberOfTermsRequested 5
     z39.scan preferredPositionInResponse 1
@@ -931,7 +973,7 @@ proc present-more {number} {
 }
 
 proc init-title-lines {} {
-    .data.list delete 0 end
+    .data.record delete 0.0 end
 }
 
 proc title-press {y setno} {
@@ -939,30 +981,32 @@ proc title-press {y setno} {
 }
 
 proc add-title-lines {setno no offset} {
+    global displayFormats
+    global displayFormat
+    global lastSetNo
+
+    if {$setno == 0} {
+        set setno $lastSetNo
+    } else {
+        set lastSetNo $setno
+    }
     if {$offset == 1} {
         .bot.a.set configure -text $setno
-        .data.list delete 0 end
+        .data.record delete 0.0 end
     }
-    bind .data.list <Double-Button-1> [list title-press %y $setno]
-    bind .data.list <Button-2> [list title-press %y $setno]
+    set ffunc [lindex $displayFormats $displayFormat]
+    set ffunc "display-$ffunc"
     for {set i 0} {$i < $no} {incr i} {
         set o [expr $i + $offset]
         set type [z39.$setno type $o]
-        if {$type == "DB"} {
-            set title [lindex [z39.$setno getMarc $o field 245 * a] 0]
-            set year  [lindex [z39.$setno getMarc $o field 260 * c] 0]
-            set nostr [format "%5d" $o]
-            .data.list insert end "$nostr $title - $year"
-        } elseif {$type == "SD"} {
-            set err [lindex [z39.$setno diag $o] 1]
-            set add [lindex [z39.$setno diag $o] 2]
-            if {$add != {}} {
-                set add " :${add}"
-            }
-            .data.list insert end "Error ${err}${add}"
-        } elseif {$type == ""} {
+        if {$type == ""} {
             break
         }
+        set insert0 [.data.record index insert]
+        $ffunc $setno $o .data.record 1
+        .data.record tag add r$o $insert0 insert
+        .data.record tag bind r$o <1> \
+                [list popup-marc $setno $o 0 $displayFormat]
     }
 }
 
@@ -992,7 +1036,7 @@ proc present-response {} {
         return
     }
     if {$no > 0 && $setOffset <= $setMax} {
-        puts "present from ${setOffset}"
+        puts "present-request from ${setOffset}"
         set toGet [expr $setMax - $setOffset + 1]
         if {$toGet > 3} {
             set toGet 3
@@ -1291,7 +1335,6 @@ proc protocol-setup {target} {
     # Ok-cancel
     bottom-buttons $w [list {Ok} [list protocol-setup-action $target] \
             {Cancel} [list destroyG $w]] 0   
-#    top-down-ok-cancel $w [list protocol-setup-action $target] 0
 }
 
 proc database-select-action {} {
@@ -1877,8 +1920,6 @@ menu .top.file.m
 .top.file.m add command -label "Save settings" -command {save-settings}
 .top.file.m add separator
 .top.file.m add command -label "Exit" -command {exit-action}
-.top.file.m add separator
-.top.file.m add command -label "About" -command {about-origin}
 
 menubutton .top.target -text "Target" -underline 0 -menu .top.target.m
 menu .top.target.m
@@ -1922,17 +1963,25 @@ menu .top.options.m
 .top.options.m add cascade -label "Choose query" -menu .top.options.m.clist
 .top.options.m add command -label "Define query" -command {new-query-dialog}
 .top.options.m add cascade -label "Edit query" -menu .top.options.m.slist
-menu .top.options.m.clist
+.top.options.m add cascade -label "Format" -menu .top.options.m.formats
+
 menu .top.options.m.slist
+menu .top.options.m.clist
+menu .top.options.m.formats
 cascade-query-list
+set i 0
+foreach f $displayFormats {
+    .top.options.m.formats add radiobutton -label $f \
+            -command [list set-display-format $i]
+    incr i
+}
 
 menubutton .top.help -text "Help" -menu .top.help.m
 menu .top.help.m
 
 .top.help.m add command -label "Help on help" \
         -command {tkerror "Help on help not available. Sorry"}
-.top.help.m add command -label "About" \
-        -command {tkerror "About not available. Sorry"}
+.top.help.m add command -label "About" -command {about-origin}
 
 pack .top.file .top.target .top.service .top.rset .top.options -side left
 pack .top.help -side right
@@ -1950,11 +1999,20 @@ button .mid.clear -width 7 -text {Clear} -command index-clear
 pack .mid.search .mid.scan .mid.present .mid.clear -side left \
         -fill y -padx 5 -pady 3
 
-listbox .data.list -yscrollcommand {.data.scroll set} -font fixed -geometry 20x2
-scrollbar .data.scroll -orient vertical -border 1
-pack .data.list -side left -fill both -expand yes
+text .data.record -height 2 -width 20 -wrap none \
+        -yscrollcommand [list .data.scroll set]
+scrollbar .data.scroll -command [list .data.record yview]
 pack .data.scroll -side right -fill y
-.data.scroll config -command {.data.list yview}
+pack .data.record -expand yes -fill both
+
+if {[tk colormodel .] == "color"} {
+    .data.record tag configure marc-tag -foreground blue
+    .data.record tag configure marc-id -foreground red
+} else {
+    .data.record tag configure marc-tag -foreground black
+    .data.record tag configure marc-id -foreground black
+}
+.data.record tag configure marc-data -foreground black
 
 button .bot.logo  -bitmap @book1 -command cancel-operation
 frame .bot.a
@@ -1974,7 +2032,11 @@ pack .bot.a.target -side top -anchor nw -padx 2 -pady 2
 pack .bot.a.status .bot.a.set .bot.a.message \
         -side left -padx 2 -pady 2
 
+#bind . <Any-Enter> {focus .lines.0.e}
+
 ir z39
 
+.top.options.m.formats invoke $displayFormat
+    
 show-logo 1
 
