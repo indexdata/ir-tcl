@@ -11,7 +11,7 @@ proc get-attributeDetails {target base} {
 				unset profile($arrayname)
 			}
 		}
-		.debug-window.top.t insert end "Explain\n"
+		debug-window "Explain"
 		while {![catch {set rec [z39.attributeDetails getExplain $index attributeDetails]}]} {
 			set db [lindex [lindex $rec 1] 1]
 			foreach tagset [lrange [lindex $rec 2] 1 end] {
@@ -19,7 +19,7 @@ proc get-attributeDetails {target base} {
 					foreach attributeType [lindex $tagset 1] {
 						if {[lindex [lindex $attributeType 0] 1] == 1} {
 							foreach attributeValues [lrange [lindex $attributeType 2] 1 end] {
-								lappend profile($target,AttributeDetails,$db,Bib1Use) \
+								lappend profile($target,AttributeDetails,$db,Bib1) \
 									[lindex [lindex [lindex $attributeValues 0] 1] 1]
 							}
 						}						
@@ -46,13 +46,20 @@ proc get-attributeDetails {target base} {
 #Procedure change-queryInfo {target base}
 #The queryInfo array is set according to the attributes obtained by explain.
 proc change-queryInfo {target base} {
-	global queryInfo profile bib1
-	foreach tag $profile($target,AttributeDetails,$base,Bib1Use) {
-		if {$tag < 1037} {
-			lappend tempList [list $bib1($tag) 1=$tag]
-		}
-	}
-	set queryInfo [lreplace $queryInfo 2 2 $tempList]
+	global queryInfo profile attributeTypeSelected queryTypes
+	global queryInfo$attributeTypeSelected
+	set n [lsearch $queryTypes Auto]
+	foreach tag $profile($target,AttributeDetails,$base,$attributeTypeSelected) {
+#        if {$tag < 2000} 
+#            lappend tempList [list $bib1($tag) 1=$tag]
+#         else 
+#            lappend tempList [list $gils($tag) 1=$tag]
+        set ats [string tolower $attributeTypeSelected]
+        global $ats
+        source ${ats}.tcl
+        lappend tempList [list "[set ${ats}($tag)]" 1=$tag]      
+    }
+	set queryInfo$attributeTypeSelected [lreplace [set queryInfo$attributeTypeSelected] $n $n $tempList]
 }
 
 
@@ -60,7 +67,7 @@ proc change-queryInfo {target base} {
 # Issue search request with explain-attribute set and specific category.
 proc explain-search-request {target zz category finish response fresponse} {
     z39 callback [list explain-search-response $target $zz $category $finish \
-            $response $fresponse]
+        $response $fresponse]
     ir-set $zz z39
     $zz databaseNames IR-Explain-1
     $zz preferredRecordSyntax explain
@@ -168,11 +175,11 @@ proc explain-check-fail {target zz category finish} {
     eval $finish [list $target]
 }
 
-proc prettyDump {x} {
-    foreach y $x {
-		prettyDumpR $y 0
-    }
-}
+#proc prettyDump {x} 
+#    foreach y $x 
+#		prettyDumpR $y 0
+    
+
 
 proc prettyDumpR {x ind} {
     for {set i 0} {$i < $ind} {incr i} {
@@ -197,44 +204,49 @@ proc prettyDumpR {x ind} {
 proc explain-check-ok {target zz category finish} {
     global profile settingsChanged currentDb
 
-    puts ""
-    puts ""
-    puts ""
-    puts ""
+#    puts ""
+#    puts ""
+#    puts ""
+#    puts ""
     set crec [z39.categoryList getExplain 1 categoryList]
-    puts "--- categoryList"
-    puts $crec
+#    puts "--- categoryList"
+#    puts $crec
 
     set rec [z39.targetInfo getExplain 1]
     set trec [z39.targetInfo getExplain 1 targetInfo]
-    puts "--- targetInfo"
-    puts $rec
+#    puts "--- targetInfo"
+#    puts $rec
 
     set no 1
     while {1} {
         if {
         	[catch {set rec [z39.databaseInfo getExplain $no databaseInfo]}]
         } break
-    	puts "--- databaseInfo $no"
-		puts $rec
+#    	puts "--- databaseInfo $no"
+#		puts $rec
     	lappend dbRecs $rec
     	set db [lindex [lindex $rec 1] 1]
 		if {![string length $db]} break
-    	lappend dbList $db
+		#Here the explain database IR-Explain-1 is skipped from the database list.
+		if {$db != "IR-Explain-1"} {
+    	    lappend dbList $db
+    	}
+    	debug-window "${no}: $db"
     	incr no
     }
     if {[info exists dbList]} {
         set profile($target,databases) $dbList
     }
     cascade-target-list
+    cascade-dblist $target 1
 
     set no 1
     while {1} {
         if {
         	[catch {set rec [z39.attributeDetails getExplain $no attributeDetails]}]
 		} break
-        puts "--- attributeDetails $no"
-		puts $rec
+#        puts "--- attributeDetails $no"
+#		puts $rec
         incr no
     }
     set data [lindex [lindex [lindex [lindex [lindex $trec 12] 1] 1] 1] 1]

@@ -14,7 +14,7 @@ proc display-grs-medium {w r i} {
         set ttype [lindex $e 0]
         set tval [lindex $e 2]
         if {$ttype == 3} {
-            insertWithTags $w "$tval " marc-pref
+            insertWithTags $w "$tval per" marc-pref
         } elseif {[info exists tagSet($ttype,$tval)]} {
             insertWithTags $w "$tagSet($ttype,$tval) " marc-pref
         } else {
@@ -80,15 +80,15 @@ proc display-medium {sno no w hflag} {
     if {[llength $i]} {
         insertWithTags $w "Title " marc-pref
         insertWithTags $w [string trimright [lindex $i 0] /] marc-text
-        set i [z39.$sno getMarc $no field 245 * b]
+        set i [concat [z39.$sno getMarc $no field 245 * b] [z39.$sno getMarc $no field 251 * a]]
         if {"x$i" != "x"} {
             insertWithTags $w [string trimright [lindex $i 0] /] marc-text
         }
         $w insert end "\n"
     }
-    set i [z39.$sno getMarc $no field 700 * a]
+    set i [concat [z39.$sno getMarc $no field 700 * a] [z39.$sno getMarc $no field 700 * h]]
     if {![llength $i]} {
-        set i [z39.$sno getMarc $no field 100 * a]
+        set i [concat [z39.$sno getMarc $no field 100 * a] [z39.$sno getMarc $no field 100 * h]]
     }
     if {[llength $i]} {
         if {[llength $i] > 1} {
@@ -116,15 +116,14 @@ proc display-medium {sno no w hflag} {
         insertWithTags $w "Keywords " marc-pref
         foreach x $i {
             if {$n > 0} {
-                $w insert end ", "
+#                $w insert end ", "
             }
             insertWithTags $w $x marc-it
             incr n
         }
         $w insert end "\n"
     }
-    set i [concat [z39.$sno getMarc $no field 260 * a] \
-            [z39.$sno getMarc $no field 260 * b] [z39.$sno getMarc $no field 260 * c]]
+    set i [concat [z39.$sno getMarc $no field 260 * b] [z39.$sno getMarc $no field 260 * a]]
     if {[llength $i]} {
         insertWithTags $w "Publisher " marc-pref
         foreach x $i {
@@ -132,7 +131,16 @@ proc display-medium {sno no w hflag} {
         }
         $w insert end "\n"
     }
-    set i [z39.$sno getMarc $no field 300 * a]
+    set i [z39.$sno getMarc $no field 260 * c]
+    if {[llength $i]} {
+        insertWithTags $w "Year " marc-pref
+        foreach x $i {
+            insertWithTags $w $x marc-text
+        }
+        $w insert end "\n"
+    }
+    set i [concat [z39.$sno getMarc $no field 300 * a] [z39.$sno getMarc $no field 300 * b] \
+        [z39.$sno getMarc $no field 300 * c] [z39.$sno getMarc $no field 300 * e]]
     if {[llength $i]} {
         insertWithTags $w "Phys. Desc. " marc-pref
         foreach x $i {
@@ -141,6 +149,14 @@ proc display-medium {sno no w hflag} {
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 020 * a]
+    if {[llength $i]} {
+        insertWithTags $w "ISBN " marc-pref
+        foreach x $i {
+            insertWithTags $w $x marc-text
+        }
+        $w insert end "\n"
+    }
+    set i [z39.$sno getMarc $no field 021 * a]
     if {[llength $i]} {
         insertWithTags $w "ISBN " marc-pref
         foreach x $i {
