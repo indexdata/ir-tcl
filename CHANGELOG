@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.45 2001-03-26 11:39:34 adam Exp $
+$Id: CHANGELOG,v 1.46 2001-03-27 16:27:21 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -139,5 +139,8 @@ $Id: CHANGELOG,v 1.45 2001-03-26 11:39:34 adam Exp $
          Queries and Scan star terms are converted to external encoding.
 
 03/26/01 Fixed bug in ir_deleteDiags. Thanks to Rustam T. Usmanov
+          <rustam@unilib.neva.ru>
+
+03/27/01 Fixed bug in do_responseStatus. Thanks to Rustam T. Usmanov
           <rustam@unilib.neva.ru>
 

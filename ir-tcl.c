@@ -4,7 +4,10 @@
  * See the file LICENSE for details.
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.117  2001-03-26 11:39:34  adam
+ * Revision 1.118  2001-03-27 16:27:21  adam
+ * Fixed bug in do_responseStatus.
+ *
+ * Revision 1.117  2001/03/26 11:39:34  adam
  * Fixed bug in ir_deleteDiags - crash when receiving multiple diags.
  *
  * Revision 1.116  2001/02/09 11:58:04  adam
@@ -2786,6 +2789,10 @@ static int do_responseStatus (void *o, Tcl_Interp *interp,
         Tcl_AppendElement (interp, "NSD");
         return ir_diagResult (interp, obj->nonSurrogateDiagnosticList,
                               obj->nonSurrogateDiagnosticNum);
+    case Z_Records_multipleNSD:
+        Tcl_AppendElement (interp, "NSD");
+        return ir_diagResult (interp, obj->nonSurrogateDiagnosticList,
+                               obj->nonSurrogateDiagnosticNum);
     }
     return TCL_OK;
 }
