@@ -2,7 +2,7 @@
 # (c) Index Data 1995-1996
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.39 1996-08-16 15:07:42 adam Exp $
+# $Id: Makefile.in,v 1.40 1996-08-20 09:27:48 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -53,12 +53,12 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_DATA = @INSTALL_DATA@
 RANLIB = @RANLIB@
 
-O=ir-tcl.o marc.o queue.o mem.o grs.o explain.o
+O=ir-tcl.o marc.o queue.o mem.o grs.o explain.o events.o
 
 all: ir-tcl ir-tk
 
-ir-tk: libirtcl.a tkinit.o
-	$(CC) $(CFLAGS) tkinit.o -o ir-tk libirtcl.a $(YAZLIB) $(TKLIB) 
+ir-tk: libirtcl.a tkmain.o
+	$(CC) $(CFLAGS) tkmain.o -o ir-tk libirtcl.a $(YAZLIB) $(TKLIB) 
 
 ir-tcl: libirtcl.a tclmain.o
 	$(CC) $(CFLAGS) tclmain.o -o ir-tcl libirtcl.a $(YAZLIB) $(TCLLIB) 
@@ -174,5 +174,5 @@ distribution:
 .c.o:
 	$(CC) -c $(CFLAGS) $(DEFS) $<
 
-$(O) tkinit.o tclmain.o wais-tcl.o waismain.o: ir-tcl.h ir-tclp.h
+$(O) tkmain.o tclmain.o wais-tcl.o waismain.o: ir-tcl.h ir-tclp.h
 

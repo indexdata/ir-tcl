@@ -1,64 +1,14 @@
 /*
  * IR toolkit for tcl/tk
- * (c) Index Data 1995
+ * (c) Index Data 1995-1996
  * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: tclmain.c,v $
- * Revision 1.18  1996-02-23 17:31:42  adam
- * More functions made available to the wais tcl extension.
- *
- * Revision 1.17  1996/02/21  10:16:21  adam
- * Simplified select handling. Only one function ir_tcl_select_set has
- * to be externally defined.
- *
- * Revision 1.16  1996/02/05  17:58:05  adam
- * Ported ir-tcl to use the beta releases of tcl7.5/tk4.1.
- *
- * Revision 1.15  1996/01/10  09:18:45  adam
- * PDU specific callbacks implemented: initRespnse, searchResponse,
- *  presentResponse and scanResponse.
- * Bug fix in the command line shell (tclmain.c) - discovered on OSF/1.
- *
- * Revision 1.14  1995/09/21  13:11:53  adam
- * Support of dynamic loading.
- * Test script uses load command if necessary.
- *
- * Revision 1.13  1995/08/28  12:21:22  adam
- * Removed lines and list as synonyms of list in MARC extractron.
- * Configure searches also for tk4.0 / tcl7.4.
- *
- * Revision 1.12  1995/08/28  11:07:16  adam
- * Minor changes.
- *
- * Revision 1.11  1995/08/03  13:23:02  adam
- * Request queue.
- *
- * Revision 1.10  1995/06/30  12:39:28  adam
- * Bug fix: loadFile didn't set record type.
- * The MARC routines are a little less strict in the interpretation.
- * Script display.tcl replaces the old marc.tcl.
- * New interactive script: shell.tcl.
- *
- * Revision 1.9  1995/06/26  10:20:20  adam
- * ir-tk works like wish.
- *
- * Revision 1.8  1995/06/21  15:16:44  adam
- * More work on configuration.
- *
- * Revision 1.7  1995/06/21  11:04:54  adam
- * Uses GNU autoconf 2.3.
- * Install procedure implemented.
- * boook bitmaps moved to sub directory bitmaps.
- *
- * Revision 1.6  1995/05/29  08:44:28  adam
- * Work on delete of objects.
- *
- * Revision 1.5  1995/03/20  08:53:30  adam
- * Event loop in tclmain.c rewritten. New method searchStatus.
- *
- * Revision 1.4  1995/03/17  07:50:31  adam
- * Headers have changed a little.
+ * Revision 1.19  1996-08-20 09:27:49  adam
+ * More work on explain.
+ * Renamed tkinit.c to tkmain.c. The tcl shell uses the Tcl 7.5 interface
+ * for socket i/o instead of the handcrafted one (for Tcl 7.3 and Tcl7.4).
  *
  */
 
@@ -68,26 +18,12 @@
 #ifdef _AIX
 #include <sys/select.h>
 #endif
+
 #include <assert.h>
 
 #include <tcl.h>
 #include <log.h>
 #include "ir-tcl.h"
-
-static char *fileName = NULL;
-
-/* select(2) callbacks */
-struct callback {
-    void (*handle)(ClientData, int, int, int);
-    int r, w, e;
-    ClientData obj;
-};
-#define MAX_CALLBACK 200
-
-static struct callback callback_table[MAX_CALLBACK];
-static int max_fd = 3;            /* don't worry: it will grow... */
-
-void tcl_mainloop (Tcl_Interp *interp, int interactive);
 
 int Tcl_AppInit (Tcl_Interp *interp)
 {
@@ -101,6 +37,34 @@ int Tcl_AppInit (Tcl_Interp *interp)
 #endif
     return TCL_OK;
 }
+
+#if TCL_MAJOR_VERSION > 7 || (TCL_MAJOR_VERSION == 7 && TCL_MINOR_VERSION > 4)
+extern int matherr ();
+int *tclDummyMathPtr = (int*) matherr;
+
+int main (int argc, char **argv)
+{
+    Tcl_Main (argc, argv, Tcl_AppInit);
+    return 0;
+}
+
+#else
+static char *fileName = NULL;
+extern int main ();
+int *tclDummyMainPtr = (int*) main;
+
+/* select(2) callbacks */
+struct callback {
+    void (*handle)(ClientData, int, int, int);
+    int r, w, e;
+    ClientData obj;
+};
+#define MAX_CALLBACK 200
+
+static struct callback callback_table[MAX_CALLBACK];
+static int max_fd = 3;            /* don't worry: it will grow... */
+
+void tcl_mainloop (Tcl_Interp *interp, int interactive);
 
 int main (int argc, char **argv)
 {
@@ -261,3 +225,4 @@ void ir_tcl_select_set (void (*f)(ClientData clientData, int r, int w, int e),
         max_fd = fd;
 }
 
+#endif

@@ -5,7 +5,12 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: explain.c,v $
- * Revision 1.1  1996-08-16 15:07:43  adam
+ * Revision 1.2  1996-08-20 09:27:48  adam
+ * More work on explain.
+ * Renamed tkinit.c to tkmain.c. The tcl shell uses the Tcl 7.5 interface
+ * for socket i/o instead of the handcrafted one (for Tcl 7.3 and Tcl7.4).
+ *
+ * Revision 1.1  1996/08/16  15:07:43  adam
  * First work on Explain.
  *
  */
@@ -31,7 +36,6 @@ typedef struct {
 
 typedef char *Z_ElementSetName;
 typedef Odr_oid *Z_AttributeSetId;
-typedef int Z_integer;
 typedef char *Z_InternationalString;
 typedef char *Z_LanguageCode;
 
@@ -51,8 +55,6 @@ static int ir_RetrievalRecordDetails (IrExpArg *iea,
             Z_RetrievalRecordDetails *p, const char *name, int argi);
 static int ir_ElementInfo (IrExpArg *iea,
             Z_ElementInfo *p, const char *name, int argi);
-static int ir_integer (IrExpArg *iea,
-            Z_integer *p, const char *name, int argi);
 static int ir_InternationalString (IrExpArg *iea,
             char *p, const char *name, int argi);
 static int ir_TagSetInfo (IrExpArg *iea,
@@ -176,7 +178,12 @@ ir_match_start (const char *name, void *p, IrExpArg *iea, int argi)
 {
     if (!p)
         return 0;
-    Tcl_AppendResult (iea->interp, name, " {", NULL);
+    if (argi < iea->argc)
+    {
+        if (strcmp (name, iea->argv[argi]))
+            return 0;
+    }
+    Tcl_AppendResult (iea->interp, "{", name, " ", NULL);
     return 1;
 }
 
@@ -202,22 +209,20 @@ ir_choice (IrExpArg *iea, IrExpChoice *clist, int what, void *p, int argi)
 static int ir_null (IrExpArg *iea,
             Odr_null *p, const char *name, int argi)
 {
-    if (p)
-        Tcl_AppendResult (iea->interp, name, " ", NULL);
-    return TCL_OK;
+    if (!ir_match_start (name, p, iea, ++argi))
+        return TCL_OK;
+    Tcl_AppendResult (iea->interp, "{} ", NULL);
+    return ir_match_end (name, iea, argi);
 }
 
 static int ir_CString (IrExpArg *iea,
             char *p, const char *name, int argi)
 {
-    Tcl_AppendResult (iea->interp, "{", name, " ", NULL);
-    if (p)
-        Tcl_AppendElement (iea->interp, p);
-    Tcl_AppendResult (iea->interp, "} ", NULL);
-    return TCL_OK;
+    if (!ir_match_start (name, p, iea, ++argi))
+        return TCL_OK;
+    Tcl_AppendElement (iea->interp, p);
+    return ir_match_end (name, iea, argi);
 }
-
-
 
 static int ir_ElementSetName (IrExpArg *iea,
             char *p, const char *name, int argi)
@@ -246,25 +251,45 @@ static int ir_GeneralizedTime (IrExpArg *iea,
 static int ir_oid (IrExpArg *iea,
             Odr_oid *p, const char *name, int argi)
 {
-    return TCL_OK;
+    int first = ' ';
+    if (!ir_match_start (name, p, iea, ++argi))
+        return TCL_OK;
+    while (*p != -1)
+    {
+        char buf[32];
+        
+        sprintf (buf, "%c%d", first, *p);
+        Tcl_AppendResult (iea->interp, buf, NULL);
+        first = '.';
+    }
+    return ir_match_end (name, iea, argi);
 }
 
 static int ir_TagTypeMapping (IrExpArg *iea,
             Z_TagTypeMapping **p, const char *name, int argi)
 {
-    return TCL_OK;
+    if (!ir_match_start (name, p, iea, ++argi))
+        return TCL_OK;
+    /* missing */
+    return ir_match_end (name, iea, argi);
 }
 
 static int ir_PrimitiveDataType (IrExpArg *iea,
             int *p, const char *name, int argi)
 {
-    return TCL_OK;
+    if (!ir_match_start (name, p, iea, ++argi))
+        return TCL_OK;
+    /* missing */
+    return ir_match_end (name, iea, argi);
 }
 
 static int ir_octet (IrExpArg *iea,
             Odr_oct *p, const char *name, int argi)
 {
-    return TCL_OK;
+    if (!ir_match_start (name, p, iea, ++argi))
+        return TCL_OK;
+    /* missing */
+    return ir_match_end (name, iea, argi);
 }
 
 static int ir_choice_nop (IrExpArg *iea,
@@ -274,64 +299,80 @@ static int ir_choice_nop (IrExpArg *iea,
     return TCL_OK;
 }
 
-static int ir_Term (IrExpArg *iea,
-            Z_Term *p, const char *name, int argi)
-{
-    return TCL_OK;
-}
-
 static int ir_bool (IrExpArg *iea,
             bool_t *p, const char *name, int argi)
 {
-    Tcl_AppendResult (iea->interp, "{", name, " ", NULL);
-    if (p)
-        Tcl_AppendResult (iea->interp, *p ? "1" : "0", NULL);
-    Tcl_AppendResult (iea->interp, "} ", NULL);
-    return TCL_OK;
+    if (!ir_match_start (name, p, iea, ++argi))
+        return TCL_OK;
+    Tcl_AppendResult (iea->interp, *p ? "1" : "0", NULL);
+    return ir_match_end (name, iea, argi);
 }
 
 static int ir_integer (IrExpArg *iea,
             int *p, const char *name, int argi)
 {
-    Tcl_AppendResult (iea->interp, "{", name, NULL);
-    if (p)
-    {
-        char buf[64];
-        sprintf (buf, " %d", *p);
-        Tcl_AppendResult (iea->interp, buf, NULL);
-    }
-    Tcl_AppendResult (iea->interp, "} ", NULL);
-    return TCL_OK;
+    char buf[64];
+    if (!ir_match_start (name, p, iea, ++argi))
+        return TCL_OK;
+    sprintf (buf, " %d", *p);
+    Tcl_AppendResult (iea->interp, buf, NULL);
+    return ir_match_end (name, iea, argi);
 }
 
 static int ir_LanguageCode (IrExpArg *iea,
             char *p, const char *name, int argi)
 {
-    if (p)
-        Tcl_AppendResult (iea->interp, name, " ", p, " ", NULL);
-    return TCL_OK;
+    return ir_CString (iea, p, name, argi);
 }
 
 static int ir_External (IrExpArg *iea,
             Z_External *p, const char *name, int argi)
 {
-    return TCL_OK;
+    if (!ir_match_start (name, p, iea, ++argi))
+        return TCL_OK;
+    /* missing */
+    return ir_match_end (name, iea, argi);
 }
 
 static int ir_sequence (int (*fh)(), IrExpArg *iea, void *p, int num, 
                  const char *name, int argi)
 {
     void **pp = (void **) p;
-    if (num > 0 && ir_match_start (name, p, iea, argi))
-    {
-        int i;
-        for (i = 0; i<num; i++)
-            (*fh)(iea, pp[i], "", argi);
-        return ir_match_end (name, iea, argi);
-    }
-    return TCL_OK;
+    int i;
+
+    if (!ir_match_start (name, p, iea, ++argi))
+        return TCL_OK;
+    for (i = 0; i<num; i++)
+        (*fh)(iea, pp[i], "", argi);
+    return ir_match_end (name, iea, argi);
 }
 
+static int ir_Term (IrExpArg *iea,
+            Z_Term *p, const char *name, int argi)
+{
+    static IrExpChoice arm [] = {
+        { "general",            Z_Term_general,
+                               ir_octet },
+        { "numeric",            Z_Term_numeric,
+                               ir_integer },
+        { "characterString",    Z_Term_characterString,
+                               ir_InternationalString },
+        { "oid",                Z_Term_oid,
+                               ir_oid },
+        { "dateTime",           Z_Term_dateTime,
+                               ir_GeneralizedTime },
+        { "external",           Z_Term_external,
+                               ir_External },
+        { "null",               Z_Term_null,
+                                ir_null },
+        { NULL, 0, NULL }};
+
+    if (!ir_match_start (name, p, iea, ++argi))
+        return TCL_OK;
+
+    ir_choice (iea, arm, p->which, p->u.general, argi);
+    return ir_match_end (name, iea, argi);
+}
 
 static int ir_TargetInfo (IrExpArg *iea,
             Z_TargetInfo *p, const char *name, int argi)
@@ -340,7 +381,7 @@ static int ir_TargetInfo (IrExpArg *iea,
         return TCL_OK;
     ir_CommonInfo (iea, p->commonInfo, "commonInfo", argi);
     ir_InternationalString (iea, p->name, "name", argi);
-    ir_HumanString (iea, p->recentNews, "recent-news", argi);
+    ir_HumanString (iea, p->recentNews, "recentNews", argi);
     ir_IconObject (iea, p->icon, "icon", argi);
     ir_bool (iea, p->namedResultSets, "namedResultSets", argi);
     ir_bool (iea, p->multipleDBsearch, "multipleDBsearch", argi);
@@ -353,7 +394,7 @@ static int ir_TargetInfo (IrExpArg *iea,
     ir_HumanString (iea, p->description, "description", argi);
     ir_sequence (ir_InternationalString, iea, p->nicknames,
                  p->num_nicknames, "nicknames", argi);
-    ir_HumanString (iea, p->usageRest, "usage-rest", argi);
+    ir_HumanString (iea, p->usageRest, "usageRest", argi);
     ir_HumanString (iea, p->paymentAddr, "paymentAddr", argi);
     ir_HumanString (iea, p->hours, "hours", argi);
     ir_sequence (ir_DatabaseList, iea, p->dbCombinations,
@@ -382,7 +423,7 @@ static int ir_DatabaseInfo (IrExpArg *iea,
     ir_sequence (ir_DatabaseName, iea, p->nicknames,
                  p->num_nicknames, "nicknames", argi);
     ir_IconObject (iea, p->icon, "icon", argi);
-    ir_bool (iea, p->userFee, "user-fee", argi);
+    ir_bool (iea, p->userFee, "userFee", argi);
     ir_bool (iea, p->available, "available", argi);
     ir_HumanString (iea, p->titleString, "titleString", argi);
     ir_sequence (ir_HumanString, iea, p->keywords,
@@ -1325,11 +1366,11 @@ static int ir_AccessRestrictionsUnit (IrExpArg *iea,
                                ir_choice_nop },
         { "present",           Z_AccessRestrictions_present,
                                ir_choice_nop },
-        { "specific-elements", Z_AccessRestrictions_specific_elements,
+        { "specificElements",  Z_AccessRestrictions_specific_elements,
                                ir_choice_nop },
-        { "extended-services", Z_AccessRestrictions_extended_services,
+        { "extendedServices",  Z_AccessRestrictions_extended_services,
                                ir_choice_nop },
-        { "by-database",       Z_AccessRestrictions_by_database,
+        { "byDatabase",        Z_AccessRestrictions_by_database,
                                ir_choice_nop },
         { NULL, 0, NULL }};
 
@@ -1434,7 +1475,7 @@ static int ir_AttributeOccurrence (IrExpArg *iea,
             Z_AttributeOccurrence *p, const char *name, int argi)
 {
     static IrExpChoice arm [] = {
-        { "any-or-none", Z_AttributeOcc_anyOrNone, ir_null },
+        { "anyOrNone",   Z_AttributeOcc_anyOrNone, ir_null },
         { "specific",    Z_AttributeOcc_specific,  ir_AttributeValueList },
         { NULL, 0, NULL } };
     if (!ir_match_start (name, p, iea, ++argi))
