@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.40  2002-03-20 14:48:54  adam
+ * Revision 1.41  2005-03-10 14:05:08  adam
+ * Define USE_NON_CONST to avoid bad warnings for const for Tcl 8.4
+ * or later.
+ *
+ * Revision 1.40  2002/03/20 14:48:54  adam
  * implemented USR.1 SearchResult-1
  *
  * Revision 1.39  1999/11/30 14:05:58  adam
@@ -156,6 +160,8 @@
 #ifndef IR_TCLP_H
 #define IR_TCLP_H
 
+/* to avoid Tcl8.4 or newer to use const */
+#define USE_NON_CONST
 #include <tcl.h>
 
 #include <yaz/log.h>
