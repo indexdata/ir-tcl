@@ -4,7 +4,11 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.71  1995-10-13 15:35:27  adam
+# Revision 1.72  1995-10-16 17:00:52  adam
+# New setting: elementSetNames.
+# Various client improvements. Medium presentation format looks better.
+#
+# Revision 1.71  1995/10/13  15:35:27  adam
 # Relational operators may be used in search entries - changes
 # in proc index-query.
 #
@@ -317,6 +321,7 @@ set displayFormat 1
 set popupMarcdf 0
 set textWrap word
 set recordSyntax None
+set elementSetNames None
 set delayRequest {}
 
 set queryTypes {Simple}
@@ -778,6 +783,16 @@ proc popup-marc {sno no b df} {
                 -font -Adobe-Times-Medium-R-Normal-*-180-* \
                 -background black -foreground white
 
+        $w.top.record tag configure marc-pref \
+                -font -Adobe-Times-Medium-R-Normal-*-180-* \
+                -foreground blue
+        $w.top.record tag configure marc-text \
+                -font -Adobe-Times-Medium-R-Normal-*-180-* \
+                -foreground black
+        $w.top.record tag configure marc-it \
+                -font -Adobe-Times-Medium-I-Normal-*-180-* \
+                -foreground black
+
         pack $w.top.s -side right -fill y
         pack $w.top.record -expand yes -fill both
         
@@ -1077,6 +1092,7 @@ proc search-request {bflag} {
     global cancelFlag
     global delayRequest
     global recordSyntax
+    global elementSetNames
 
     set target $hostid
 
@@ -1121,6 +1137,11 @@ proc search-request {bflag} {
         z39.$setNo preferredRecordSyntax {}
     } else {
         z39.$setNo preferredRecordSyntax $recordSyntax
+    }
+    if {$elementSetNames == "None" } {
+        z39.$setNo elementSetNames {}
+    } else {
+        z39.$setNo elementSetNames $elementSetNames
     }
     z39 callback {search-response}
     z39.$setNo search $query
@@ -2097,7 +2118,8 @@ proc save-geometry {} {
     global displayFormat
     global popupMarcdf
     global recordSyntax
-    
+    global elementSetNames
+
     set windowGeometry(.) [wm geometry .]
 
     if {[catch {set f [open ~/.clientrc.tcl w]}]} {
@@ -2108,6 +2130,7 @@ proc save-geometry {} {
     puts $f "set displayFormat $displayFormat"
     puts $f "set popupMarcdf $popupMarcdf"
     puts $f "set recordSyntax $recordSyntax"
+    puts $f "set elementSetNames $elementSetNames"
     foreach n [array names windowGeometry] {
         puts -nonewline $f "set \{windowGeometry($n)\} \{"
         puts -nonewline $f $windowGeometry($n)
@@ -2577,6 +2600,14 @@ proc index-setup {attr queryNo indexNo} {
     set completenessTmpValue 0
     set useTmpValue 0
 
+    catch {destroy $w}
+    toplevelG $w
+
+    set n [lindex $attr 0]
+    wm title $w "Index setup $n"
+
+    top-down-window $w
+
     set len [llength $attr]
     for {set i 1} {$i < $len} {incr i} {
         set q [lindex $attr $i]
@@ -2600,15 +2631,6 @@ proc index-setup {attr queryNo indexNo} {
             }
         }
     }
-    if {[winfo exists $w]} {
-        destroy $w
-    }
-    toplevelG $w
-
-    set n [lindex $attr 0]
-    wm title $w "Index setup $n"
-
-    top-down-window $w
 
     frame $w.top.use -relief ridge -border 2
     frame $w.top.relation -relief ridge -border 2
@@ -2757,7 +2779,7 @@ proc query-setup {queryNo} {
     listbox $w.top.index.list -yscrollcommand [list $w.top.index.scroll set]
     scrollbar $w.top.index.scroll -orient vertical -border 1 \
         -command [list $w.top.index.list yview]
-    bind $w.top.index.list <2> [list query-edit-index $queryNo]
+    bind $w.top.index.list <Double-1> [list query-edit-index $queryNo]
 
     pack $w.top.index.list -side left -fill both -expand yes -padx 2 -pady 2
     pack $w.top.index.scroll -side right -fill y -padx 2 -pady 2
@@ -2773,13 +2795,14 @@ proc query-setup {queryNo} {
     foreach x $queryInfoTmp {
         $w.top.index.list insert end [lindex $x 0]
     }
+
     # Bottom
     bottom-buttons $w [list \
-            {Ok} [list query-setup-action $queryNo] \
-            {Add index} [list query-add-index $queryNo] \
-            {Edit index} [list query-edit-index $queryNo] \
-            {Delete index} [list query-delete-index $queryNo] \
-            {Cancel} [list destroy $w]] 0
+            Ok [list query-setup-action $queryNo] \
+            Add [list query-add-index $queryNo] \
+            Edit [list query-edit-index $queryNo] \
+            Delete [list query-delete-index $queryNo] \
+            Cancel [list destroy $w]] 0
 }
 
 proc index-clear {} {
@@ -3035,6 +3058,7 @@ menu .top.options.m
 .top.options.m add cascade -label "Format" -menu .top.options.m.formats
 .top.options.m add cascade -label "Wrap" -menu .top.options.m.wrap
 .top.options.m add cascade -label "Syntax" -menu .top.options.m.syntax
+.top.options.m add cascade -label "Elements" -menu .top.options.m.elements
 
 menu .top.options.m.query
 .top.options.m.query add cascade -label "Select" \
@@ -3092,6 +3116,14 @@ menu .top.options.m.syntax
 .top.options.m.syntax add radiobutton -label "GRS1" \
         -value GRS1 -variable recordSyntax
 
+menu .top.options.m.elements
+.top.options.m.elements add radiobutton -label "Unspecified" \
+        -value None -variable elementSetNames
+.top.options.m.elements add radiobutton -label "Full" \
+        -value F -variable elementSetNames
+.top.options.m.elements add radiobutton -label "Brief" \
+        -value B -variable elementSetNames
+
 menubutton .top.help -text "Help" -menu .top.help.m
 menu .top.help.m
 
@@ -3135,8 +3167,17 @@ if {! $monoFlag} {
 }
 .data.record tag configure marc-data -foreground black
 .data.record tag configure marc-head \
-        -font -Adobe-Times-Medium-R-Normal-*-180-* \
+        -font -Adobe-Times-Medium-R-Normal-*-140-* \
         -foreground white -background black
+.data.record tag configure marc-pref \
+        -font -Adobe-Times-Medium-R-Normal-*-140-* \
+        -foreground blue
+.data.record tag configure marc-text \
+        -font -Adobe-Times-Medium-R-Normal-*-140-* \
+        -foreground black
+.data.record tag configure marc-it \
+        -font -Adobe-Times-Medium-I-Normal-*-140-* \
+        -foreground black
 
 button .bot.logo -bitmap @${libdir}/bitmaps/book1 -command cancel-operation
 if {[tk4]} {

@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.57  1995-09-21 13:11:51  adam
+ * Revision 1.58  1995-10-16 17:00:55  adam
+ * New setting: elementSetNames.
+ * Various client improvements. Medium presentation format looks better.
+ *
+ * Revision 1.57  1995/09/21  13:11:51  adam
  * Support of dynamic loading.
  * Test script uses load command if necessary.
  *
@@ -1366,6 +1370,32 @@ static int do_preferredRecordSyntax (void *obj, Tcl_Interp *interp,
             
 }
 
+/*
+ * do_elementSetNames: Set/Get element Set Names
+ */
+static int do_elementSetNames (void *obj, Tcl_Interp *interp,
+                               int argc, char **argv)
+{
+    IrTcl_SetCObj *p = obj;
+
+    if (argc == 0)
+    {
+        p->elementSetNames = NULL;
+        return TCL_OK;
+    }
+    else if (argc == -1)
+        return ir_tcl_strdel (interp, &p->elementSetNames);
+    if (argc == 3)
+    {
+        free (p->elementSetNames);
+        if (ir_tcl_strdup (interp, &p->elementSetNames, argv[2]) == TCL_ERROR)
+            return TCL_ERROR;
+    }
+    Tcl_AppendResult (interp, p->elementSetNames, NULL);
+    return TCL_OK;
+}
+
+
 static IrTcl_Method ir_method_tab[] = {
 { 1, "comstack",                    do_comstack },
 { 1, "protocol",                    do_protocol },
@@ -1403,6 +1433,7 @@ static IrTcl_Method ir_set_c_method_tab[] = {
 { 0, "largeSetLowerBound",          do_largeSetLowerBound},
 { 0, "mediumSetPresentNumber",      do_mediumSetPresentNumber},
 { 0, "referenceId",                 do_referenceId },
+{ 0, "elementSetNames",             do_elementSetNames },
 { 0, NULL, NULL}
 };
 
@@ -1577,6 +1608,18 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     else
         req->preferredRecordSyntax = 0;
+
+    if (obj->set_inher.elementSetNames && *obj->set_inher.elementSetNames)
+    {
+        Z_ElementSetNames *esn = odr_malloc (p->odr_out, sizeof(*esn));
+
+        esn->which = Z_ElementSetNames_generic;
+        esn->u.generic = obj->set_inher.elementSetNames;
+        req->mediumSetElementSetNames = esn;
+    }
+    else
+        req->mediumSetElementSetNames = NULL;
+
     req->query = &query;
 
     if (!strcmp (obj->set_inher.queryType, "rpn"))
@@ -2072,7 +2115,20 @@ static int do_present (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     else
         req->preferredRecordSyntax = 0;
-     
+    if (obj->set_inher.elementSetNames && *obj->set_inher.elementSetNames)
+    {
+        Z_ElementSetNames *esn = odr_malloc (p->odr_out, sizeof(*esn));
+        Z_RecordComposition *compo = odr_malloc (p->odr_out, sizeof(*compo));
+
+        esn->which = Z_ElementSetNames_generic;
+        esn->u.generic = obj->set_inher.elementSetNames;
+
+        req->recordComposition = compo;
+        compo->which = Z_RecordComp_simple;
+        compo->u.simple = esn;
+    }
+    else
+        req->recordComposition = NULL;
     return ir_tcl_send_APDU (interp, p, apdu, "present", argv[0]);
 }
 
@@ -2229,6 +2285,10 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
             return TCL_ERROR;
 
         if (ir_tcl_strdup (interp, &dst->referenceId, src->referenceId)
+            == TCL_ERROR)
+            return TCL_ERROR;
+
+        if (ir_tcl_strdup (interp, &dst->elementSetNames, src->elementSetNames)
             == TCL_ERROR)
             return TCL_ERROR;
 

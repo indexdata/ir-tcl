@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.16  1995-09-20 11:37:01  adam
+ * Revision 1.17  1995-10-16 17:00:56  adam
+ * New setting: elementSetNames.
+ * Various client improvements. Medium presentation format looks better.
+ *
+ * Revision 1.16  1995/09/20  11:37:01  adam
  * Configure searches for tk4.1 and tk7.5.
  * Work on GRS.
  *
@@ -99,6 +103,8 @@ typedef struct {
     enum oid_value *preferredRecordSyntax;
     int         replaceIndicator;
     char       *referenceId;
+
+    char       *elementSetNames;
 
     int         smallSetUpperBound;
     int         largeSetLowerBound;
