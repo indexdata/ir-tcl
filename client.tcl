@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.90  1996-03-20 13:54:02  adam
+# Revision 1.91  1996-03-27 17:00:53  adam
+# Fix: main defined when using Tk3.6; it shouldn't be.
+#
+# Revision 1.90  1996/03/20  13:54:02  adam
 # The Tcl_File structure is only manipulated in the Tk-event interface
 # in tkinit.c.
 #
@@ -419,6 +422,7 @@ set setMax 0
 # Procedure tkerror {err}
 #   err   error message
 # Override the Tk error handler function.
+if {0} {
 proc tkerror err {
     set w .tkerrorw
 
@@ -437,6 +441,7 @@ proc tkerror err {
     pack $w.top.b $w.top.t -side left -padx 10 -pady 10
 
     bottom-buttons $w [list {Close} [list destroy $w]] 1
+}
 }
 
 # Read the global configuration file.
@@ -1834,7 +1839,7 @@ proc search-response {} {
     show-status Ready 0 1
     set l [format "%-4d %7d" $setNo $setMax]
     .top.rset.m add command -label $l \
-            -command [list add-title-lines $setNo 10000 1]
+            -command [list recall-set $setNo]
     if {$setMax > 20} {
         set setMax 20
     }
@@ -1919,6 +1924,12 @@ proc present-more {number} {
 # Utility that cleans the main record window.
 proc init-title-lines {} {
     .data.record delete 0.0 end
+}
+
+# Procedure recall-set {setno}
+#  setno    Set number to recall
+proc recall-set {setno} {
+    add-title-lines $setno 10000 1
 }
 
 # Procedure add-title-lines {setno no offset}
@@ -3716,14 +3727,13 @@ proc search-fields {w buttondefs} {
     $w.0 configure -background red
 }
 
-# Init: The geometry information for the main window is set if 
-# saved in the windowGeometry - array.
-if {[info exists windowGeometry(.)]} {
-    set g $windowGeometry(.)
-    if {$g != ""} {
-        wm geometry . $g
-    }
-}    
+# Init: The geometry information for the main window is set - either
+# to a default value or to the value in windowGeometry(.)
+if {[catch {set g $windowGeometry(.)}]} {
+    wm geometry . 420x340
+} else {
+    wm geometry . $g
+}
 
 # Init: Presentation formats are read.
 read-formats
@@ -3739,20 +3749,20 @@ pack .data -side top -fill both -expand yes
 pack .bot -fill x
 
 # Init: Definition of File menu.
-menubutton .top.file -text "File" -menu .top.file.m
+menubutton .top.file -text File -menu .top.file.m
 menu .top.file.m
-.top.file.m add command -label "Save settings" -command {save-settings}
+.top.file.m add command -label {Save settings} -command {save-settings}
 .top.file.m add separator
-.top.file.m add command -label "Exit" -command {exit-action}
+.top.file.m add command -label Exit -command {exit-action}
 
 # Init: Definition of Target menu.
-menubutton .top.target -text "Target" -menu .top.target.m
+menubutton .top.target -text Target -menu .top.target.m
 menu .top.target.m
-.top.target.m add cascade -label "Connect" -menu .top.target.m.clist
-.top.target.m add command -label "Disconnect" -command {close-target}
-.top.target.m add command -label "About" -command {about-target}
-.top.target.m add cascade -label "Setup" -menu .top.target.m.slist
-.top.target.m add command -label "Setup new" -command {define-target-dialog}
+.top.target.m add cascade -label Connect -menu .top.target.m.clist
+.top.target.m add command -label Disconnect -command {close-target}
+.top.target.m add command -label About -command {about-target}
+.top.target.m add cascade -label Setup -menu .top.target.m.slist
+.top.target.m add command -label {Setup new} -command {define-target-dialog}
 .top.target.m add separator
 set-target-hotlist 0
 
@@ -3764,44 +3774,44 @@ menu .top.target.m.slist
 cascade-target-list
 
 # Init: Definition of Service menu.
-menubutton .top.service -text "Service" -menu .top.service.m
+menubutton .top.service -text Service -menu .top.service.m
 menu .top.service.m
-.top.service.m add command -label "Database" -command {database-select}
-.top.service.m add cascade -label "Present" -menu .top.service.m.present
+.top.service.m add command -label Database -command {database-select}
+.top.service.m add cascade -label Present -menu .top.service.m.present
 menu .top.service.m.present
-.top.service.m.present add command -label "10 More" \
+.top.service.m.present add command -label {10 More} \
         -command [list present-more 10]
-.top.service.m.present add command -label "All" \
+.top.service.m.present add command -label All \
         -command [list present-more {}]
-.top.service.m add command -label "Search" -command {search-request 0}
-.top.service.m add command -label "Scan" -command {scan-request}
+.top.service.m add command -label Search -command {search-request 0}
+.top.service.m add command -label Scan -command {scan-request}
 
 .top.service configure -state disabled
 
-menubutton .top.rset -text "Set" -menu .top.rset.m
+menubutton .top.rset -text Set -menu .top.rset.m
 menu .top.rset.m
-.top.rset.m add command -label "Load" -command {load-set}
+.top.rset.m add command -label Load -command {load-set}
 .top.rset.m add separator
 
 # Init: Definition of the Options menu.
-menubutton .top.options -text "Options" -menu .top.options.m
+menubutton .top.options -text Options -menu .top.options.m
 menu .top.options.m
-.top.options.m add cascade -label "Query" -menu .top.options.m.query
-.top.options.m add cascade -label "Format" -menu .top.options.m.formats
-.top.options.m add cascade -label "Wrap" -menu .top.options.m.wrap
-.top.options.m add cascade -label "Syntax" -menu .top.options.m.syntax
-.top.options.m add cascade -label "Elements" -menu .top.options.m.elements
-.top.options.m add radiobutton -label "Debug" -variable debugMode -value 1
+.top.options.m add cascade -label Query -menu .top.options.m.query
+.top.options.m add cascade -label Format -menu .top.options.m.formats
+.top.options.m add cascade -label Wrap -menu .top.options.m.wrap
+.top.options.m add cascade -label Syntax -menu .top.options.m.syntax
+.top.options.m add cascade -label Elements -menu .top.options.m.elements
+.top.options.m add radiobutton -label Debug -variable debugMode -value 1
 
 # Init: Definition of the Options|Query menu.
 menu .top.options.m.query
-.top.options.m.query add cascade -label "Select" \
+.top.options.m.query add cascade -label Select \
         -menu .top.options.m.query.clist
-.top.options.m.query add cascade -label "Edit" \
+.top.options.m.query add cascade -label Edit \
         -menu .top.options.m.query.slist
-.top.options.m.query add command -label "New" \
+.top.options.m.query add command -label New \
         -command {query-new}
-.top.options.m.query add cascade -label "Delete" \
+.top.options.m.query add cascade -label Delete \
         -menu .top.options.m.query.dlist
 
 menu .top.options.m.query.slist
@@ -3820,46 +3830,46 @@ foreach f $displayFormats {
 
 # Init: Definition of the Options|Wrap menu.
 menu .top.options.m.wrap
-.top.options.m.wrap add radiobutton -label "Character" \
+.top.options.m.wrap add radiobutton -label Character \
         -value char -variable textWrap -command {set-wrap char}
-.top.options.m.wrap add radiobutton -label "Word" \
+.top.options.m.wrap add radiobutton -label Word \
         -value word -variable textWrap -command {set-wrap word}
-.top.options.m.wrap add radiobutton -label "None" \
+.top.options.m.wrap add radiobutton -label None \
         -value none -variable textWrap -command {set-wrap none}
 
 # Init: Definition of the Options|Syntax menu.
 menu .top.options.m.syntax
-.top.options.m.syntax add radiobutton -label "None" \
+.top.options.m.syntax add radiobutton -label None \
         -value None -variable recordSyntax
 .top.options.m.syntax add separator
-.top.options.m.syntax add radiobutton -label "USMARC" \
+.top.options.m.syntax add radiobutton -label USMARC \
         -value USMARC -variable recordSyntax
-.top.options.m.syntax add radiobutton -label "UNIMARC" \
+.top.options.m.syntax add radiobutton -label UNIMARC \
         -value UNIMARC -variable recordSyntax
-.top.options.m.syntax add radiobutton -label "UKMARC" \
+.top.options.m.syntax add radiobutton -label UKMARC \
         -value UKMARC -variable recordSyntax
-.top.options.m.syntax add radiobutton -label "DANMARC" \
+.top.options.m.syntax add radiobutton -label DANMARC \
         -value DANMARC -variable recordSyntax
-.top.options.m.syntax add radiobutton -label "FINMARC" \
+.top.options.m.syntax add radiobutton -label FINMARC \
         -value FINMARC -variable recordSyntax
-.top.options.m.syntax add radiobutton -label "NORMARC" \
+.top.options.m.syntax add radiobutton -label NORMARC \
         -value NORMARC -variable recordSyntax
-.top.options.m.syntax add radiobutton -label "PICAMARC" \
+.top.options.m.syntax add radiobutton -label PICAMARC \
         -value PICAMARC -variable recordSyntax
 .top.options.m.syntax add separator
-.top.options.m.syntax add radiobutton -label "SUTRS" \
+.top.options.m.syntax add radiobutton -label SUTRS \
         -value SUTRS -variable recordSyntax
 .top.options.m.syntax add separator
-.top.options.m.syntax add radiobutton -label "GRS1" \
+.top.options.m.syntax add radiobutton -label GRS1 \
         -value GRS1 -variable recordSyntax
 
 # Init: Definition of the Options|Elements menu.
 menu .top.options.m.elements
-.top.options.m.elements add radiobutton -label "Unspecified" \
+.top.options.m.elements add radiobutton -label Unspecified \
         -value None -variable elementSetNames
-.top.options.m.elements add radiobutton -label "Full" \
+.top.options.m.elements add radiobutton -label Full \
         -value F -variable elementSetNames
-.top.options.m.elements add radiobutton -label "Brief" \
+.top.options.m.elements add radiobutton -label Brief \
         -value B -variable elementSetNames
 
 # Init: Definition of Help menu.
