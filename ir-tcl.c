@@ -4,7 +4,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.28  1995-05-23 15:34:48  adam
+ * Revision 1.29  1995-05-24 14:10:22  adam
+ * Work on idAuthentication, protocolVersion and options.
+ *
+ * Revision 1.28  1995/05/23  15:34:48  adam
  * Many new settings, userInformationField, smallSetUpperBound, etc.
  * A number of settings are inherited when ir-set is executed.
  * This version is incompatible with the graphical test client (client.tcl).
@@ -284,6 +287,40 @@ int ir_asc2bitmask (const char *asc, Odr_bitmask *ob)
 }
 
 /*
+ *  ir_named_bits: get/set named bits
+ */
+int ir_named_bits (struct ir_named_entry *tab, Odr_bitmask *ob,
+                   Tcl_Interp *interp,
+                   int argc, char **argv)
+{
+    struct ir_named_entry *ti;
+    if (argc > 0)
+    {
+        int no;
+        ODR_MASK_ZERO (ob);
+        for (no = 0; no < argc; no++)
+        {
+            for (ti = tab; ti->name; ti++)
+                if (!strcmp (argv[no], ti->name))
+                {
+                    ODR_MASK_SET (ob, ti->pos);
+                    break;
+                }
+            if (!ti->name)
+            {
+                Tcl_AppendResult (interp, "Bad bit mask: ", argv[no], NULL);
+                return TCL_ERROR;
+            }
+        }
+        return TCL_OK;
+    }
+    for (ti = tab; ti->name; ti++)
+        if (ODR_MASK_GET (ob, ti->pos))
+            Tcl_AppendElement (interp, ti->name);
+    return TCL_OK;
+}
+
+/*
  * ir_strdup: Duplicate string
  */
 int ir_strdup (Tcl_Interp *interp, char** p, const char *s)
@@ -339,7 +376,46 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
     req.preferredMessageSize = &p->preferredMessageSize;
     req.maximumRecordSize = &p->maximumRecordSize;
 
-    req.idAuthentication = p->idAuthentication;
+    if (p->idAuthenticationGroupId)
+    {
+        Z_IdPass *pass = odr_malloc (p->odr_out, sizeof(*pass));
+        Z_IdAuthentication *auth = odr_malloc (p->odr_out, sizeof(*auth));
+
+        auth->which = Z_IdAuthentication_idPass;
+        auth->u.idPass = pass;
+        if (p->idAuthenticationGroupId && *p->idAuthenticationGroupId)
+        {
+            printf ("i");
+            pass->groupId = p->idAuthenticationGroupId;
+        }
+        else
+            pass->groupId = NULL;
+        if (p->idAuthenticationUserId && *p->idAuthenticationUserId)
+        {
+            printf ("u");
+            pass->userId = p->idAuthenticationUserId;
+        }
+        else
+            pass->userId = NULL;
+        if (p->idAuthenticationPassword && *p->idAuthenticationPassword)
+        {
+            printf ("p");
+            pass->password = p->idAuthenticationPassword;
+        }
+        else
+            pass->password = NULL;
+        req.idAuthentication = auth;
+    }
+    else if (!p->idAuthenticationOpen || !*p->idAuthenticationOpen)
+        req.idAuthentication = NULL;
+    else
+    {
+        Z_IdAuthentication *auth = odr_malloc (p->odr_out, sizeof(*auth));
+
+        auth->which = Z_IdAuthentication_open;
+        auth->u.open = p->idAuthenticationOpen;
+        req.idAuthentication = auth;
+    }
     req.implementationId = p->implementationId;
     req.implementationName = p->implementationName;
     req.implementationVersion = "0.1";
@@ -378,9 +454,17 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
 static int do_protocolVersion (void *obj, Tcl_Interp *interp,
                                int argc, char **argv)
 {
-    if (argc == 3)
-        ir_asc2bitmask (argv[2], &((IRObj *) obj)->protocolVersion);
-    return TCL_OK;
+    static struct ir_named_entry version_tab[] = {
+    { "1", 0 },
+    { "2", 1 },
+    { "3", 2 },
+    { "4", 3 },
+    { NULL,0}
+    };
+    IRObj *p = obj;
+
+    return ir_named_bits (version_tab, &p->protocolVersion,
+                          interp, argc-2, argv+2);
 }
 
 /*
@@ -389,9 +473,26 @@ static int do_protocolVersion (void *obj, Tcl_Interp *interp,
 static int do_options (void *obj, Tcl_Interp *interp,
                        int argc, char **argv)
 {
-    if (argc == 3)
-        ir_asc2bitmask (argv[2], &((IRObj *) obj)->options);
-    return TCL_OK;
+    static struct ir_named_entry options_tab[] = {
+    { "search", 0 },
+    { "present", 1 },
+    { "delSet", 2 },
+    { "resourceReport", 3 },
+    { "triggerResourceCtrl", 4},
+    { "resourceCtrl", 5},
+    { "accessCtrl", 6},
+    { "scan", 7},
+    { "sort", 8},
+    { "extentedServices", 10},
+    { "level-1Segmentation", 11},
+    { "level-2Segmentation", 12},
+    { "concurrentOperations", 13},
+    { "namedResultSets", 14},
+    { NULL, 0}
+    };
+    IRObj *p = obj;
+
+    return ir_named_bits (options_tab, &p->options, interp, argc-2, argv+2);
 }
 
 /*
@@ -417,12 +518,12 @@ static int do_maximumRecordSize (void *obj, Tcl_Interp *interp,
 /*
  * do_initResult: Get init result
  */
-static int do_initResult (void *o, Tcl_Interp *interp,
+static int do_initResult (void *obj, Tcl_Interp *interp,
                           int argc, char **argv)
 {
-    IRObj *obj = o;
+    IRObj *p = obj;
     
-    return get_set_int (&obj->initResult, interp, argc, argv);
+    return get_set_int (&p->initResult, interp, argc, argv);
 }
 
 
@@ -505,15 +606,49 @@ static int do_targetImplementationVersion (void *obj, Tcl_Interp *interp,
 static int do_idAuthentication (void *obj, Tcl_Interp *interp,
                                 int argc, char **argv)
 {
-    if (argc == 3)
+    IRObj *p = obj;
+
+    if (argc >= 3)
     {
-        free (((IRObj*)obj)->idAuthentication);
-        if (ir_strdup (interp, &((IRObj*) obj)->idAuthentication, argv[2])
-            == TCL_ERROR)
-            return TCL_ERROR;
+        free (p->idAuthenticationOpen);
+        free (p->idAuthenticationGroupId);
+        free (p->idAuthenticationUserId);
+        free (p->idAuthenticationPassword);
+        p->idAuthenticationOpen = NULL;
+        p->idAuthenticationGroupId = NULL;
+        p->idAuthenticationUserId = NULL;
+        p->idAuthenticationPassword = NULL;
+        
+        if (argc == 3)
+        {
+            if (ir_strdup (interp, &p->idAuthenticationOpen, argv[2])
+                == TCL_ERROR)
+                return TCL_ERROR;
+        }
+        else if (argc == 5)
+        {
+            if (ir_strdup (interp, &p->idAuthenticationGroupId, argv[2])
+                == TCL_ERROR)
+                return TCL_ERROR;
+            if (ir_strdup (interp, &p->idAuthenticationUserId, argv[3])
+                == TCL_ERROR)
+                return TCL_ERROR;
+            if (ir_strdup (interp, &p->idAuthenticationPassword, argv[4])
+                == TCL_ERROR)
+                return TCL_ERROR;
+        }
     }
-    Tcl_AppendResult (interp, ((IRObj*)obj)->idAuthentication,
-                      (char*) NULL);
+    if (p->idAuthenticationOpen)
+        Tcl_AppendElement (interp, p->idAuthenticationOpen);
+    else
+    {
+        Tcl_AppendElement (interp, p->idAuthenticationGroupId ?
+                           p->idAuthenticationGroupId : "");
+        Tcl_AppendElement (interp, p->idAuthenticationUserId ?
+                           p->idAuthenticationUserId : "");
+        Tcl_AppendElement (interp, p->idAuthenticationPassword ?
+                           p->idAuthenticationPassword : "");
+    }
     return TCL_OK;
 }
 
@@ -912,7 +1047,10 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     obj->preferredMessageSize = 4096;
     obj->connectFlag = 0;
 
-    obj->idAuthentication = NULL;
+    obj->idAuthenticationOpen = NULL;
+    obj->idAuthenticationGroupId = NULL;
+    obj->idAuthenticationUserId = NULL;
+    obj->idAuthenticationPassword = NULL;
 
     if (ir_strdup (interp, &obj->implementationName, "TCL/TK on YAZ")
         == TCL_ERROR)
@@ -941,6 +1079,9 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
 
     ODR_MASK_ZERO (&obj->options);
     ODR_MASK_SET (&obj->options, 0);
+    ODR_MASK_SET (&obj->options, 1);
+    ODR_MASK_SET (&obj->options, 7);
+    ODR_MASK_SET (&obj->options, 14);
 
     obj->odr_in = odr_createmem (ODR_DECODE);
     obj->odr_out = odr_createmem (ODR_ENCODE);
@@ -1829,7 +1970,10 @@ static void ir_initResponse (void *obj, Z_InitResponse *initrs)
 
     p->maximumRecordSize = *initrs->maximumRecordSize;
     p->preferredMessageSize = *initrs->preferredMessageSize;
-
+    
+    memcpy (&p->options, initrs->options, sizeof(initrs->options));
+    memcpy (&p->protocolVersion, initrs->protocolVersion,
+            sizeof(initrs->protocolVersion));
     free (p->userInformationField);
     p->userInformationField = NULL;
     if (initrs->userInformationField)

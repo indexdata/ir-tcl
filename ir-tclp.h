@@ -4,7 +4,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.1  1995-05-23 15:34:49  adam
+ * Revision 1.2  1995-05-24 14:10:23  adam
+ * Work on idAuthentication, protocolVersion and options.
+ *
+ * Revision 1.1  1995/05/23  15:34:49  adam
  * Many new settings, userInformationField, smallSetUpperBound, etc.
  * A number of settings are inherited when ir-set is executed.
  * This version is incompatible with the graphical test client (client.tcl).
@@ -54,7 +57,12 @@ typedef struct {
     int         maximumRecordSize;
     Odr_bitmask options;
     Odr_bitmask protocolVersion;
-    char       *idAuthentication;
+
+    char       *idAuthenticationOpen;
+    char       *idAuthenticationGroupId;
+    char       *idAuthenticationUserId;
+    char       *idAuthenticationPassword;
+
     char       *implementationName;
     char       *implementationId;
     int        initResult;
@@ -157,4 +165,8 @@ typedef struct IRScanObj_ {
     IRScanDiag  *nonSurrogateDiagnostics;
 } IRScanObj;
 
+struct ir_named_entry {
+    char *name;
+    int  pos;
+};
 #endif
