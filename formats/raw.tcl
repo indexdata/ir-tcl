@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: raw.tcl,v $
-# Revision 1.4  1995-06-22 13:16:29  adam
+# Revision 1.5  1995-08-28 12:22:09  adam
+# Use 'line' instead of 'list' in MARC extraction.
+#
+# Revision 1.4  1995/06/22  13:16:29  adam
 # Feature: SUTRS. Setting getSutrs implemented.
 # Work on display formats.
 #
@@ -41,7 +44,7 @@ proc display-raw {sno no w hflag} {
         $w insert end "\n"
         return
     } 
-    if {[catch {set r [z39.$sno getMarc $no list * * *]}]} {
+    if {[catch {set r [z39.$sno getMarc $no line * * *]}]} {
         insertWithTags $w "Unknown record type: $rtype\n" marc-id
         return
     }
