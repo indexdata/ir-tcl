@@ -4,7 +4,12 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.27  1995-05-11 15:34:47  adam
+ * Revision 1.28  1995-05-23 15:34:48  adam
+ * Many new settings, userInformationField, smallSetUpperBound, etc.
+ * A number of settings are inherited when ir-set is executed.
+ * This version is incompatible with the graphical test client (client.tcl).
+ *
+ * Revision 1.27  1995/05/11  15:34:47  adam
  * Scan request changed a bit. This version works with RLG.
  *
  * Revision 1.26  1995/04/18  16:11:51  adam
@@ -91,147 +96,16 @@
 #include <sys/time.h>
 #include <assert.h>
 
-#include <tcl.h>
-
-#include <yaz-ccl.h>
-#include <iso2709.h>
-#include <comstack.h>
-#include <tcpip.h>
-
-#if MOSI
-#include <xmosi.h>
-#endif
-
-#include <odr.h>
-#include <proto.h>
-#include <oid.h>
-#include <diagbib1.h>
-
-#include "ir-tcl.h"
-
 #define CS_BLOCK 0
 
-typedef struct {
-    char       *cs_type;
-    char       *protocol_type;
-    int         connectFlag;
-    COMSTACK    cs_link;
-
-    int         preferredMessageSize;
-    int         maximumRecordSize;
-    Odr_bitmask options;
-    Odr_bitmask protocolVersion;
-    char       *idAuthentication;
-    char       *implementationName;
-    char       *implementationId;
-
-    char       *hostname;
-   
-    char       *buf_out;
-    int         len_out;
-
-    char       *buf_in;
-    int         len_in;
-
-    char       *sbuf;
-    int         slen;
-
-    ODR         odr_in;
-    ODR         odr_out;
-    ODR         odr_pr;
-
-    Tcl_Interp *interp;
-    char       *callback;
-    char       *failback;
-
-    int         smallSetUpperBound;
-    int         largeSetLowerBound;
-    int         mediumSetPresentNumber;
-    int         replaceIndicator;
-    char      **databaseNames;
-    int         num_databaseNames;
-    char       *query_method;
-
-    CCL_bibset  bibset;
-    oident      bib1;
-
-    struct IRSetObj_ *set_child;
-    struct IRScanObj_ *scan_child;
-} IRObj;
-
-typedef struct IRRecordList_ {
-    int no;
-    int which;
-    union {
-        struct {
-            Iso2709Rec rec;
-        } marc;
-        struct {
-            int  condition;
-            char *addinfo;
-        } diag;
-    } u;
-    struct IRRecordList_ *next;
-} IRRecordList;
-
-typedef struct IRSetObj_ {
-    IRObj      *parent;
-    int         searchStatus;
-    int         resultCount;
-    int         start;
-    int         number;
-    int         numberOfRecordsReturned;
-    char       *setName;
-    int         recordFlag;
-    int         which;
-    int         condition;
-    char       *addinfo;
-    IRRecordList *record_list;
-} IRSetObj;
-
-typedef struct IRScanEntry_ {
-    int         which;
-    union {
-        struct {
-	    char *buf;
-	    int  globalOccurrences;
-	} term;
-	struct {
-	    int  condition;
-	    char *addinfo;
-	} diag;
-    } u;
-} IRScanEntry;
-
-typedef struct IRScanDiag_ {
-    int         dummy;
-} IRScanDiag;
-
-typedef struct IRScanObj_ {
-    IRObj      *parent;
-    int         stepSize;
-    int         numberOfTermsRequested;
-    int         preferredPositionInResponse;
-
-    int         scanStatus;
-    int         numberOfEntriesReturned;
-    int         positionOfTerm;
-
-    int         entries_flag;
-    int         which;
-
-    int         num_entries;
-    int         num_diagRecs;
-
-    IRScanEntry *entries;
-    IRScanDiag  *nonSurrogateDiagnostics;
-} IRScanObj;
+#include "ir-tclp.h"
 
 typedef struct {
     int type;
     char *name;
     int (*method) (void *obj, Tcl_Interp *interp, int argc, char **argv);
 } IRMethod;
+
 
 static int do_disconnect (void *obj,Tcl_Interp *interp, int argc, char **argv);
 
@@ -355,12 +229,14 @@ static int get_parent_info (Tcl_Interp *interp, const char *name,
  * ir_method: Search for method in table and invoke method handler
  */
 int ir_method (void *obj, Tcl_Interp *interp, int argc, char **argv,
-               IRMethod *tab)
+               IRMethod *tab, int sigerr)
 {
     IRMethod *t;
     for (t = tab; t->name; t++)
         if (!strcmp (t->name, argv[1]))
             return (*t->method)(obj, interp, argc, argv);
+    if (sigerr)
+        return TCL_ERROR;
     Tcl_AppendResult (interp, "Bad method. Possible values:", NULL);
     for (t = tab; t->name; t++)
         Tcl_AppendResult (interp, " ", t->name, NULL);
@@ -479,7 +355,7 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
         odr_reset (p->odr_out);
         return TCL_ERROR;
     }
-    p->sbuf = odr_getbuf (p->odr_out, &p->slen);
+    p->sbuf = odr_getbuf (p->odr_out, &p->slen, NULL);
     if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
     {     
         interp->result = "cs_put failed in init";
@@ -538,6 +414,17 @@ static int do_maximumRecordSize (void *obj, Tcl_Interp *interp,
     return get_set_int (&p->maximumRecordSize, interp, argc, argv);
 }
 
+/*
+ * do_initResult: Get init result
+ */
+static int do_initResult (void *o, Tcl_Interp *interp,
+                          int argc, char **argv)
+{
+    IRObj *obj = o;
+    
+    return get_set_int (&obj->initResult, interp, argc, argv);
+}
+
 
 /*
  * do_implementationName: Set/get Implementation Name.
@@ -545,14 +432,16 @@ static int do_maximumRecordSize (void *obj, Tcl_Interp *interp,
 static int do_implementationName (void *obj, Tcl_Interp *interp,
                                     int argc, char **argv)
 {
+    IRObj *p = obj;
+
     if (argc == 3)
     {
         free (((IRObj*)obj)->implementationName);
-        if (ir_strdup (interp, &((IRObj*) obj)->implementationName, argv[2])
+        if (ir_strdup (interp, &p->implementationName, argv[2])
             == TCL_ERROR)
             return TCL_ERROR;
     }
-    Tcl_AppendResult (interp, ((IRObj*)obj)->implementationName,
+    Tcl_AppendResult (interp, p->implementationName,
                       (char*) NULL);
     return TCL_OK;
 }
@@ -571,6 +460,41 @@ static int do_implementationId (void *obj, Tcl_Interp *interp,
             return TCL_ERROR;
     }
     Tcl_AppendResult (interp, ((IRObj*)obj)->implementationId,
+                      (char*) NULL);
+    return TCL_OK;
+}
+
+/*
+ * do_targetImplementationName: Get Implementation Name of target.
+ */
+static int do_targetImplementationName (void *obj, Tcl_Interp *interp,
+                                    int argc, char **argv)
+{
+    IRObj *p = obj;
+
+    Tcl_AppendResult (interp, p->targetImplementationName,
+                      (char*) NULL);
+    return TCL_OK;
+}
+
+/*
+ * do_targetImplementationId: Get Implementation Id of target
+ */
+static int do_targetImplementationId (void *obj, Tcl_Interp *interp,
+                                      int argc, char **argv)
+{
+    Tcl_AppendResult (interp, ((IRObj*)obj)->targetImplementationId,
+                      (char*) NULL);
+    return TCL_OK;
+}
+
+/*
+ * do_targetImplementationVersion: Get Implementation Version of target
+ */
+static int do_targetImplementationVersion (void *obj, Tcl_Interp *interp,
+                                           int argc, char **argv)
+{
+    Tcl_AppendResult (interp, ((IRObj*)obj)->targetImplementationVersion,
                       (char*) NULL);
     return TCL_OK;
 }
@@ -777,7 +701,7 @@ static int do_databaseNames (void *obj, Tcl_Interp *interp,
                           int argc, char **argv)
 {
     int i;
-    IRObj *p = obj;
+    IRSetCObj *p = obj;
 
     if (argc < 3)
     {
@@ -805,61 +729,127 @@ static int do_databaseNames (void *obj, Tcl_Interp *interp,
 }
 
 /*
- * do_query: Set/Get query mothod
- */
-static int do_query (void *obj, Tcl_Interp *interp,
-		       int argc, char **argv)
-{
-    IRObj *p = obj;
-    if (argc == 3)
-    {
-        free (p->query_method);
-        if (ir_strdup (interp, &p->query_method, argv[2]) == TCL_ERROR)
-            return TCL_ERROR;
-    }
-    Tcl_AppendResult (interp, p->query_method, NULL);
-    return TCL_OK;
-}
-
-/*
  * do_replaceIndicator: Set/get replace Set indicator
  */
 static int do_replaceIndicator (void *obj, Tcl_Interp *interp,
                                 int argc, char **argv)
 {
-    IRObj *p = obj;
+    IRSetCObj *p = obj;
+
     return get_set_int (&p->replaceIndicator, interp, argc, argv);
 }
+
+/*
+ * do_queryType: Set/Get query method
+ */
+static int do_queryType (void *obj, Tcl_Interp *interp,
+		       int argc, char **argv)
+{
+    IRSetCObj *p = obj;
+
+    if (argc == 3)
+    {
+        free (p->queryType);
+        if (ir_strdup (interp, &p->queryType, argv[2]) == TCL_ERROR)
+            return TCL_ERROR;
+    }
+    Tcl_AppendResult (interp, p->queryType, NULL);
+    return TCL_OK;
+}
+
+/*
+ * do_userInformationField: Get User information field
+ */
+static int do_userInformationField (void *obj, Tcl_Interp *interp,
+                                    int argc, char **argv)
+{
+    IRObj *p = obj;
+
+    Tcl_AppendResult (interp, p->userInformationField, NULL);
+    return TCL_OK;
+}
+
+/*
+ * do_smallSetUpperBound: Set/get small set upper bound
+ */
+static int do_smallSetUpperBound (void *o, Tcl_Interp *interp,
+		       int argc, char **argv)
+{
+    IRSetCObj *obj = o;
+
+    return get_set_int (&obj->smallSetUpperBound, interp, argc, argv);
+}
+
+/*
+ * do_largeSetLowerBound: Set/get large set lower bound
+ */
+static int do_largeSetLowerBound (void *o, Tcl_Interp *interp,
+                                  int argc, char **argv)
+{
+    IRSetCObj *obj = o;
+
+    return get_set_int (&obj->largeSetLowerBound, interp, argc, argv);
+}
+
+/*
+ * do_mediumSetPresentNumber: Set/get large set lower bound
+ */
+static int do_mediumSetPresentNumber (void *o, Tcl_Interp *interp,
+                                      int argc, char **argv)
+{
+    IRSetCObj *obj = o;
+    
+    return get_set_int (&obj->mediumSetPresentNumber, interp, argc, argv);
+}
+
+
+static IRMethod ir_method_tab[] = {
+{ 1, "comstack",                    do_comstack },
+{ 1, "protocol",                    do_protocol },
+{ 0, "failback",                    do_failback },
+
+{ 1, "connect",                     do_connect },
+{ 0, "protocolVersion",             do_protocolVersion },
+{ 1, "preferredMessageSize",        do_preferredMessageSize },
+{ 1, "maximumRecordSize",           do_maximumRecordSize },
+{ 1, "implementationName",          do_implementationName },
+{ 1, "implementationId",            do_implementationId },
+{ 0, "targetImplementationName",    do_targetImplementationName },
+{ 0, "targetImplementationId",      do_targetImplementationId },
+{ 0, "targetImplementationVersion", do_targetImplementationVersion },
+{ 0, "userInformationField",        do_userInformationField },
+{ 1, "idAuthentication",            do_idAuthentication },
+{ 0, "options",                     do_options },
+{ 0, "init",                        do_init_request },
+{ 0, "initResult",                  do_initResult },
+{ 0, "disconnect",                  do_disconnect },
+{ 0, "callback",                    do_callback },
+{ 0, NULL, NULL}
+};
+
+static IRMethod ir_set_c_method_tab[] = {
+{ 0, "databaseNames",           do_databaseNames},
+{ 0, "replaceIndicator",        do_replaceIndicator},
+{ 0, "queryType",               do_queryType },
+{ 0, "smallSetUpperBound",      do_smallSetUpperBound},
+{ 0, "largeSetLowerBound",      do_largeSetLowerBound},
+{ 0, "mediumSetPresentNumber",  do_mediumSetPresentNumber},
+{ 0, NULL, NULL}
+};
 
 /* 
  * ir_obj_method: IR Object methods
  */
 static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
-                          int argc, char **argv)
+int argc, char **argv)
 {
-    static IRMethod tab[] = {
-    { 1, "comstack",                do_comstack },
-    { 1, "protocol",                do_protocol },
-    { 1, "connect",                 do_connect },
-    { 0, "protocolVersion",         do_protocolVersion },
-    { 0, "options",                 do_options },
-    { 1, "preferredMessageSize",    do_preferredMessageSize },
-    { 1, "maximumRecordSize",       do_maximumRecordSize },
-    { 1, "implementationName",      do_implementationName },
-    { 1, "implementationId",        do_implementationId },
-    { 1, "idAuthentication",        do_idAuthentication },
-    { 0, "init",                    do_init_request },
-    { 0, "disconnect",              do_disconnect },
-    { 0, "callback",                do_callback },
-    { 0, "failback",                do_failback },
-    { 1, "databaseNames",           do_databaseNames},
-    { 1, "replaceIndicator",        do_replaceIndicator},
-    { 1, "query",                   do_query },
-    { 0, NULL, NULL}
-    };
     if (argc < 2)
-        return ir_method_r (clientData, interp, argc, argv, tab);
-    return ir_method (clientData, interp, argc, argv, tab);
+        return ir_method_r (clientData, interp, argc, argv, ir_method_tab);
+    if (ir_method (clientData, interp, argc, argv,
+                   ir_method_tab, 1) == TCL_OK)
+        return TCL_OK;
+    return ir_method (&((IRObj*) clientData)->set_inher, interp,
+                      argc, argv, ir_set_c_method_tab, 0);
 }
 
 /* 
@@ -868,6 +858,29 @@ static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
 static void ir_obj_delete (ClientData clientData)
 {
     free ( (void*) clientData);
+}
+
+static int ir_reset_inher (Tcl_Interp *interp, IRSetCObj *o)
+{
+    o->smallSetUpperBound = 0;
+    o->largeSetLowerBound = 2;
+    o->mediumSetPresentNumber = 0;
+    o->replaceIndicator = 1;
+#if 0
+    obj->databaseNames = NULL;
+    obj->num_databaseNames = 0; 
+#else
+    o->num_databaseNames = 1;
+    if (!(o->databaseNames =
+          ir_malloc (interp, sizeof(*o->databaseNames))))
+        return TCL_ERROR;
+    if (ir_strdup (interp, &o->databaseNames[0], "Default")
+        == TCL_ERROR)
+        return TCL_ERROR;
+#endif
+    if (ir_strdup (interp, &o->queryType, "rpn") == TCL_ERROR)
+        return TCL_ERROR;
+    return TCL_OK;
 }
 
 /* 
@@ -908,27 +921,14 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     if (ir_strdup (interp, &obj->implementationId, "TCL/TK/YAZ")
         == TCL_ERROR)
         return TCL_ERROR;
-    
-    obj->smallSetUpperBound = 0;
-    obj->largeSetLowerBound = 2;
-    obj->mediumSetPresentNumber = 0;
-    obj->replaceIndicator = 1;
-#if 0
-    obj->databaseNames = NULL;
-    obj->num_databaseNames = 0; 
-#else
-    obj->num_databaseNames = 1;
-    if (!(obj->databaseNames = ir_malloc (interp,
-                                          sizeof(*obj->databaseNames))))
-        return TCL_ERROR;
-    if (ir_strdup (interp, &obj->databaseNames[0], "Default") == TCL_ERROR)
-        return TCL_ERROR;
-#endif
 
+    obj->targetImplementationName = NULL;
+    obj->targetImplementationId = NULL;
+    obj->targetImplementationVersion = NULL;
+    obj->userInformationField = NULL;
+    
     obj->hostname = NULL;
 
-    if (ir_strdup (interp, &obj->query_method, "rpn") == TCL_ERROR)
-        return TCL_ERROR;
     obj->bibset = ccl_qual_mk (); 
     if ((inf = fopen ("default.bib", "r")))
     {
@@ -949,13 +949,16 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     obj->len_out = 10000;
     if (!(obj->buf_out = ir_malloc (interp, obj->len_out)))
         return TCL_ERROR;
-    odr_setbuf (obj->odr_out, obj->buf_out, obj->len_out);
+    odr_setbuf (obj->odr_out, obj->buf_out, obj->len_out, 0);
 
     obj->len_in = 0;
     obj->buf_in = NULL;
 
     obj->callback = NULL;
     obj->failback = NULL;
+
+    if (ir_reset_inher (interp, &obj->set_inher) == TCL_ERROR)
+        return TCL_ERROR;
     Tcl_CreateCommand (interp, argv[1], ir_obj_method,
                        (ClientData) obj, ir_obj_delete);
     return TCL_OK;
@@ -982,7 +985,7 @@ static int do_search (void *o, Tcl_Interp *interp,
         interp->result = "wrong # args";
         return TCL_ERROR;
     }
-    if (!p->num_databaseNames)
+    if (!p->set_inher.num_databaseNames)
     {
         interp->result = "no databaseNames";
         return TCL_ERROR;
@@ -996,24 +999,24 @@ static int do_search (void *o, Tcl_Interp *interp,
     apdu.u.searchRequest = &req;
 
     req.referenceId = 0;
-    req.smallSetUpperBound = &p->smallSetUpperBound;
-    req.largeSetLowerBound = &p->largeSetLowerBound;
-    req.mediumSetPresentNumber = &p->mediumSetPresentNumber;
-    req.replaceIndicator = &p->replaceIndicator;
+    req.smallSetUpperBound = &p->set_inher.smallSetUpperBound;
+    req.largeSetLowerBound = &p->set_inher.largeSetLowerBound;
+    req.mediumSetPresentNumber = &p->set_inher.mediumSetPresentNumber;
+    req.replaceIndicator = &p->set_inher.replaceIndicator;
     req.resultSetName = obj->setName ? obj->setName : "Default";
-    req.num_databaseNames = p->num_databaseNames;
-    req.databaseNames = p->databaseNames;
+    req.num_databaseNames = p->set_inher.num_databaseNames;
+    req.databaseNames = p->set_inher.databaseNames;
     printf ("Search:");
-    for (r=0; r<p->num_databaseNames; r++)
+    for (r=0; r < p->set_inher.num_databaseNames; r++)
     {
-        printf (" %s", p->databaseNames[r]);
+        printf (" %s", p->set_inher.databaseNames[r]);
     }
     req.smallSetElementSetNames = 0;
     req.mediumSetElementSetNames = 0;
     req.preferredRecordSyntax = 0;
     req.query = &query;
 
-    if (!strcmp (p->query_method, "rpn"))
+    if (!strcmp (p->set_inher.queryType, "rpn"))
     {
         int error;
         int pos;
@@ -1034,7 +1037,7 @@ static int do_search (void *o, Tcl_Interp *interp,
         query.u.type_1 = RPNquery;
         printf ("- RPN\n");
     }
-    else if (!strcmp (p->query_method, "ccl"))
+    else if (!strcmp (p->set_inher.queryType, "ccl"))
     {
         query.which = Z_Query_type_2;
         query.u.type_2 = &ccl_query;
@@ -1053,7 +1056,7 @@ static int do_search (void *o, Tcl_Interp *interp,
         odr_reset (p->odr_out);
         return TCL_ERROR;
     } 
-    p->sbuf = odr_getbuf (p->odr_out, &p->slen);
+    p->sbuf = odr_getbuf (p->odr_out, &p->slen, NULL);
     if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
     {
         interp->result = "cs_put failed in search";
@@ -1300,7 +1303,10 @@ static int do_responseStatus (void *o, Tcl_Interp *interp,
     IRSetObj *obj = o;
 
     if (!obj->recordFlag)
+    {
+        Tcl_AppendElement (interp, "OK");
         return TCL_OK;
+    }
     switch (obj->which)
     {
     case Z_Records_DBOSD:
@@ -1368,7 +1374,7 @@ static int do_present (void *o, Tcl_Interp *interp,
         odr_reset (p->odr_out);
         return TCL_ERROR;
     } 
-    p->sbuf = odr_getbuf (p->odr_out, &p->slen);
+    p->sbuf = odr_getbuf (p->odr_out, &p->slen, NULL);
     if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
     {
         interp->result = "cs_put failed in present";
@@ -1454,7 +1460,10 @@ static int ir_set_obj_method (ClientData clientData, Tcl_Interp *interp,
         interp->result = "wrong # args";
         return TCL_ERROR;
     }
-    return ir_method (clientData, interp, argc, argv, tab);
+    if (ir_method (clientData, interp, argc, argv, tab, 1) == TCL_OK)
+        return TCL_OK;
+    return ir_method (&((IRSetObj *)clientData)->set_inher, interp, argc,
+                      argv, ir_set_c_method_tab, 0);
 }
 
 /* 
@@ -1465,30 +1474,66 @@ static void ir_set_obj_delete (ClientData clientData)
     free ( (void*) clientData);
 }
 
-/* 
+/*
  * ir_set_obj_mk: IR Set Object creation
  */
 static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
 			     int argc, char **argv)
 {
-    Tcl_CmdInfo parent_info;
     IRSetObj *obj;
-    const char *suffix;
 
-    if (argc != 2)
+    if (argc < 2 || argc > 3)
     {
         interp->result = "wrong # args";
         return TCL_ERROR;
     }
-    if (get_parent_info (interp, argv[1], &parent_info, &suffix) == TCL_ERROR)
-        return TCL_ERROR;
-    if (!(obj = ir_malloc (interp, sizeof(*obj))))
-        return TCL_ERROR;
-    if (ir_strdup (interp, &obj->setName, suffix) == TCL_ERROR)
+    else if (argc == 3)
+    {
+        Tcl_CmdInfo parent_info;
+        int i;
+        IRSetCObj *dst;
+        IRSetCObj *src;
+
+        if (!Tcl_GetCommandInfo (interp, argv[2], &parent_info))
+        {
+            interp->result = "No parent";
+            return TCL_ERROR;
+        }
+        if (!(obj = ir_malloc (interp, sizeof(*obj))))
+            return TCL_ERROR;
+        obj->parent = (IRObj *) parent_info.clientData;
+
+        dst = &obj->set_inher;
+        src = &obj->parent->set_inher;
+
+        dst->num_databaseNames = src->num_databaseNames;
+        if (!(dst->databaseNames =
+              ir_malloc (interp, sizeof (*dst->databaseNames)
+                         * dst->num_databaseNames)))
+            return TCL_ERROR;
+        for (i = 0; i < dst->num_databaseNames; i++)
+        {
+            printf ("database %i %s\n", i, src->databaseNames[i]);
+            if (ir_strdup (interp, &dst->databaseNames[i],
+                           src->databaseNames[i]) == TCL_ERROR)
+                return TCL_ERROR;
+        }
+        if (ir_strdup (interp, &dst->queryType, src->queryType)
+            == TCL_ERROR)
+            return TCL_ERROR;
+        
+        dst->smallSetUpperBound = src->smallSetUpperBound;
+        dst->largeSetLowerBound = src->largeSetLowerBound;
+        dst->mediumSetPresentNumber = src->mediumSetPresentNumber;
+        printf ("ssu lsl msp %d %d %d\n", dst->smallSetUpperBound,
+                dst->largeSetLowerBound, dst->mediumSetPresentNumber);
+    }   
+    else
+        obj->parent = NULL;
+    if (ir_strdup (interp, &obj->setName, argv[2]) == TCL_ERROR)
         return TCL_ERROR;
     obj->record_list = NULL;
     obj->addinfo = NULL;
-    obj->parent = (IRObj *) parent_info.clientData;
     Tcl_CreateCommand (interp, argv[1], ir_set_obj_method,
                        (ClientData) obj, ir_set_obj_delete);
     return TCL_OK;
@@ -1514,7 +1559,7 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
         interp->result = "wrong # args";
         return TCL_ERROR;
     }
-    if (!p->num_databaseNames)
+    if (!p->set_inher.num_databaseNames)
     {
         interp->result = "no databaseNames";
 	return TCL_ERROR;
@@ -1527,8 +1572,8 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     apdu.which = Z_APDU_scanRequest;
     apdu.u.scanRequest = &req;
     req.referenceId = NULL;
-    req.num_databaseNames = p->num_databaseNames;
-    req.databaseNames = p->databaseNames;
+    req.num_databaseNames = p->set_inher.num_databaseNames;
+    req.databaseNames = p->set_inher.databaseNames;
     req.attributeSet = oid_getoidbyent (&p->bib1);
 
 #if 0
@@ -1576,7 +1621,7 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
         odr_reset (p->odr_out);
         return TCL_ERROR;
     } 
-    p->sbuf = odr_getbuf (p->odr_out, &p->slen);
+    p->sbuf = odr_getbuf (p->odr_out, &p->slen, NULL);
     if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
     {
         interp->result = "cs_put failed in scan";
@@ -1717,7 +1762,7 @@ static int ir_scan_obj_method (ClientData clientData, Tcl_Interp *interp,
         interp->result = "wrong # args";
         return TCL_ERROR;
     }
-    return ir_method (clientData, interp, argc, argv, tab);
+    return ir_method (clientData, interp, argc, argv, tab, 0);
 }
 
 /* 
@@ -1764,28 +1809,45 @@ static int ir_scan_obj_mk (ClientData clientData, Tcl_Interp *interp,
 
 static void ir_initResponse (void *obj, Z_InitResponse *initrs)
 {
+    IRObj *p = obj;
+
+    p->initResult = *initrs->result ? 1 : 0;
     if (!*initrs->result)
         printf("Connection rejected by target.\n");
     else
         printf("Connection accepted by target.\n");
-    if (initrs->implementationId)
-            printf("ID     : %s\n", initrs->implementationId);
-    if (initrs->implementationName)
-        printf("Name   : %s\n", initrs->implementationName);
-    if (initrs->implementationVersion)
-        printf("Version: %s\n", initrs->implementationVersion);
-    if (initrs->maximumRecordSize)
-        printf ("MaximumRecordSize=%d\n", *initrs->maximumRecordSize);
-    if (initrs->preferredMessageSize)
-        printf ("PreferredMessageSize=%d\n", *initrs->preferredMessageSize);
-#if 0
+
+    free (p->targetImplementationId);
+    ir_strdup (p->interp, &p->targetImplementationId,
+               initrs->implementationId);
+    free (p->targetImplementationName);
+    ir_strdup (p->interp, &p->targetImplementationName,
+               initrs->implementationName);
+    free (p->targetImplementationVersion);
+    ir_strdup (p->interp, &p->targetImplementationVersion,
+               initrs->implementationVersion);
+
+    p->maximumRecordSize = *initrs->maximumRecordSize;
+    p->preferredMessageSize = *initrs->preferredMessageSize;
+
+    free (p->userInformationField);
+    p->userInformationField = NULL;
     if (initrs->userInformationField)
     {
-        printf("UserInformationfield:\n");
-        odr_external(&print, (Odr_external**)&initrs->
-                         userInformationField, 0);
+        int len;
+
+        if (initrs->userInformationField->which == ODR_EXTERNAL_octet && 
+            (p->userInformationField =
+             malloc ((len = 
+                      initrs->userInformationField->u.octet_aligned->len)
+                     +1)))
+        {
+            memcpy (p->userInformationField,
+                    initrs->userInformationField->u.octet_aligned->buf,
+                        len);
+            (p->userInformationField)[len] = '\0';
+        }
     }
-#endif
 }
 
 static void ir_handleRecords (void *o, Z_Records *zrs)
@@ -2025,7 +2087,7 @@ void ir_select_read (ClientData clientData)
         }        
         if (r == 1)
             return ;
-        odr_setbuf (p->odr_in, p->buf_in, r);
+        odr_setbuf (p->odr_in, p->buf_in, r, 0);
         printf ("cs_get ok, got %d\n", r);
         if (!z_APDU (p->odr_in, &apdu, 0))
         {
