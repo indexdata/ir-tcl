@@ -29,7 +29,7 @@ configure: configure.in
 stamp-configure: configure
 	dh_testdir
 
-	./configure $(CONFIG_FLAGS) --with-build-root=$(IRTCLDIR)/debian/tmp
+	./configure $(CONFIG_FLAGS) --prefix=/usr
 	touch stamp-configure
 
 build: stamp-build
@@ -59,8 +59,7 @@ stamp-install: stamp-build
 
 	# Add here commands to install the package into debian/tmp.
 	-mkdirhier debian/tmp/usr
-	$(MAKE) install
-	# $(MAKE) install prefix=`pwd`/debian/tmp/usr
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp
 
 	touch stamp-install
 

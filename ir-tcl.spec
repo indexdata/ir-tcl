@@ -1,6 +1,6 @@
 Summary: IrTcl - Tcl extension that implements the Z39.50 protocol.
 Name: ir-tcl
-Version: 1.4.1
+Version: 1.4.2
 Release: 1
 Copyright: none
 Group: Development/Libraries
@@ -23,12 +23,12 @@ as well.
 %build
 
 CFLAGS="$RPM_OPT_FLAGS" \
- ./configure --with-build-root=$RPM_BUILD_ROOT --prefix=/usr 
+ ./configure --prefix=/usr 
 make CFLAGS="$RPM_OPT_FLAGS"
 
 %install
 rm -fr $RPM_BUILD_ROOT
-make install
+make install DESTDIR=$RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)

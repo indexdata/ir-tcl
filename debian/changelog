@@ -1,3 +1,9 @@
+ir-tcl (1.4.2-2) unstable; urgency=low
+
+  * Use DESTDIR instead of --built-root.
+
+ -- Adam Dickmeiss <adam@indexdata.dk>  Tue,  4 May 2004 21:34:35 +0200
+
 ir-tcl (1.4.2-1) unstable; urgency=low
 
   * Upstream.

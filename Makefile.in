@@ -1,7 +1,7 @@
 # IR toolkit for tcl/tk
 # (c) Index Data 1995-2004
 # See the file LICENSE for details.
-# $Id: Makefile.in,v 1.62 2004-04-26 09:12:50 adam Exp $
+# $Id: Makefile.in,v 1.63 2004-05-04 19:42:56 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -13,8 +13,7 @@ prefix = @prefix@
 # Directory prefix with machine dependent files (executables, libraries)
 exec_prefix = @exec_prefix@
 
-# RPM Root
-BUILD=@build_root@
+DESTDIR=
 
 # Install directories
 BINDIR=$(exec_prefix)/bin
@@ -86,58 +85,58 @@ wais-tcl.o: wais-tcl.c
 	$(CC) -c $(CFLAGS) -I$(WAISDIR)/ir $(DEFS) wais-tcl.c
 
 install.man:
-	$(INSTALL) -d $(BUILD)$(MANDIR)/mann
-	@cd doc; if [ -d $(BUILD)$(MANDIR)/mann ]; then \
+	$(INSTALL) -d $(DESTDIR)$(MANDIR)/mann
+	@cd doc; if [ -d $(DESTDIR)$(MANDIR)/mann ]; then \
 		for p in *.n; do \
-			$(INSTALL_DATA) $$p $(BUILD)$(MANDIR)/mann; \
+			$(INSTALL_DATA) $$p $(DESTDIR)$(MANDIR)/mann; \
 		done; \
 	fi
 
 install: @ALL_SPEC@
-	$(INSTALL) -d $(BUILD)$(IRTCLDIR)/formats
-	$(INSTALL) -d $(BUILD)$(IRTCLDIR)/bitmaps
-	$(INSTALL) -d $(BUILD)$(IRTCLDIR)/doc
-	$(INSTALL) -d $(BUILD)$(BINDIR)
+	$(INSTALL) -d $(DESTDIR)$(IRTCLDIR)/formats
+	$(INSTALL) -d $(DESTDIR)$(IRTCLDIR)/bitmaps
+	$(INSTALL) -d $(DESTDIR)$(IRTCLDIR)/doc
+	$(INSTALL) -d $(DESTDIR)$(BINDIR)
 	@if [ -f ir-tcl ]; then \
-		$(INSTALL_PROGRAM) ir-tcl $(BUILD)$(BINDIR); \
+		$(INSTALL_PROGRAM) ir-tcl $(DESTDIR)$(BINDIR); \
 	fi
 	@if [ -f @SHLIB_IRTCL@ ]; then \
-		$(INSTALL_PROGRAM) @SHLIB_IRTCL@ $(BUILD)$(IRTCLDIR); \
+		$(INSTALL_PROGRAM) @SHLIB_IRTCL@ $(DESTDIR)$(IRTCLDIR); \
 	fi
-	$(INSTALL_DATA) libirtcl.a $(BUILD)$(LIBDIR)
-	$(INSTALL_DATA) ir-tcl.h $(BUILD)$(INCDIR)
+	$(INSTALL_DATA) libirtcl.a $(DESTDIR)$(LIBDIR)
+	$(INSTALL_DATA) ir-tcl.h $(DESTDIR)$(INCDIR)
 	@if [ -f ir-tk ]; then \
-		$(INSTALL_PROGRAM) ir-tk $(BUILD)$(BINDIR); \
+		$(INSTALL_PROGRAM) ir-tk $(DESTDIR)$(BINDIR); \
 	fi
 	@echo "#! @IRCLIENT_SHELL@ -f" >head.bak; \
 	cat head.bak client.tcl| sed "s,^set libdir LIBDIR,set libdir $(IRTCLDIR)," >client.bak; \
-	$(INSTALL_PROGRAM) client.bak $(BUILD)$(BINDIR)/irclient; \
-	if [ -f $(BUILD)$(IRTCLDIR)/irtdb.tcl ]; then \
+	$(INSTALL_PROGRAM) client.bak $(DESTDIR)$(BINDIR)/irclient; \
+	if [ -f $(DESTDIR)$(IRTCLDIR)/irtdb.tcl ]; then \
 		echo "irtdb.tcl already exists"; \
 		echo "Installing irtdb.tcl.n"; \
 		cp irtdb.tcl irtdb.tcl.n; \
-		$(INSTALL_DATA) irtdb.tcl.n $(BUILD)$(IRTCLDIR); \
+		$(INSTALL_DATA) irtdb.tcl.n $(DESTDIR)$(IRTCLDIR); \
 		rm irtdb.tcl.n; \
 	else \
 		echo "Installing irtdb.tcl"; \
-		$(INSTALL_DATA) irtdb.tcl $(BUILD)$(IRTCLDIR); \
+		$(INSTALL_DATA) irtdb.tcl $(DESTDIR)$(IRTCLDIR); \
 	fi
 	@for f in *.tcl; do \
-		$(INSTALL_DATA) $$f $(BUILD)$(IRTCLDIR); \
+		$(INSTALL_DATA) $$f $(DESTDIR)$(IRTCLDIR); \
 	done
 	@for b in formats/*.tcl; do \
 		if [ -f $$b ]; then \
-			$(INSTALL_DATA) $$b $(BUILD)$(IRTCLDIR)/formats; \
+			$(INSTALL_DATA) $$b $(DESTDIR)$(IRTCLDIR)/formats; \
 		fi; \
 	done
 	@for b in bitmaps/*; do \
 		if [ -f $$b ]; then \
-			$(INSTALL_DATA) $$b $(BUILD)$(IRTCLDIR)/bitmaps; \
+			$(INSTALL_DATA) $$b $(DESTDIR)$(IRTCLDIR)/bitmaps; \
 		fi; \
 	done
 	@for b in doc/*; do \
 		if [ -f $$b ]; then \
-			$(INSTALL_DATA) $$b $(BUILD)$(IRTCLDIR)/doc; \
+			$(INSTALL_DATA) $$b $(DESTDIR)$(IRTCLDIR)/doc; \
 		fi; \
 	done
 
