@@ -1,8 +1,13 @@
-# $Id: shell.tcl,v 1.3 1996-08-21 11:24:03 adam Exp $
+# $Id: shell.tcl,v 1.4 1998-01-30 13:30:50 adam Exp $
 #
 source display.tcl
 
-ir z
+if {[catch {ir z}]} {
+    set e [info sharedlibextension]
+    puts "Loading irtcl$e ..."
+    load ./irtcl$e irtcl
+    ir z
+}
 set pref(base) Default
 set pref(format) usmarc
 
@@ -29,8 +34,13 @@ proc target {name} {
     z callback {connect-response}
     if [catch "z connect $name"] {
         fail-response
-    } else {
+    } elseif {$ok == 0} {
         vwait ok
+    }
+    if {$ok == 1} {
+        puts "Connected and initialized."
+    } else {
+        puts "Failed."
     }
     return {}
 }
@@ -54,7 +64,6 @@ proc init-response {} {
     global ok pref
 
     set ok 1
-    puts "Connected and initialized."
     ir-set z.1 z
 }
 

@@ -1,59 +1,4 @@
 # Setup file
-set profile(AGRICOLA,authentication) {}
-set profile(AGRICOLA,comstack) tcpip
-set profile(AGRICOLA,databases) AGRICOLA
-set profile(AGRICOLA,description) AGRICOLA
-set profile(AGRICOLA,host) Tikal.dev.oclc.org
-set profile(AGRICOLA,largeSetLowerBound) 2
-set profile(AGRICOLA,maxResultSets) {}
-set profile(AGRICOLA,maxResultSize) {}
-set profile(AGRICOLA,maxTerms) {}
-set profile(AGRICOLA,maximumRecordSize) 50000
-set profile(AGRICOLA,mediumSetPresentNumber) 0
-set profile(AGRICOLA,multipleDatabases) 0
-set profile(AGRICOLA,namedResultSets) 1
-set profile(AGRICOLA,port) 210
-set profile(AGRICOLA,preferredMessageSize) 30000
-set profile(AGRICOLA,presentChunk) 4
-set profile(AGRICOLA,protocol) Z39
-set profile(AGRICOLA,queryCCL) 0
-set profile(AGRICOLA,queryRPN) 1
-set profile(AGRICOLA,recentNews) {}
-set profile(AGRICOLA,smallSetUpperBound) 0
-set profile(AGRICOLA,targetInfoName) {}
-set profile(AGRICOLA,timeDefine) 878567355
-set profile(AGRICOLA,timeLastExplain) {}
-set profile(AGRICOLA,timeLastInit) 884946306
-set profile(AGRICOLA,welcomeMessage) {}
-set profile(AGRICOLA,windowNumber) 2
-set profile(AULS,authentication) {}
-set profile(AULS,comstack) tcpip
-set profile(AULS,databases) {AULS mad}
-set profile(AULS,description) {Acadia university
-}
-set profile(AULS,host) auls.acadiau.ca
-set profile(AULS,largeSetLowerBound) 2
-set profile(AULS,maxResultSets) {}
-set profile(AULS,maxResultSize) {}
-set profile(AULS,maxTerms) {}
-set profile(AULS,maximumRecordSize) 16384
-set profile(AULS,mediumSetPresentNumber) 0
-set profile(AULS,multipleDatabases) 0
-set profile(AULS,namedResultSets) 1
-set profile(AULS,port) 210
-set profile(AULS,preferredMessageSize) 8192
-set profile(AULS,presentChunk) 4
-set profile(AULS,protocol) Z39
-set profile(AULS,queryCCL) 0
-set profile(AULS,queryRPN) 1
-set profile(AULS,recentNews) {}
-set profile(AULS,smallSetUpperBound) 0
-set profile(AULS,targetInfoName) {}
-set profile(AULS,timeDefine) 878567355
-set profile(AULS,timeLastExplain) {}
-set profile(AULS,timeLastInit) {}
-set profile(AULS,welcomeMessage) {}
-set profile(AULS,windowNumber) 14
 set profile(BIBSYS,authentication) {}
 set profile(BIBSYS,comstack) tcpip
 set profile(BIBSYS,databases) {BIBSYS PERI}
@@ -78,7 +23,7 @@ set profile(BIBSYS,smallSetUpperBound) 0
 set profile(BIBSYS,targetInfoName) {}
 set profile(BIBSYS,timeDefine) 878567355
 set profile(BIBSYS,timeLastExplain) {}
-set profile(BIBSYS,timeLastInit) 878569986
+set profile(BIBSYS,timeLastInit) 884958341
 set profile(BIBSYS,welcomeMessage) {}
 set profile(BIBSYS,windowNumber) 6
 set {profile(Bell Laboratories Library Network,authentication)} {}
@@ -187,12 +132,13 @@ set profile(Default,timeDefine) {}
 set profile(Default,timeLastExplain) {}
 set profile(Default,timeLastInit) {}
 set profile(Default,welcomeMessage) {}
-set profile(Default,windowNumber) 20
+set profile(Default,windowNumber) 21
 set profile(LOC,authentication) {}
 set profile(LOC,comstack) tcpip
 set profile(LOC,databases) {BOOKS NAMES AUTH MAPS MUSIC BIB SERIALS SUBJECTS}
 set profile(LOC,description) {Library of Congress}
 set profile(LOC,host) IBM2.LOC.gov
+set profile(LOC,idAuthentication) {}
 set profile(LOC,largeSetLowerBound) 2
 set profile(LOC,maxResultSets) {}
 set profile(LOC,maxResultSize) {}
@@ -200,7 +146,7 @@ set profile(LOC,maxTerms) {}
 set profile(LOC,maximumRecordSize) 16384
 set profile(LOC,mediumSetPresentNumber) 0
 set profile(LOC,multipleDatabases) 0
-set profile(LOC,namedResultSets) 1
+set profile(LOC,namedResultSets) 0
 set profile(LOC,port) 2210
 set profile(LOC,preferredMessageSize) 16384
 set profile(LOC,presentChunk) 4
@@ -209,12 +155,46 @@ set profile(LOC,queryCCL) 0
 set profile(LOC,queryRPN) 1
 set profile(LOC,recentNews) {}
 set profile(LOC,smallSetUpperBound) 0
-set profile(LOC,targetInfoName) {}
+set profile(LOC,targetInfoName) { }
+set profile(LOC,targetMaxResultSets) {}
+set profile(LOC,targetMaxResultSize) {}
+set profile(LOC,targetMaxTerms) {}
 set profile(LOC,timeDefine) 878567355
 set profile(LOC,timeLastExplain) {}
-set profile(LOC,timeLastInit) {}
+set profile(LOC,timeLastInit) 884950921
 set profile(LOC,welcomeMessage) {}
 set profile(LOC,windowNumber) 8
+set {profile(OCLC FirstSearch,authentication)} {}
+set {profile(OCLC FirstSearch,comstack)} tcpip
+set {profile(OCLC FirstSearch,databases)} {AGRICOLA MEDLINE}
+set {profile(OCLC FirstSearch,description)} {}
+set {profile(OCLC FirstSearch,host)} Tikal.dev.oclc.org
+set {profile(OCLC FirstSearch,idAuthentication)} {}
+set {profile(OCLC FirstSearch,largeSetLowerBound)} 2
+set {profile(OCLC FirstSearch,maxResultSets)} {}
+set {profile(OCLC FirstSearch,maxResultSize)} {}
+set {profile(OCLC FirstSearch,maxTerms)} {}
+set {profile(OCLC FirstSearch,maximumRecordSize)} 50000
+set {profile(OCLC FirstSearch,mediumSetPresentNumber)} 0
+set {profile(OCLC FirstSearch,multipleDatabases)} 0
+set {profile(OCLC FirstSearch,namedResultSets)} 1
+set {profile(OCLC FirstSearch,port)} 210
+set {profile(OCLC FirstSearch,preferredMessageSize)} 30000
+set {profile(OCLC FirstSearch,presentChunk)} 4
+set {profile(OCLC FirstSearch,protocol)} Z39
+set {profile(OCLC FirstSearch,queryCCL)} 0
+set {profile(OCLC FirstSearch,queryRPN)} 1
+set {profile(OCLC FirstSearch,recentNews)} {}
+set {profile(OCLC FirstSearch,smallSetUpperBound)} 0
+set {profile(OCLC FirstSearch,targetInfoName)} {OCLC FirstSearch}
+set {profile(OCLC FirstSearch,targetMaxResultSets)} {}
+set {profile(OCLC FirstSearch,targetMaxResultSize)} {}
+set {profile(OCLC FirstSearch,targetMaxTerms)} {}
+set {profile(OCLC FirstSearch,timeDefine)} {}
+set {profile(OCLC FirstSearch,timeLastExplain)} {}
+set {profile(OCLC FirstSearch,timeLastInit)} 884958174
+set {profile(OCLC FirstSearch,welcomeMessage)} {}
+set {profile(OCLC FirstSearch,windowNumber)} 20
 set profile(Penn,authentication) {}
 set profile(Penn,comstack) tcpip
 set profile(Penn,databases) CATALOG
@@ -245,8 +225,7 @@ set profile(Penn,windowNumber) 1
 set profile(aleph500,authentication) {}
 set profile(aleph500,comstack) tcpip
 set profile(aleph500,databases) bib01
-set profile(aleph500,description) {
-}
+set profile(aleph500,description) { }
 set profile(aleph500,host) uranus.dtv.dk
 set profile(aleph500,largeSetLowerBound) 2
 set profile(aleph500,maxResultSets) {}
@@ -273,31 +252,13 @@ set profile(aleph500,windowNumber) 16
 set profile(arcatarget,authentication) {}
 set profile(arcatarget,comstack) tcpip
 set profile(arcatarget,databases) {IEI-books IR-Explain-1}
-set profile(arcatarget,description) {ARCA Target
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-}
+set profile(arcatarget,description) {ARCA Target}
 set profile(arcatarget,host) arca.iei.pi.cnr.it
+set profile(arcatarget,idAuthentication) {}
 set profile(arcatarget,largeSetLowerBound) 2
-set profile(arcatarget,maxResultSets) {}
-set profile(arcatarget,maxResultSize) {}
-set profile(arcatarget,maxTerms) {}
+set profile(arcatarget,maxResultSets) 20
+set profile(arcatarget,maxResultSize) 4000
+set profile(arcatarget,maxTerms) 15
 set profile(arcatarget,maximumRecordSize) 50000
 set profile(arcatarget,mediumSetPresentNumber) 0
 set profile(arcatarget,multipleDatabases) 0
@@ -310,11 +271,14 @@ set profile(arcatarget,queryCCL) 0
 set profile(arcatarget,queryRPN) 1
 set profile(arcatarget,recentNews) {}
 set profile(arcatarget,smallSetUpperBound) 0
-set profile(arcatarget,targetInfoName) {}
+set profile(arcatarget,targetInfoName) {ARCA }
+set profile(arcatarget,targetMaxResultSets) {}
+set profile(arcatarget,targetMaxResultSize) {}
+set profile(arcatarget,targetMaxTerms) {}
 set profile(arcatarget,timeDefine) 878567355
-set profile(arcatarget,timeLastExplain) {}
-set profile(arcatarget,timeLastInit) {}
-set profile(arcatarget,welcomeMessage) {}
+set profile(arcatarget,timeLastExplain) 884950966
+set profile(arcatarget,timeLastInit) 884950966
+set profile(arcatarget,welcomeMessage) {buon lavoro}
 set profile(arcatarget,windowNumber) 9
 set profile(author,authentication) {}
 set profile(author,comstack) tcpip
@@ -373,11 +337,7 @@ set profile(bacon,windowNumber) 5
 set profile(burns,authentication) {}
 set profile(burns,comstack) tcpip
 set profile(burns,databases) Default
-set profile(burns,description) {
-
-
-
-}
+set profile(burns,description) { }
 set profile(burns,host) burns.fdgroup.co.uk
 set profile(burns,idAuthentication) {}
 set profile(burns,largeSetLowerBound) 2
@@ -394,28 +354,16 @@ set profile(burns,presentChunk) 4
 set profile(burns,protocol) Z39
 set profile(burns,queryCCL) 0
 set profile(burns,queryRPN) 1
-set profile(burns,recentNews) {
-
-
-
-}
+set profile(burns,recentNews) { }
 set profile(burns,smallSetUpperBound) 0
-set profile(burns,targetInfoName) {
-
-
-
-}
+set profile(burns,targetInfoName) { }
 set profile(burns,targetMaxResultSets) {}
 set profile(burns,targetMaxResultSize) {}
 set profile(burns,targetMaxTerms) {}
 set profile(burns,timeDefine) {}
 set profile(burns,timeLastExplain) {}
 set profile(burns,timeLastInit) 879415443
-set profile(burns,welcomeMessage) {
-
-
-
-}
+set profile(burns,welcomeMessage) { }
 set profile(burns,windowNumber) 18
 set profile(dranet,authentication) {}
 set profile(dranet,comstack) tcpip
@@ -441,14 +389,13 @@ set profile(dranet,smallSetUpperBound) 0
 set profile(dranet,targetInfoName) {}
 set profile(dranet,timeDefine) 878567355
 set profile(dranet,timeLastExplain) {}
-set profile(dranet,timeLastInit) {}
+set profile(dranet,timeLastInit) 884950527
 set profile(dranet,welcomeMessage) {}
 set profile(dranet,windowNumber) 15
 set profile(gilstest,authentication) {}
 set profile(gilstest,comstack) tcpip
 set profile(gilstest,databases) Default
-set profile(gilstest,description) {
-}
+set profile(gilstest,description) { }
 set profile(gilstest,host) localhost
 set profile(gilstest,idAuthentication) {}
 set profile(gilstest,largeSetLowerBound) 2
@@ -465,19 +412,16 @@ set profile(gilstest,presentChunk) 4
 set profile(gilstest,protocol) Z39
 set profile(gilstest,queryCCL) 0
 set profile(gilstest,queryRPN) 1
-set profile(gilstest,recentNews) {
-}
+set profile(gilstest,recentNews) { }
 set profile(gilstest,smallSetUpperBound) 0
-set profile(gilstest,targetInfoName) {
-}
+set profile(gilstest,targetInfoName) { }
 set profile(gilstest,targetMaxResultSets) {}
 set profile(gilstest,targetMaxResultSize) {}
 set profile(gilstest,targetMaxTerms) {}
 set profile(gilstest,timeDefine) {}
 set profile(gilstest,timeLastExplain) {}
 set profile(gilstest,timeLastInit) 879779577
-set profile(gilstest,welcomeMessage) {
-}
+set profile(gilstest,welcomeMessage) { }
 set profile(gilstest,windowNumber) 19
 set profile(libris,authentication) {}
 set profile(libris,comstack) tcpip
@@ -535,8 +479,7 @@ set profile(madison,welcomeMessage) {}
 set profile(madison,windowNumber) 3
 set profile(x,authentication) {}
 set profile(x,comstack) tcpip
-set profile(x,description) {
-}
+set profile(x,description) { }
 set profile(x,host) {}
 set profile(x,largeSetLowerBound) 2
 set profile(x,maxResultSets) {}
@@ -552,16 +495,13 @@ set profile(x,presentChunk) 4
 set profile(x,protocol) Z39
 set profile(x,queryCCL) 0
 set profile(x,queryRPN) 1
-set profile(x,recentNews) {
-}
+set profile(x,recentNews) { }
 set profile(x,smallSetUpperBound) 0
-set profile(x,targetInfoName) {
-}
+set profile(x,targetInfoName) { }
 set profile(x,timeDefine) {}
 set profile(x,timeLastExplain) {}
 set profile(x,timeLastInit) {}
-set profile(x,welcomeMessage) {
-}
+set profile(x,welcomeMessage) { }
 set profile(x,windowNumber) 17
 set profile(ztest9999,authentication) {}
 set profile(ztest9999,comstack) tcpip

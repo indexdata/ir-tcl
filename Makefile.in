@@ -2,7 +2,7 @@
 # (c) Index Data 1995-1998
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.46 1998-01-16 11:01:17 adam Exp $
+# $Id: Makefile.in,v 1.47 1998-01-30 13:30:49 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -136,15 +136,15 @@ install: @ALL_SPEC@
 	echo "#! $(BINDIR)/@IRCLIENT_SHELL@ -f" >head.bak; \
 	cat head.bak client.tcl| sed "s,^set libdir LIBDIR,set libdir $(IRTCLDIR)," >client.bak; \
 	$(INSTALL_PROGRAM) client.bak $(BINDIR)/irclient; \
-	if [ -f $(IRTCLDIR)/clientrc.tcl ]; then \
-		echo "clientrc.tcl already exists"; \
-		echo "Installing clientrc.tcl.n"; \
-		cp clientrc.tcl clientrc.tcl.n; \
-		$(INSTALL_DATA) clientrc.tcl.n $(IRTCLDIR); \
-		rm clientrc.tcl.n; \
+	if [ -f $(IRTCLDIR)/irtdb.tcl ]; then \
+		echo "irtdb.tcl already exists"; \
+		echo "Installing irtdb.tcl.n"; \
+		cp irtdb.tcl irtdb.tcl.n; \
+		$(INSTALL_DATA) irtdb.tcl.n $(IRTCLDIR); \
+		rm irtdb.tcl.n; \
 	else \
-		echo "Installing clientrc.tcl"; \
-		$(INSTALL_DATA) clientrc.tcl $(IRTCLDIR); \
+		echo "Installing irtdb.tcl"; \
+		$(INSTALL_DATA) irtdb.tcl $(IRTCLDIR); \
 	fi; \
 	for f in *.tcl; do \
 		echo "Installing $$f"; \

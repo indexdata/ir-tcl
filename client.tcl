@@ -1,10 +1,13 @@
 # IR toolkit for tcl/tk
-# (c) Index Data 1995-1997
+# (c) Index Data 1995-1998
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.102  1997-11-19 13:19:54  adam
+# Revision 1.103  1998-01-30 13:30:50  adam
+# Name of target database is irtdb.tcl instead of clientrc.tcl.
+#
+# Revision 1.102  1997/11/19 13:19:54  adam
 # Font fix.
 #
 # Revision 1.101  1997/11/19 11:20:56  adam
@@ -547,11 +550,13 @@ if {[file readable "${libdir}/tagsets.tcl"]} {
     source "${libdir}/tagsets.tcl"
 }
 
-# Read the global configuration file.
-if {[file readable "clientrc.tcl"]} {
-    source "clientrc.tcl"
-} elseif {[file readable "${libdir}/clientrc.tcl"]} {
-    source "${libdir}/clientrc.tcl"
+# Read the global target configuration file.
+if {[file readable "${libdir}/irtdb.tcl"]} {
+    source "${libdir}/irtdb.tcl"
+}
+# Read the local target configuration file.
+if {[file readable "irtdb.tcl"]} {
+    source "irtdb.tcl"
 }
 
 # Read the user configuration file.
@@ -2901,7 +2906,7 @@ proc save-geometry {} {
 }
 
 # Procedure save-settings
-# This procedure saves the per-host related settings clientrc.tcl which
+# This procedure saves the per-host related settings irtdb.tcl which
 # is normally kept in the directory /usr/local/lib/irtcl.
 # All query types and target defintion profiles are saved.
 proc save-settings {} {
@@ -2912,17 +2917,10 @@ proc save-settings {} {
     global queryButtons
     global queryInfo
 
-    if {[file exists clientrc.tcl]} {
-        set f [open "clientrc.tcl" w]
-    } elseif {![file writable "${libdir}/clientrc.tcl"]} {
-        set a [alert "Cannot open ${libdir}/clientrc.tcl for writing. Do you \
-                wish to save clientrc.tcl in the current directory instead?"]
-        if {! $a} {
-            return
-        }
-        set f [open "clientrc.tcl" w]
+    if {[file writable "${libdir}/irtdb.tcl"]} {
+        set f [open "${libdir}/irtdb.tcl" w]
     } else {
-        set f [open "${libdir}/clientrc.tcl" w]
+        set f [open "irtdb.tcl" w]
     }
     puts $f "# Setup file"
 

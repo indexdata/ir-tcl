@@ -1,10 +1,13 @@
 # IR toolkit for tcl/tk
-# (c) Index Data 1995-1996
+# (c) Index Data 1995-1998
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: setup.tcl,v $
-# Revision 1.2  1997-11-19 11:20:57  adam
+# Revision 1.3  1998-01-30 13:30:50  adam
+# Name of target database is irtdb.tcl instead of clientrc.tcl.
+#
+# Revision 1.2  1997/11/19 11:20:57  adam
 # New target profile format - associative arrrays instead of LONG lists.
 #
 # Revision 1.1  1996/09/13 10:54:25  adam
@@ -198,10 +201,14 @@ proc target-setup-leave-1 {target} {
     set w .setup100
     set y $w.top.nr
 
-    set profileS($target,targetInfoName) [$y.name.text get 0.0 end]
-    set profileS($target,recentNews) [$y.recentNews.text get 0.0 end]
-    set profileS($target,description) [$y.description.text get 0.0 end]
-    set profileS($target,welcomeMessage) [$y.welcome.text get 0.0 end]
+    set profileS($target,targetInfoName) \
+	[string trim [$y.name.text get 0.0 end]]
+    set profileS($target,recentNews) \
+	[string trim [$y.recentNews.text get 0.0 end]]
+    set profileS($target,description) \
+	[string trim [$y.description.text get 0.0 end]]
+    set profileS($target,welcomeMessage) \
+	[string trim [$y.welcome.text get 0.0 end]]
 
     set y $w.top.rs
 }

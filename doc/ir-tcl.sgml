@@ -1,14 +1,14 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.26 1998-01-16 11:30:44 adam Exp $
+  $Id: ir-tcl.sgml,v 1.27 1998-01-30 13:30:50 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference 
 <author><htmlurl url="http://www.indexdata.dk/" name="Index Data">,
 <tt><htmlurl url="mailto:info@indexdata.dk" name="info@indexdata.dk"></tt>
-<date>$Revision: 1.26 $
+<date>$Revision: 1.27 $
 <abstract>
 This document describes IrTcl -- an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
@@ -49,7 +49,7 @@ In order to compile you need:
 <item> An ANSI C compiler such as GNU C.
 <item> <htmlurl url="http://sunscript.sun.com/TclTkCore/" name="Tcl">.
  Version 7.5, 7.6 and 8.0 has been tested.
-<item> <htmlurl url="http://www.indexdata.dk/yaz.html" name="YAZ">
+<item> <htmlurl url="http://www.indexdata.dk/yaz/" name="YAZ">
  version 1.4 or higher.
 </itemize>
 
@@ -143,7 +143,7 @@ This file is only generated when using newer versions of Tcl.
 <tag><tt>ir-tcl.h</tt></tag> The <sf/IrTcl/ header file.
  Installed in <tt>INCDIR</tt> -- defaults to <tt>/usr/local/include</tt>.
 
-<tag><tt>clientrc.tcl</tt></tag> A setup file with definitions
+<tag><tt>irtdb.tcl</tt></tag> A setup file with definitions
  of target and queries. Read and updated by <tt>client.tcl</tt>. Installed
  in <tt>IRTCLDIR</tt> -- defaults to <tt>/usr/local/lib/irtcl</tt>.
 
@@ -1463,14 +1463,17 @@ Email: info@indexdata.dk
 <p>
 
 <descrip>
-<tag>1 Ousterhout, John K.:</tag>
+<tag>1 IrTcl Homepage</tag>
+<htmlurl url="http://www.indexdata.dk/irtcl/"
+name="http://www.indexdata.dk/irtcl/">
+<tag>2 Ousterhout, John K.:</tag>
 Tcl and the Tk Toolkit. Addison-Wesley Company Inc (ISBN
 0-201-63337-X). The Tcl/Tk toolkit home page is
 <tt><htmlurl url="http://www.sunscript.com"
  name="http://www.sunscript.com"></tt>.
 The primary ftp site is <tt><htmlurl url="ftp://ftp.smli.com/pub/tcl/"
 name="ftp://ftp.smli.com/pub/tcl/"></tt>.
-<tag>2 Welch, Brent B.:</tag>
+<tag>3 Welch, Brent B.:</tag>
 Practical Programming in Tcl and Tk. Prentice Hall
 (ISBN 0-13-616830-2).
 
