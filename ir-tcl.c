@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.112  1999-03-22 06:51:34  adam
+ * Revision 1.113  1999-04-20 10:01:46  adam
+ * Modified calls to ODR encoders/decoders (name argument).
+ *
+ * Revision 1.112  1999/03/22 06:51:34  adam
  * Implemented sort.
  *
  * Revision 1.111  1999/02/11 11:30:09  adam
@@ -2709,7 +2712,7 @@ static int do_getExplain (void *o, Tcl_Interp *interp, int argc, char **argv)
         return TCL_OK;
     assert (rl->u.dbrec.buf);
     odr_setbuf (p->odr_in, rl->u.dbrec.buf, rl->u.dbrec.size, 0);
-    if (!(*etype->fun)(p->odr_in, (char **) &rr, 0))
+    if (!(*etype->fun)(p->odr_in, (char **) &rr, 0, 0))
         return TCL_OK;
     
     if (etype->what != Z_External_explainRecord)
@@ -3881,7 +3884,7 @@ static void ir_handleDBRecord (IrTcl_Obj *p, IrTcl_RecordList *rl,
         
         odr_setbuf (p->odr_in, (char*) oe->u.octet_aligned->buf,
                     oe->u.octet_aligned->len, 0);
-        if (!(*etype->fun)(p->odr_in, (char **) &rr, 0))
+        if (!(*etype->fun)(p->odr_in, (char **) &rr, 0, 0))
         {
             rl->u.dbrec.type = VAL_NONE;
             return;
@@ -4273,7 +4276,7 @@ static void ir_select_read (ClientData clientData)
         p->apduOffset = -1;
         odr_setbuf (p->odr_in, p->buf_in, r, 0);
         logf (LOG_DEBUG, "cs_get ok, total size %d", r);
-        if (!z_APDU (p->odr_in, &apdu, 0))
+        if (!z_APDU (p->odr_in, &apdu, 0, 0))
         {
             logf (LOG_DEBUG, "cs_get failed: %s",
                 odr_errmsg (odr_geterror (p->odr_in)));

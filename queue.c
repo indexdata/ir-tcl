@@ -1,12 +1,14 @@
-
 /*
  * IR toolkit for tcl/tk
- * (c) Index Data 1995
+ * (c) Index Data 1995-1999
  * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: queue.c,v $
- * Revision 1.11  1996-07-03 13:31:14  adam
+ * Revision 1.12  1999-04-20 10:01:46  adam
+ * Modified calls to ODR encoders/decoders (name argument).
+ *
+ * Revision 1.11  1996/07/03 13:31:14  adam
  * The xmalloc/xfree functions from YAZ are used to manage memory.
  *
  * Revision 1.10  1996/06/03  09:04:24  adam
@@ -64,7 +66,7 @@ int ir_tcl_send_APDU (Tcl_Interp *interp, IrTcl_Obj *p, Z_APDU *apdu,
 {
     IrTcl_Request **rp;
 
-    if (!z_APDU (p->odr_out, &apdu, 0))
+    if (!z_APDU (p->odr_out, &apdu, 0, 0))
     {
         Tcl_AppendResult (interp, odr_errmsg (odr_geterror (p->odr_out)),
                           NULL);
