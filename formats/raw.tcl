@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: raw.tcl,v $
-# Revision 1.10  1996-01-23 15:24:24  adam
+# Revision 1.11  1996-03-29 16:05:37  adam
+# Bug fix: GRS records wasn't recognized.
+#
+# Revision 1.10  1996/01/23  15:24:24  adam
 # Wrore more comments.
 #
 # Revision 1.9  1995/10/17  14:18:10  adam
@@ -86,7 +89,7 @@ proc display-raw {sno no w hflag} {
         $w insert end "\n"
         return
     } 
-    if {$rtype == "GRS1"} {
+    if {$rtype == "GRS-1"} {
         display-grs-raw $w [z39.$sno getGrs $no] 0
         return
     }

@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: medium.tcl,v $
-# Revision 1.11  1996-01-23 15:24:23  adam
+# Revision 1.12  1996-03-29 16:05:36  adam
+# Bug fix: GRS records wasn't recognized.
+#
+# Revision 1.11  1996/01/23  15:24:23  adam
 # Wrore more comments.
 #
 # Revision 1.10  1996/01/11  09:31:05  quinn
@@ -39,11 +42,19 @@
 #
 #
 proc display-grs-medium {w r i} {
+    global tagSet
+
     foreach e $r {
         for {set j 0} {$j < $i} {incr j} {
             insertWithTags $w "  " marc-tag
         }
-        insertWithTags $w "([lindex $e 0]:[lindex $e 2]) " marc-tag
+        set ttype [lindex $e 0]
+        set tval [lindex $e 2]
+        if {[info exists tagSet($ttype,$tval)]} {
+            insertWithTags $w "$tagSet($ttype,$tval) " marc-tag
+        } else {
+            insertWithTags $w "$tval " marc-tag
+        }
         if {[lindex $e 3] == "string"} {
             insertWithTags $w [lindex $e 4] {}
             insertWithTags $w "\n"
@@ -85,12 +96,13 @@ proc display-medium {sno no w hflag} {
         return
     }
     set rtype [z39.$sno recordType $no]
+    puts $rtype
     if {$rtype == "SUTRS"} {
         insertWithTags $w [join [z39.$sno getSutrs $no]] {}
         $w insert end "\n"
         return
     } 
-    if {$rtype == "GRS1"} {
+    if {$rtype == "GRS-1"} {
         display-grs-medium $w [z39.$sno getGrs $no] 0
         return
     }
