@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.109  1999-12-12 00:25:59  adam
+# Revision 1.110  2000-10-11 12:26:47  adam
+# Using yaz.m4 for aclocal.m4.
+#
+# Revision 1.109  1999/12/12 00:25:59  adam
 # Updated list of preconfigure targets.
 #
 # Revision 1.108  1999/11/30 14:05:58  adam
@@ -2914,7 +2917,6 @@ proc save-geometry {} {
     global hostid
 
     set windowGeometry(.) [wm geometry .]
-    puts "root=[wm geometry .]"
 
     if {[catch {set f [open ~/.clientrc.tcl w]}]} {
         return
@@ -2931,8 +2933,8 @@ proc save-geometry {} {
     puts $f "set recordSyntax $recordSyntax"
     puts $f "set elementSetNames $elementSetNames"
     foreach n [array names windowGeometry] {
-        puts -nonewline "set [list windowGeometry($n)] "
-        puts [list $windowGeometry($n)]
+        dputs "set [list windowGeometry($n)] "
+        dputs [list $windowGeometry($n)]
 
         puts -nonewline $f "set [list windowGeometry($n)] "
         puts $f [list $windowGeometry($n)]

@@ -1,7 +1,7 @@
 dnl IR toolkit for tcl/tk
 dnl (c) Index Data 1996-1999
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.28 2000-06-29 10:22:30 adam Exp $
+dnl $Id: configure.in,v 1.29 2000-10-11 12:26:47 adam Exp $
 AC_INIT(ir-tcl.h)
 dnl ------ Substitutions
 AC_SUBST(CC)
@@ -16,8 +16,6 @@ AC_SUBST(SHLIB_VERSION)
 AC_SUBST(SHLIB_IRTCL)
 AC_SUBST(ALL_SPEC)
 AC_SUBST(IRCLIENT_SHELL)
-AC_SUBST(YAZLIB)
-AC_SUBST(YAZINC)
 dnl
 dnl ------ Build root
 AC_SUBST(build_root)
@@ -25,6 +23,9 @@ AC_ARG_WITH(build-root, [  --with-buildroot        RPM Build root],[build_root=$
 dnl
 dnl ------ Preliminary settings
 AC_PROG_INSTALL
+dnl
+dnl ------ YAZ
+YAZ_INIT
 dnl
 dnl ------ look for Tcl
 tclconfig=NONE
@@ -59,7 +60,11 @@ if test -r ${tclconfig}/tclConfig.sh; then
 	AC_MSG_CHECKING(for Tcl)
 	. ${tclconfig}/tclConfig.sh
 	TCLLIB="${TCL_LIB_SPEC} ${TCL_LIBS}"
-	TCLINC=-I${TCL_PREFIX}/include
+	if test "${TCL_PREFIX}" = "/usr"; then
+		TCLINC=""
+	else
+		TCLINC=-I${TCL_PREFIX}/include
+	fi
 	RANLIB=$TCL_RANLIB
         SHLIB_CFLAGS=$TCL_SHLIB_CFLAGS
 	SHLIB_LD=$TCL_SHLIB_LD
@@ -101,35 +106,8 @@ else
 	ALL_SPEC="ir-tcl ir-tk"
 fi
 dnl 
-dnl ------ Look for Yaz
-dnl See if user specified location of yaz-config; otherwise
-dnl use ../yaz if is a directory (internal development); otherwise
-dnl use yaz-config found in PATH.
-yazconfig=NONE
-yazpath=NONE
-AC_ARG_WITH(yazconfig, [  --with-yazconfig=DIR    yaz-config in DIR (example /home/yaz-1.5)], [yazpath=$withval])
-if test "x$yazpath" != "xNONE"; then
-        yazconfig=$yazpath/yaz-config
-else
-        for i in ../yaz* ../yaz; do
-                if test -d $i; then
-                        if test -r $i/yaz-config; then
-                                yazconfig=$i/yaz-config
-                        fi
-                fi
-        done
-        if test "x$yazconfig" = "xNONE"; then
-                AC_PATH_PROG(yazconfig, yaz-config, NONE)
-        fi
-fi
-AC_MSG_CHECKING(for YAZ)
-if test -r $yazconfig; then
-        . $yazconfig
-        AC_MSG_RESULT($yazconfig)
-else
-        AC_MSG_RESULT(Not found)
-fi
-dnl
+
+
 dnl ------ look for Tk
 dnl
 if test -r ${tclconfig}/tkConfig.sh; then

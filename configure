@@ -14,9 +14,9 @@ ac_default_prefix=/usr/local
 ac_help="$ac_help
   --with-buildroot        RPM Build root"
 ac_help="$ac_help
-  --with-tclconfig=DIR    tclConfig.sh/tkConfig.sh in DIR (example /usr/lib)"
+  --with-yazconfig=DIR    yaz-config in DIR (example /home/yaz-1.7)"
 ac_help="$ac_help
-  --with-yazconfig=DIR    yaz-config in DIR (example /home/yaz-1.5)"
+  --with-tclconfig=DIR    tclConfig.sh/tkConfig.sh in DIR (example /usr/lib)"
 ac_help="$ac_help
   --with-x                use the X Window System"
 
@@ -542,8 +542,6 @@ fi
 
 
 
-
-
 # Check whether --with-build-root or --without-build-root was given.
 if test "${with_build_root+set}" = set; then
   withval="$with_build_root"
@@ -583,7 +581,7 @@ ac_configure=$ac_aux_dir/configure # This should be Cygnus configure.
 # SVR4 /usr/ucb/install, which tries to use the nonexistent group "staff"
 # ./install, which can be erroneously created by make from ./install.sh.
 echo $ac_n "checking for a BSD compatible install""... $ac_c" 1>&6
-echo "configure:587: checking for a BSD compatible install" >&5
+echo "configure:585: checking for a BSD compatible install" >&5
 if test -z "$INSTALL"; then
 if eval "test \"`echo '$''{'ac_cv_path_install'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -635,6 +633,87 @@ test -z "$INSTALL_SCRIPT" && INSTALL_SCRIPT='${INSTALL_PROGRAM}'
 
 test -z "$INSTALL_DATA" && INSTALL_DATA='${INSTALL} -m 644'
 
+
+	
+	
+	
+	
+	yazconfig=NONE
+	yazpath=NONE
+	# Check whether --with-yazconfig or --without-yazconfig was given.
+if test "${with_yazconfig+set}" = set; then
+  withval="$with_yazconfig"
+  yazpath=$withval
+fi
+
+	if test "x$yazpath" != "xNONE"; then
+		yazconfig=$yazpath/yaz-config
+	else
+		for i in ../yaz* ../yaz; do
+			if test -d $i; then
+				if test -r $i/yaz-config; then
+					yazconfig=$i/yaz-config
+				fi
+			fi
+		done
+		if test "x$yazconfig" = "xNONE"; then
+			# Extract the first word of "yaz-config", so it can be a program name with args.
+set dummy yaz-config; ac_word=$2
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
+echo "configure:664: checking for $ac_word" >&5
+if eval "test \"`echo '$''{'ac_cv_path_yazconfig'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  case "$yazconfig" in
+  /*)
+  ac_cv_path_yazconfig="$yazconfig" # Let the user override the test with a path.
+  ;;
+  ?:/*)			 
+  ac_cv_path_yazconfig="$yazconfig" # Let the user override the test with a dos path.
+  ;;
+  *)
+  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS=":"
+  ac_dummy="$PATH"
+  for ac_dir in $ac_dummy; do 
+    test -z "$ac_dir" && ac_dir=.
+    if test -f $ac_dir/$ac_word; then
+      ac_cv_path_yazconfig="$ac_dir/$ac_word"
+      break
+    fi
+  done
+  IFS="$ac_save_ifs"
+  test -z "$ac_cv_path_yazconfig" && ac_cv_path_yazconfig="NONE"
+  ;;
+esac
+fi
+yazconfig="$ac_cv_path_yazconfig"
+if test -n "$yazconfig"; then
+  echo "$ac_t""$yazconfig" 1>&6
+else
+  echo "$ac_t""no" 1>&6
+fi
+
+		fi
+	fi
+	echo $ac_n "checking for YAZ""... $ac_c" 1>&6
+echo "configure:700: checking for YAZ" >&5
+	if $yazconfig --version >/dev/null 2>&1; then
+		YAZLIB=`$yazconfig --libs`
+		# if this is empty, it's a simple version YAZ 1.6 script
+		# so we have to source it instead...
+		if test "X$YAZLIB" = "X"; then
+			. $yazconfig
+		else
+			YAZLALIB=`$yazconfig --lalibs`
+			YAZINC=`$yazconfig --cflags`
+			YAZVERSION=`$yazconfig --version`
+		fi
+		echo "$ac_t""$yazconfig" 1>&6
+	else
+		echo "$ac_t""Not found" 1>&6
+		YAZVERSION=NONE
+	fi
+
 tclconfig=NONE
 tryprefix=NONE
 # Check whether --with-tclconfig or --without-tclconfig was given.
@@ -650,7 +729,7 @@ echo $ac_n "checking for prefix by $ac_c" 1>&6
 # Extract the first word of "tclsh", so it can be a program name with args.
 set dummy tclsh; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:654: checking for $ac_word" >&5
+echo "configure:733: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_TCLSH'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -693,7 +772,7 @@ echo $ac_n "checking for prefix by $ac_c" 1>&6
 # Extract the first word of "tclsh8.2", so it can be a program name with args.
 set dummy tclsh8.2; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:697: checking for $ac_word" >&5
+echo "configure:776: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_TCLSH8.2'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -737,7 +816,7 @@ echo $ac_n "checking for prefix by $ac_c" 1>&6
 # Extract the first word of "tclsh8.1", so it can be a program name with args.
 set dummy tclsh8.1; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:741: checking for $ac_word" >&5
+echo "configure:820: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_TCLSH8.1'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -781,7 +860,7 @@ echo $ac_n "checking for prefix by $ac_c" 1>&6
 # Extract the first word of "tclsh8.0", so it can be a program name with args.
 set dummy tclsh8.0; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:785: checking for $ac_word" >&5
+echo "configure:864: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_TCLSH8.0'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -825,7 +904,7 @@ echo $ac_n "checking for prefix by $ac_c" 1>&6
 # Extract the first word of "tclsh7.6", so it can be a program name with args.
 set dummy tclsh7.6; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:829: checking for $ac_word" >&5
+echo "configure:908: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_TCLSH7.6'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -869,7 +948,7 @@ echo $ac_n "checking for prefix by $ac_c" 1>&6
 # Extract the first word of "tclsh7.5", so it can be a program name with args.
 set dummy tclsh7.5; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:873: checking for $ac_word" >&5
+echo "configure:952: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_TCLSH7.5'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -916,10 +995,14 @@ fi
 fi
 if test -r ${tclconfig}/tclConfig.sh; then
 	echo $ac_n "checking for Tcl""... $ac_c" 1>&6
-echo "configure:920: checking for Tcl" >&5
+echo "configure:999: checking for Tcl" >&5
 	. ${tclconfig}/tclConfig.sh
 	TCLLIB="${TCL_LIB_SPEC} ${TCL_LIBS}"
-	TCLINC=-I${TCL_PREFIX}/include
+	if test "${TCL_PREFIX}" = "/usr"; then
+		TCLINC=""
+	else
+		TCLINC=-I${TCL_PREFIX}/include
+	fi
 	RANLIB=$TCL_RANLIB
         SHLIB_CFLAGS=$TCL_SHLIB_CFLAGS
 	SHLIB_LD=$TCL_SHLIB_LD
@@ -933,7 +1016,7 @@ else
 	# Extract the first word of "gcc", so it can be a program name with args.
 set dummy gcc; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:937: checking for $ac_word" >&5
+echo "configure:1020: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_CC'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -963,7 +1046,7 @@ if test -z "$CC"; then
   # Extract the first word of "cc", so it can be a program name with args.
 set dummy cc; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:967: checking for $ac_word" >&5
+echo "configure:1050: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_CC'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1014,7 +1097,7 @@ fi
       # Extract the first word of "cl", so it can be a program name with args.
 set dummy cl; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:1018: checking for $ac_word" >&5
+echo "configure:1101: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_CC'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1046,7 +1129,7 @@ fi
 fi
 
 echo $ac_n "checking whether the C compiler ($CC $CFLAGS $LDFLAGS) works""... $ac_c" 1>&6
-echo "configure:1050: checking whether the C compiler ($CC $CFLAGS $LDFLAGS) works" >&5
+echo "configure:1133: checking whether the C compiler ($CC $CFLAGS $LDFLAGS) works" >&5
 
 ac_ext=c
 # CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
@@ -1057,12 +1140,12 @@ cross_compiling=$ac_cv_prog_cc_cross
 
 cat > conftest.$ac_ext << EOF
 
-#line 1061 "configure"
+#line 1144 "configure"
 #include "confdefs.h"
 
 main(){return(0);}
 EOF
-if { (eval echo configure:1066: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1149: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   ac_cv_prog_cc_works=yes
   # If we can't run a trivial program, we are probably using a cross compiler.
   if (./conftest; exit) 2>/dev/null; then
@@ -1088,12 +1171,12 @@ if test $ac_cv_prog_cc_works = no; then
   { echo "configure: error: installation or configuration problem: C compiler cannot create executables." 1>&2; exit 1; }
 fi
 echo $ac_n "checking whether the C compiler ($CC $CFLAGS $LDFLAGS) is a cross-compiler""... $ac_c" 1>&6
-echo "configure:1092: checking whether the C compiler ($CC $CFLAGS $LDFLAGS) is a cross-compiler" >&5
+echo "configure:1175: checking whether the C compiler ($CC $CFLAGS $LDFLAGS) is a cross-compiler" >&5
 echo "$ac_t""$ac_cv_prog_cc_cross" 1>&6
 cross_compiling=$ac_cv_prog_cc_cross
 
 echo $ac_n "checking whether we are using GNU C""... $ac_c" 1>&6
-echo "configure:1097: checking whether we are using GNU C" >&5
+echo "configure:1180: checking whether we are using GNU C" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_gcc'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1102,7 +1185,7 @@ else
   yes;
 #endif
 EOF
-if { ac_try='${CC-cc} -E conftest.c'; { (eval echo configure:1106: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } | egrep yes >/dev/null 2>&1; then
+if { ac_try='${CC-cc} -E conftest.c'; { (eval echo configure:1189: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } | egrep yes >/dev/null 2>&1; then
   ac_cv_prog_gcc=yes
 else
   ac_cv_prog_gcc=no
@@ -1121,7 +1204,7 @@ ac_test_CFLAGS="${CFLAGS+set}"
 ac_save_CFLAGS="$CFLAGS"
 CFLAGS=
 echo $ac_n "checking whether ${CC-cc} accepts -g""... $ac_c" 1>&6
-echo "configure:1125: checking whether ${CC-cc} accepts -g" >&5
+echo "configure:1208: checking whether ${CC-cc} accepts -g" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_cc_g'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1160,7 +1243,7 @@ fi
 	# Extract the first word of "ranlib", so it can be a program name with args.
 set dummy ranlib; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:1164: checking for $ac_word" >&5
+echo "configure:1247: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_RANLIB'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1188,7 +1271,7 @@ else
 fi
 
 	echo $ac_n "checking for Tcl""... $ac_c" 1>&6
-echo "configure:1192: checking for Tcl" >&5
+echo "configure:1275: checking for Tcl" >&5
 	TCL_VERSION=nope
 	for i in "" 7.4 7.5 7.6 8.0; do
 		if test -r ${tryprefix}/lib/libtcl${i}.a; then
@@ -1211,74 +1294,11 @@ echo "configure:1192: checking for Tcl" >&5
 	TCLLIB="${TCL_LIB_SPEC} ${LIBS} -lm"
 	ALL_SPEC="ir-tcl ir-tk"
 fi
-yazconfig=NONE
-yazpath=NONE
-# Check whether --with-yazconfig or --without-yazconfig was given.
-if test "${with_yazconfig+set}" = set; then
-  withval="$with_yazconfig"
-  yazpath=$withval
-fi
 
-if test "x$yazpath" != "xNONE"; then
-        yazconfig=$yazpath/yaz-config
-else
-        for i in ../yaz* ../yaz; do
-                if test -d $i; then
-                        if test -r $i/yaz-config; then
-                                yazconfig=$i/yaz-config
-                        fi
-                fi
-        done
-        if test "x$yazconfig" = "xNONE"; then
-                # Extract the first word of "yaz-config", so it can be a program name with args.
-set dummy yaz-config; ac_word=$2
-echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:1237: checking for $ac_word" >&5
-if eval "test \"`echo '$''{'ac_cv_path_yazconfig'+set}'`\" = set"; then
-  echo $ac_n "(cached) $ac_c" 1>&6
-else
-  case "$yazconfig" in
-  /*)
-  ac_cv_path_yazconfig="$yazconfig" # Let the user override the test with a path.
-  ;;
-  ?:/*)			 
-  ac_cv_path_yazconfig="$yazconfig" # Let the user override the test with a dos path.
-  ;;
-  *)
-  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS=":"
-  ac_dummy="$PATH"
-  for ac_dir in $ac_dummy; do 
-    test -z "$ac_dir" && ac_dir=.
-    if test -f $ac_dir/$ac_word; then
-      ac_cv_path_yazconfig="$ac_dir/$ac_word"
-      break
-    fi
-  done
-  IFS="$ac_save_ifs"
-  test -z "$ac_cv_path_yazconfig" && ac_cv_path_yazconfig="NONE"
-  ;;
-esac
-fi
-yazconfig="$ac_cv_path_yazconfig"
-if test -n "$yazconfig"; then
-  echo "$ac_t""$yazconfig" 1>&6
-else
-  echo "$ac_t""no" 1>&6
-fi
 
-        fi
-fi
-echo $ac_n "checking for YAZ""... $ac_c" 1>&6
-echo "configure:1273: checking for YAZ" >&5
-if test -r $yazconfig; then
-        . $yazconfig
-        echo "$ac_t""$yazconfig" 1>&6
-else
-        echo "$ac_t""Not found" 1>&6
-fi
 if test -r ${tclconfig}/tkConfig.sh; then
 	echo $ac_n "checking for Tk""... $ac_c" 1>&6
-echo "configure:1282: checking for Tk" >&5
+echo "configure:1302: checking for Tk" >&5
 	. ${tclconfig}/tkConfig.sh
 	echo "$ac_t""$TK_VERSION" 1>&6
 	TKINC=${TK_XINCLUDES}
@@ -1286,7 +1306,7 @@ echo "configure:1282: checking for Tk" >&5
 	IRCLIENT_SHELL=wish${TK_VERSION}
 else
 	echo $ac_n "checking for Tk""... $ac_c" 1>&6
-echo "configure:1290: checking for Tk" >&5
+echo "configure:1310: checking for Tk" >&5
 	TK_VERSION=nope
 	for i in "" 4.0 4.1 4.2 8.0; do
 		if test -r ${tryprefix}/lib/libtk${i}.a; then
@@ -1305,7 +1325,7 @@ echo "configure:1290: checking for Tk" >&5
 		fi
 	fi
 	echo $ac_n "checking how to run the C preprocessor""... $ac_c" 1>&6
-echo "configure:1309: checking how to run the C preprocessor" >&5
+echo "configure:1329: checking how to run the C preprocessor" >&5
 # On Suns, sometimes $CPP names a directory.
 if test -n "$CPP" && test -d "$CPP"; then
   CPP=
@@ -1320,13 +1340,13 @@ else
   # On the NeXT, cc -E runs the code through the compiler's parser,
   # not just through cpp.
   cat > conftest.$ac_ext <<EOF
-#line 1324 "configure"
+#line 1344 "configure"
 #include "confdefs.h"
 #include <assert.h>
 Syntax Error
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:1330: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:1350: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   :
@@ -1337,13 +1357,13 @@ else
   rm -rf conftest*
   CPP="${CC-cc} -E -traditional-cpp"
   cat > conftest.$ac_ext <<EOF
-#line 1341 "configure"
+#line 1361 "configure"
 #include "confdefs.h"
 #include <assert.h>
 Syntax Error
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:1347: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:1367: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   :
@@ -1354,13 +1374,13 @@ else
   rm -rf conftest*
   CPP="${CC-cc} -nologo -E"
   cat > conftest.$ac_ext <<EOF
-#line 1358 "configure"
+#line 1378 "configure"
 #include "confdefs.h"
 #include <assert.h>
 Syntax Error
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:1364: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:1384: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   :
@@ -1389,7 +1409,7 @@ echo "$ac_t""$CPP" 1>&6
 # Uses ac_ vars as temps to allow command line to override cache and checks.
 # --without-x overrides everything else, but does not touch the cache.
 echo $ac_n "checking for X""... $ac_c" 1>&6
-echo "configure:1393: checking for X" >&5
+echo "configure:1413: checking for X" >&5
 
 # Check whether --with-x or --without-x was given.
 if test "${with_x+set}" = set; then
@@ -1451,12 +1471,12 @@ if test "$ac_x_includes" = NO; then
 
   # First, try using that file with no special directory specified.
 cat > conftest.$ac_ext <<EOF
-#line 1455 "configure"
+#line 1475 "configure"
 #include "confdefs.h"
 #include <$x_direct_test_include>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:1460: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:1480: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -1525,14 +1545,14 @@ if test "$ac_x_libraries" = NO; then
   ac_save_LIBS="$LIBS"
   LIBS="-l$x_direct_test_library $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 1529 "configure"
+#line 1549 "configure"
 #include "confdefs.h"
 
 int main() {
 ${x_direct_test_function}()
 ; return 0; }
 EOF
-if { (eval echo configure:1536: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1556: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   LIBS="$ac_save_LIBS"
 # We can link X programs with no special library path.
@@ -1622,12 +1642,12 @@ fi
 	if test "$no_x" = ""; then
 		if test "$x_includes" = ""; then
 			cat > conftest.$ac_ext <<EOF
-#line 1626 "configure"
+#line 1646 "configure"
 #include "confdefs.h"
 #include <X11/XIntrinsic.h>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:1631: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:1651: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   :
@@ -1649,12 +1669,12 @@ rm -f conftest*
 		echo checking for X11 header files
 		XINCLUDES="# no special path needed"
 		cat > conftest.$ac_ext <<EOF
-#line 1653 "configure"
+#line 1673 "configure"
 #include "confdefs.h"
 #include <X11/Intrinsic.h>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:1658: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:1678: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   :
@@ -1703,7 +1723,7 @@ rm -f conftest*
 	fi
 	if test "$XLIBSW" = nope ; then
 		echo $ac_n "checking for XCreateWindow in -lXwindow""... $ac_c" 1>&6
-echo "configure:1707: checking for XCreateWindow in -lXwindow" >&5
+echo "configure:1727: checking for XCreateWindow in -lXwindow" >&5
 ac_lib_var=`echo Xwindow'_'XCreateWindow | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -1711,7 +1731,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lXwindow  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 1715 "configure"
+#line 1735 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -1722,7 +1742,7 @@ int main() {
 XCreateWindow()
 ; return 0; }
 EOF
-if { (eval echo configure:1726: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1746: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -1908,12 +1928,15 @@ s%@SHLIB_VERSION@%$SHLIB_VERSION%g
 s%@SHLIB_IRTCL@%$SHLIB_IRTCL%g
 s%@ALL_SPEC@%$ALL_SPEC%g
 s%@IRCLIENT_SHELL@%$IRCLIENT_SHELL%g
-s%@YAZLIB@%$YAZLIB%g
-s%@YAZINC@%$YAZINC%g
 s%@build_root@%$build_root%g
 s%@INSTALL_PROGRAM@%$INSTALL_PROGRAM%g
 s%@INSTALL_SCRIPT@%$INSTALL_SCRIPT%g
 s%@INSTALL_DATA@%$INSTALL_DATA%g
+s%@YAZLIB@%$YAZLIB%g
+s%@YAZLALIB@%$YAZLALIB%g
+s%@YAZINC@%$YAZINC%g
+s%@YAZVERSION@%$YAZVERSION%g
+s%@yazconfig@%$yazconfig%g
 s%@TCLSH@%$TCLSH%g
 s%@TCLSH8.2@%$TCLSH8.2%g
 s%@TCLSH8.1@%$TCLSH8.1%g
@@ -1921,7 +1944,6 @@ s%@TCLSH8.0@%$TCLSH8.0%g
 s%@TCLSH7.6@%$TCLSH7.6%g
 s%@TCLSH7.5@%$TCLSH7.5%g
 s%@RANLIB@%$RANLIB%g
-s%@yazconfig@%$yazconfig%g
 s%@CPP@%$CPP%g
 
 CEOF

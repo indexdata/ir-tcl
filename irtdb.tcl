@@ -52,7 +52,7 @@ set {profile(AGCI Elements of Change,smallSetUpperBound)} 0
 set {profile(AGCI Elements of Change,targetInfoName)} {}
 set {profile(AGCI Elements of Change,timeDefine)} 944954152
 set {profile(AGCI Elements of Change,timeLastExplain)} {}
-set {profile(AGCI Elements of Change,timeLastInit)} 944955721
+set {profile(AGCI Elements of Change,timeLastInit)} 971260539
 set {profile(AGCI Elements of Change,welcomeMessage)} {}
 set {profile(AGCI Elements of Change,windowNumber)} 2
 set profile(AGCI,authentication) {}
@@ -84,7 +84,7 @@ set profile(AGCI,timeDefine) 944954173
 set profile(AGCI,timeLastExplain) {}
 set profile(AGCI,timeLastInit) {}
 set profile(AGCI,welcomeMessage) {}
-set profile(AGCI,windowNumber) 14
+set profile(AGCI,windowNumber) 13
 set profile(BIBSYS,authentication) {}
 set profile(BIBSYS,comstack) tcpip
 set profile(BIBSYS,databases) {BIBSYS PERI}
@@ -140,7 +140,7 @@ set {profile(Bell Laboratories Library Network,timeDefine)} {}
 set {profile(Bell Laboratories Library Network,timeLastExplain)} {}
 set {profile(Bell Laboratories Library Network,timeLastInit)} 944953393
 set {profile(Bell Laboratories Library Network,welcomeMessage)} {}
-set {profile(Bell Laboratories Library Network,windowNumber)} 15
+set {profile(Bell Laboratories Library Network,windowNumber)} 14
 set {profile(Bibliotheque Nationale du Quebec,authentication)} {}
 set {profile(Bibliotheque Nationale du Quebec,comstack)} tcpip
 set {profile(Bibliotheque Nationale du Quebec,databases)} IRIS
@@ -196,7 +196,7 @@ set {profile(Colorado Alliance of Research Libraries,timeDefine)} 944954480
 set {profile(Colorado Alliance of Research Libraries,timeLastExplain)} {}
 set {profile(Colorado Alliance of Research Libraries,timeLastInit)} {}
 set {profile(Colorado Alliance of Research Libraries,welcomeMessage)} {}
-set {profile(Colorado Alliance of Research Libraries,windowNumber)} 13
+set {profile(Colorado Alliance of Research Libraries,windowNumber)} 12
 set {profile(DTV Alis,authentication)} {}
 set {profile(DTV Alis,comstack)} tcpip
 set {profile(DTV Alis,databases)} DTV01
@@ -229,7 +229,7 @@ set {profile(DanBib V2,authentication)} {}
 set {profile(DanBib V2,comstack)} tcpip
 set {profile(DanBib V2,databases)} danbibv2
 set {profile(DanBib V2,description)} {}
-set {profile(DanBib V2,host)} z3950.dbc.dk
+set {profile(DanBib V2,host)} z3950-test.dbc.dk
 set {profile(DanBib V2,idAuthentication)} {}
 set {profile(DanBib V2,largeSetLowerBound)} 2
 set {profile(DanBib V2,maxResultSets)} {}
@@ -250,9 +250,9 @@ set {profile(DanBib V2,smallSetUpperBound)} 0
 set {profile(DanBib V2,targetInfoName)} {}
 set {profile(DanBib V2,timeDefine)} 944954541
 set {profile(DanBib V2,timeLastExplain)} {}
-set {profile(DanBib V2,timeLastInit)} 944954561
+set {profile(DanBib V2,timeLastInit)} 971251341
 set {profile(DanBib V2,welcomeMessage)} {}
-set {profile(DanBib V2,windowNumber)} 12
+set {profile(DanBib V2,windowNumber)} 11
 set {profile(Data Research Associates,authentication)} {}
 set {profile(Data Research Associates,comstack)} tcpip
 set {profile(Data Research Associates,databases)} DREWDB
@@ -306,7 +306,7 @@ set profile(Default,timeDefine) {}
 set profile(Default,timeLastExplain) {}
 set profile(Default,timeLastInit) {}
 set profile(Default,welcomeMessage) {}
-set profile(Default,windowNumber) 21
+set profile(Default,windowNumber) 20
 set {profile(Emory Library Catalog,authentication)} {}
 set {profile(Emory Library Catalog,comstack)} tcpip
 set {profile(Emory Library Catalog,databases)} unicorn
@@ -332,7 +332,7 @@ set {profile(Emory Library Catalog,smallSetUpperBound)} 0
 set {profile(Emory Library Catalog,targetInfoName)} {}
 set {profile(Emory Library Catalog,timeDefine)} 944954832
 set {profile(Emory Library Catalog,timeLastExplain)} {}
-set {profile(Emory Library Catalog,timeLastInit)} 944954836
+set {profile(Emory Library Catalog,timeLastInit)} 971250665
 set {profile(Emory Library Catalog,welcomeMessage)} {}
 set {profile(Emory Library Catalog,windowNumber)} 9
 set {profile(OCLC First Search,authentication)} {}
@@ -362,7 +362,7 @@ set {profile(OCLC First Search,timeDefine)} 944955039
 set {profile(OCLC First Search,timeLastExplain)} {}
 set {profile(OCLC First Search,timeLastInit)} {}
 set {profile(OCLC First Search,welcomeMessage)} {}
-set {profile(OCLC First Search,windowNumber)} 11
+set {profile(OCLC First Search,windowNumber)} 10
 set {profile(Royal Library of Denmark,authentication)} {}
 set {profile(Royal Library of Denmark,comstack)} tcpip
 set {profile(Royal Library of Denmark,databases)} {BGF01 BHS01 DJM01 DRA01 GRB01 KAB01 KBB01 KBH01 KBK01 KDM01 KLG01 KUI01 KVF01 NIA01 SAB01}
@@ -416,35 +416,9 @@ set {profile(University of Arkansas,smallSetUpperBound)} 0
 set {profile(University of Arkansas,targetInfoName)} {}
 set {profile(University of Arkansas,timeDefine)} 944956252
 set {profile(University of Arkansas,timeLastExplain)} {}
-set {profile(University of Arkansas,timeLastInit)} 944956270
+set {profile(University of Arkansas,timeLastInit)} 971251409
 set {profile(University of Arkansas,welcomeMessage)} {}
-set {profile(University of Arkansas,windowNumber)} 16
-set {profile(University of Arkanses,authentication)} {}
-set {profile(University of Arkanses,comstack)} tcpip
-set {profile(University of Arkanses,description)} {}
-set {profile(University of Arkanses,host)} {}
-set {profile(University of Arkanses,largeSetLowerBound)} 2
-set {profile(University of Arkanses,maxResultSets)} {}
-set {profile(University of Arkanses,maxResultSize)} {}
-set {profile(University of Arkanses,maxTerms)} {}
-set {profile(University of Arkanses,maximumRecordSize)} 50000
-set {profile(University of Arkanses,mediumSetPresentNumber)} 0
-set {profile(University of Arkanses,multipleDatabases)} 0
-set {profile(University of Arkanses,namedResultSets)} 1
-set {profile(University of Arkanses,port)} 210
-set {profile(University of Arkanses,preferredMessageSize)} 30000
-set {profile(University of Arkanses,presentChunk)} 4
-set {profile(University of Arkanses,protocol)} Z39
-set {profile(University of Arkanses,queryCCL)} 0
-set {profile(University of Arkanses,queryRPN)} 1
-set {profile(University of Arkanses,recentNews)} {}
-set {profile(University of Arkanses,smallSetUpperBound)} 0
-set {profile(University of Arkanses,targetInfoName)} {}
-set {profile(University of Arkanses,timeDefine)} {}
-set {profile(University of Arkanses,timeLastExplain)} {}
-set {profile(University of Arkanses,timeLastInit)} {}
-set {profile(University of Arkanses,welcomeMessage)} {}
-set {profile(University of Arkanses,windowNumber)} 10
+set {profile(University of Arkansas,windowNumber)} 15
 set {profile(University of British Columbia,authentication)} {}
 set {profile(University of British Columbia,comstack)} tcpip
 set {profile(University of British Columbia,databases)} MARION
@@ -472,7 +446,7 @@ set {profile(University of British Columbia,timeDefine)} 944955536
 set {profile(University of British Columbia,timeLastExplain)} {}
 set {profile(University of British Columbia,timeLastInit)} 944955627
 set {profile(University of British Columbia,welcomeMessage)} {}
-set {profile(University of British Columbia,windowNumber)} 20
+set {profile(University of British Columbia,windowNumber)} 19
 set {profile(University of California MELVYL,authentication)} {}
 set {profile(University of California MELVYL,comstack)} tcpip
 set {profile(University of California MELVYL,databases)} PE
@@ -500,7 +474,7 @@ set {profile(University of California MELVYL,timeDefine)} 944955670
 set {profile(University of California MELVYL,timeLastExplain)} {}
 set {profile(University of California MELVYL,timeLastInit)} 944955675
 set {profile(University of California MELVYL,welcomeMessage)} {}
-set {profile(University of California MELVYL,windowNumber)} 18
+set {profile(University of California MELVYL,windowNumber)} 17
 set {profile(University of Illinois,authentication)} {}
 set {profile(University of Illinois,comstack)} tcpip
 set {profile(University of Illinois,databases)} {UICOPAC2 UICOPAC1}
@@ -553,10 +527,10 @@ set profile(indexdata,recentNews) {}
 set profile(indexdata,smallSetUpperBound) 0
 set profile(indexdata,targetInfoName) Zebra
 set profile(indexdata,timeDefine) 944954185
-set profile(indexdata,timeLastExplain) 944957119
-set profile(indexdata,timeLastInit) 944957157
+set profile(indexdata,timeLastExplain) 971253620
+set profile(indexdata,timeLastInit) 971253620
 set profile(indexdata,welcomeMessage) {}
-set profile(indexdata,windowNumber) 19
+set profile(indexdata,windowNumber) 18
 set queryTypes Simple
 set queryButtons {{ {I 0} {I 1} {I 2} }}
 set queryInfo {{{Title {1=4}} {Author {1=1003}}  {Subject {1=21}} {Any {1=1016}} {Abstract {1=62}}}}
