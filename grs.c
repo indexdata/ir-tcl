@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: grs.c,v $
- * Revision 1.4  1996-05-29 06:37:42  adam
+ * Revision 1.5  1996-05-29 20:28:08  adam
+ * Bug fix: Function ir_tcl_grs_del sometimes free'd bad memory.
+ *
+ * Revision 1.4  1996/05/29  06:37:42  adam
  * Function ir_tcl_get_grs_r enhanced so that specific elements can be
  * extracted.
  *
@@ -45,7 +48,7 @@ void ir_tcl_grs_del (IrTcl_GRS_Record **grs_record)
     e = (*grs_record)->entries;
     for (i = 0; i < (*grs_record)->noTags; i++, e++)
     {
-        switch (e->tagType)
+        switch (e->tagWhich)
         {
         case Z_StringOrNumeric_numeric:
             break;
