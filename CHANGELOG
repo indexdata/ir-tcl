@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.48 2001-12-03 19:06:06 adam Exp $
+$Id: CHANGELOG,v 1.49 2002-03-20 14:48:54 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -150,3 +150,5 @@ $Id: CHANGELOG,v 1.48 2001-12-03 19:06:06 adam Exp $
 
 12/04/01 Release of ir-tcl-1.4
 ------------------------------------------------------
+03/20/02 searchResult method (retrives USR:SearchResult-1 from
+         SearchResponse)

@@ -1,4 +1,4 @@
-# $Id: shell.tcl,v 1.6 1999-03-22 06:51:34 adam Exp $
+# $Id: shell.tcl,v 1.7 2002-03-20 14:48:54 adam Exp $
 #
 
 if {[catch {ir-log-init all irtcl shell.log}]} {
@@ -77,6 +77,7 @@ proc find-response {z} {
     if {$sstatus} {
         set h [$z resultCount]
         puts "Search ok. $h hits"
+	puts [$z searchResult]
     } else {
         puts "Search failed"
     }

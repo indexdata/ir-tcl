@@ -1,10 +1,13 @@
 /*
  * IR toolkit for tcl/tk
- * (c) Index Data 1995-2001
+ * (c) Index Data 1995-2002
  * See the file LICENSE for details.
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.119  2001-12-03 00:31:06  adam
+ * Revision 1.120  2002-03-20 14:48:54  adam
+ * implemented USR.1 SearchResult-1
+ *
+ * Revision 1.119  2001/12/03 00:31:06  adam
  * Towards 1.4. Configure updates.
  *
  * Revision 1.118  2001/03/27 16:27:21  adam
@@ -2269,7 +2272,7 @@ static int do_presentResponse (void *o, Tcl_Interp *interp,
  * do_sortResponse: add sort response handler
  */
 static int do_sortResponse (void *o, Tcl_Interp *interp,
-                               int argc, char **argv)
+                            int argc, char **argv)
 {
     IrTcl_SetObj *obj = o;
 
@@ -2322,6 +2325,54 @@ static int do_searchStatus (void *o, Tcl_Interp *interp,
     if (argc <= 0)
         return TCL_OK;
     return ir_tcl_get_set_int (&obj->searchStatus, interp, argc, argv);
+}
+
+static void reset_searchResult (IrTcl_SetObj *setobj)
+{
+    int i;
+    for (i = 0; i<setobj->searchResult_num; i++)
+        xfree (setobj->searchResult_terms[i]);
+    xfree (setobj->searchResult_terms);
+    xfree (setobj->searchResult_count);
+    setobj->searchResult_terms = 0;
+    setobj->searchResult_num = 0;   
+}
+
+
+/*
+ * do_searchResult Get USR:Search-Result1 (after search response)
+ */
+static int do_searchResult (void *o, Tcl_Interp *interp,
+                            int argc, char **argv)
+{
+    IrTcl_SetObj *obj = o;
+    int i;
+    
+    if (argc == 0)
+    {
+        obj->searchResult_num = 0;
+        obj->searchResult_terms = 0;
+        obj->searchResult_count = 0;
+        return TCL_OK;
+    }
+    else if (argc == -1)
+    {
+        reset_searchResult (obj);
+        return TCL_OK;
+    }
+    for (i = 0; i<obj->searchResult_num; i++)
+    {
+        char str[40];
+        sprintf (str, "%d", obj->searchResult_count[i]);
+        Tcl_AppendResult (interp, "{", NULL);
+        if (obj->searchResult_terms[i])
+            Tcl_AppendElement (interp, obj->searchResult_terms[i]); 
+        else
+            Tcl_AppendElement (interp, ""); 
+        Tcl_AppendElement (interp, str);
+        Tcl_AppendResult (interp, "} ", NULL);
+    }
+    return TCL_OK;
 }
 
 /*
@@ -3229,6 +3280,7 @@ static IrTcl_Method ir_set_method_tab[] = {
     { "sort",                    do_sort, NULL },
     { "sortResponse",            do_sortResponse, NULL},
     { "sortStatus",              do_sortStatus, NULL},
+    { "searchResult",            do_searchResult, NULL},
     { NULL, NULL}
 };
 
@@ -4077,6 +4129,77 @@ static void ir_handleZRecords (void *o, Z_Records *zrs, IrTcl_SetObj *setobj,
     }
 }
 
+static char *set_queryExpression (Z_QueryExpression *qe)
+{
+    char *termz = 0;
+    if (!qe)
+        return 0;
+    if (qe->which == Z_QueryExpression_term)
+    {
+        if (qe->u.term->queryTerm)
+        {
+            Z_Term *term = qe->u.term->queryTerm;
+            if (term->which == Z_Term_general)
+            {
+                termz = xmalloc (term->u.general->len+1);
+                memcpy (termz, term->u.general->buf, term->u.general->len);
+                termz[term->u.general->len] = 0;
+            }
+        }
+    }
+    return termz;
+}
+
+static void set_searchResult (Z_OtherInformation *o,
+                              IrTcl_SetObj *setobj)
+{
+    int i;
+    if (!o)
+        return ;
+    for (i = 0; i < o->num_elements; i++)
+    {
+        if (o->list[i]->which == Z_OtherInfo_externallyDefinedInfo)
+        {
+            ODR odr = odr_createmem (ODR_DECODE);
+            Z_External *ext = o->list[i]->information.externallyDefinedInfo;
+            Z_SearchInfoReport *sr = 0;
+
+            if (ext->which == Z_External_single)
+            {
+                odr_setbuf (odr, ext->u.single_ASN1_type->buf,
+                            ext->u.single_ASN1_type->len, 0);
+                z_SearchInfoReport (odr, &sr, 0, "searchInfo");
+            }
+            if (ext->which == Z_External_searchResult1)
+                sr = ext->u.searchResult1;
+            if (sr)
+            {
+                int j;
+                reset_searchResult (setobj);
+
+                setobj->searchResult_num = sr->num;
+                setobj->searchResult_terms =
+                    xmalloc (sr->num * sizeof(*setobj->searchResult_terms));
+                setobj->searchResult_count =
+                    xmalloc (sr->num * sizeof(*setobj->searchResult_count));
+
+                for (j = 0; j < sr->num; j++)
+                {
+                    setobj->searchResult_terms[j] =
+                        set_queryExpression (
+                            sr->elements[j]->subqueryExpression);
+                    if (sr->elements[j]->subqueryCount)
+                        setobj->searchResult_count[j] = 
+                            *sr->elements[j]->subqueryCount;
+                    else
+                        setobj->searchResult_count[j] =  0;
+                }
+            }
+            odr_destroy (odr);
+        }
+    }
+}
+
 static void ir_searchResponse (void *o, Z_SearchResponse *searchrs,
                                IrTcl_SetObj *setobj)
 {    
@@ -4100,6 +4223,7 @@ static void ir_searchResponse (void *o, Z_SearchResponse *searchrs,
 
     logf (LOG_DEBUG, "status %d hits %d", 
           setobj->searchStatus, setobj->resultCount);
+    set_searchResult (searchrs->additionalSearchInfo, setobj);
     if (zrs)
     {
         const char *es;

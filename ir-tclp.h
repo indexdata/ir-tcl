@@ -1,11 +1,14 @@
 /*
  * IR toolkit for tcl/tk
- * (c) Index Data 1995-1999
+ * (c) Index Data 1995-2002
  * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.39  1999-11-30 14:05:58  adam
+ * Revision 1.40  2002-03-20 14:48:54  adam
+ * implemented USR.1 SearchResult-1
+ *
+ * Revision 1.39  1999/11/30 14:05:58  adam
  * Updated for new location of YAZ headers.
  *
  * Revision 1.38  1999/03/22 06:51:34  adam
@@ -257,6 +260,7 @@ typedef struct {
     struct IrTcl_Request_ *request_queue;
 
     IrTcl_SetCObj   set_inher;
+
 } IrTcl_Obj;
 
 typedef struct IrTcl_Request_ {
@@ -346,6 +350,9 @@ typedef struct IrTcl_SetObj_ {
     IrTcl_Diagnostic *nonSurrogateDiagnosticList;
     IrTcl_RecordList *record_list;
     IrTcl_SetCObj set_inher;
+    int        searchResult_num;
+    char       **searchResult_terms;
+    int        *searchResult_count;
 } IrTcl_SetObj;
 
 typedef struct IrTcl_ScanEntry_ {
