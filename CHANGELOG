@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.24 1996-07-25 15:51:54 adam Exp $
+$Id: CHANGELOG,v 1.25 1996-07-26 09:15:06 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -90,4 +90,10 @@ $Id: CHANGELOG,v 1.24 1996-07-25 15:51:54 adam Exp $
 06/27/96 Ported ir-tcl to Tcl7.5/tk4.1.
 
 07/25/96 Release of ir-tcl-1.2
+------------------------------------------------------
+
+07/26/96 Bug fix: configure script didn't include library specification
+         for Tcl when linking ir-tk.
+
+07/26/96 Release of ir-tcl-1.2pl1
 ------------------------------------------------------

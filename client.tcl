@@ -1,10 +1,13 @@
 # IR toolkit for tcl/tk
-# (c) Index Data 1995
+# (c) Index Data 1995-1996
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.94  1996-07-25 15:55:34  adam
+# Revision 1.95  1996-07-26 09:15:08  adam
+# IrTcl version 1.2 patch level 1.
+#
+# Revision 1.94  1996/07/25  15:55:34  adam
 # IrTcl version 1.2 release.
 #
 # Revision 1.93  1996/06/28  08:43:54  adam

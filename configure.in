@@ -1,7 +1,7 @@
 dnl IR toolkit for tcl/tk
 dnl (c) Index Data 1996
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.17 1996-06-28 08:43:55 adam Exp $
+dnl $Id: configure.in,v 1.18 1996-07-26 09:15:09 adam Exp $
 AC_INIT(ir-tcl.h)
 CC=${CC-cc}
 dnl ------ Substitutions
@@ -28,8 +28,7 @@ AC_ARG_WITH(yazdir,[  --with-yazdir           Yaz directory], [YAZDIR=$withval])
 if test "$YAZDIR" = "yes"; then
 	YAZDIR="../yaz-1.2"
 elif test "$YAZDIR" = ""; then
-        YAZDIR="../yaz"
-        for i in ../yaz-1.2 ../yaz-1.3 ../yaz; do
+        for i in ../yaz* ../yaz; do
             if test -d $i; then
                 YAZDIR=$i
             fi
@@ -70,12 +69,7 @@ fi
 if test -r ${tryprefix}/lib/tclConfig.sh; then
 	AC_MSG_CHECKING(for Tcl)
 	source ${tryprefix}/lib/tclConfig.sh
-	if test "$TCL_LIB_VERSIONS_OK" = "yes"; then
-		TCLLIB="-L${TCL_PREFIX}/lib -ltcl${TCL_VERSION}"
-	else
-		TCLLIB=${TCL_PREFIX}/lib/${TCL_LIB_FILE}
-	fi
-	TCLLIB="${TCLLIB} ${TCL_LIBS}"
+	TCLLIB="${TCL_LIB_SPEC} ${TCL_LIBS}"
 	TCLINC=-I${TCL_PREFIX}/include
 	RANLIB=$TCL_RANLIB
 	AC_MSG_RESULT($TCL_VERSION)
@@ -101,7 +95,7 @@ else
 	done
 	if test "$TCL_VERSION" = nope; then
 		AC_MSG_WARN(Didn't find Tcl)
-		TCLLIB=-ltcl
+		TCL_LIB_SPEC=-ltcl
 		TCLINC=" # -I.. Tcl/Tk include path"
 	else
 		if test "$TCL_VERSION" = ""; then
@@ -109,10 +103,10 @@ else
 		else
 			AC_MSG_RESULT($TCL_VERSION)
 		fi
-		TCLLIB=${tryprefix}/lib/libtcl${TCL_VERSION}.a
+		TCL_LIB_SPEC=${tryprefix}/lib/libtcl${TCL_VERSION}.a
 		TCLINC=-I${tryprefix}/include
 	fi
-	TCLLIB="${TCLLIB} ${LIBS} -lm"
+	TCLLIB="${TCL_LIB_SPEC} ${LIBS} -lm"
 fi
 dnl ------ look for Tk
 if test -r ${tryprefix}/lib/tkConfig.sh; then
@@ -120,7 +114,7 @@ if test -r ${tryprefix}/lib/tkConfig.sh; then
 	source ${tryprefix}/lib/tkConfig.sh
 	AC_MSG_RESULT($TK_VERSION)
 	TKINC=${TK_XINCLUDES}
-	TKLIB="${TK_PREFIX}/lib/${TK_LIB_FILE} ${TK_LIBS}"
+	TKLIB="${TK_PREFIX}/lib/${TK_LIB_FILE} ${TCL_LIB_SPEC} ${TK_LIBS}"
 else
 	AC_MSG_CHECKING(for Tk)
 	TK_VERSION=nope
@@ -140,7 +134,7 @@ else
 			AC_MSG_RESULT($TK_VERSION)
 		fi
 	fi
-	TKLIB=${tryprefix}/lib/libtk${i}.a
+	TKLIB=${tryprefix}/lib/libtk${TK_VERSION}.a
 	AC_PATH_X
 	not_really_there=""
 	if test "$no_x" = ""; then
@@ -198,7 +192,7 @@ else
 		echo "Warning:  couldn't find the X11 library archive.  Using -lX11."
 		XLIBSW=-lX11
 	fi
-	TKINC=$XINCLUDE
+	TKINC=$XINCLUDES
 	TKLIB="${TKLIB} ${XLIBSW} ${TCLLIB}"
 fi
 AC_OUTPUT(Makefile)

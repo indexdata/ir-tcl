@@ -1,12 +1,12 @@
 # IR toolkit for tcl/tk
-# (c) Index Data 1995
+# (c) Index Data 1995-1996
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.37 1996-07-25 14:07:09 adam Exp $
+# $Id: Makefile.in,v 1.38 1996-07-26 09:15:06 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
-VERSION=1.2
+VERSION=1.2pl1
 
 # Directory prefix with machine independent files (scripts, setup files, etc.)
 prefix = @prefix@

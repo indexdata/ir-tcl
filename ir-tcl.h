@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995, Index Data.
+ * Copyright (c) 1995-1996, Index Data.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation, in whole or in part, for any purpose, is hereby granted,
@@ -24,7 +24,10 @@
  * OF THIS SOFTWARE.
  *
  * $Log: ir-tcl.h,v $
- * Revision 1.14  1996-02-21 10:16:19  adam
+ * Revision 1.15  1996-07-26 09:15:09  adam
+ * IrTcl version 1.2 patch level 1.
+ *
+ * Revision 1.14  1996/02/21  10:16:19  adam
  * Simplified select handling. Only one function ir_tcl_select_set has
  * to be externally defined.
  *
