@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.19  1995-04-18 16:11:50  adam
+# Revision 1.20  1995-04-21 16:31:57  adam
+# New radiobutton: protocol (z39v2/SR).
+#
+# Revision 1.19  1995/04/18  16:11:50  adam
 # First version of graphical Scan. Some work on query-by-form.
 #
 # Revision 1.18  1995/04/10  10:50:22  adam
@@ -66,7 +69,7 @@ set hotTargets {}
 set hotInfo {}
 set busy 0
 
-set profile(Default) {{} {} {210} {} 16384 8192 tcpip {}}
+set profile(Default) {{} {} {210} {} 16384 8192 tcpip {} 1 {} {} z39v2}
 set hostid Default
 set settingsChanged 0
 set setNo 0
@@ -432,15 +435,15 @@ proc search-request {} {
     ir-set z39.$setNo
 
 
-    if {[lindex $profile($target) 10]} {
+    if {[lindex $profile($target) 10] != ""} {
         z39.$setNo setName $setNo
     } else {
         z39.$setNo setName Default
     }
-    if {[lindex $profile($target) 8]} {
+    if {[lindex $profile($target) 8] != ""} {
         z39 query rpn
     }
-    if {[lindex $profile($target) 9]} {
+    if {[lindex $profile($target) 9] != ""} {
         z39 query ccl
     }
     z39 callback {search-response}
@@ -654,6 +657,7 @@ proc define-target-dialog {} {
 proc protocol-setup-action {target} {
     global profile
     global csRadioType
+    global protocolRadioType
     global settingsChanged
     global RPNCheck
     global CCLCheck
@@ -679,7 +683,8 @@ proc protocol-setup-action {target} {
             $b \
             $RPNCheck \
             $CCLCheck \
-            $ResultSetCheck ]
+            $ResultSetCheck \
+            $protocolRadioType ]
 
     cascade-target-list
     puts $profile($target)
@@ -741,6 +746,7 @@ proc protocol-setup {target} {
 
     global profile
     global csRadioType
+    global protocolRadioType
     global RPNCheck
     global CCLCheck
     global ResultSetCheck
@@ -765,6 +771,7 @@ proc protocol-setup {target} {
     frame $w.top.maximumRecordSize
     frame $w.top.preferredMessageSize
     frame $w.top.cs-type -relief ridge -border 2
+    frame $w.top.protocol -relief ridge -border 2
     frame $w.top.query -relief ridge -border 2
     frame $w.top.databases -relief ridge -border 2
 
@@ -775,7 +782,7 @@ proc protocol-setup {target} {
     
     entry-fields $w.top {description host port idAuthentication \
             maximumRecordSize preferredMessageSize} \
-            {{Description:} {Host:} {Port:} {Id Authentification:} \
+            {{Description:} {Host:} {Port:} {Id Authentication:} \
             {Maximum Record Size:} {Preferred Message Size:}} \
             [list protocol-setup-action $target] [list destroy $w]
     
@@ -795,9 +802,13 @@ proc protocol-setup {target} {
     set RPNCheck [lindex $profile($target) 8]
     set CCLCheck [lindex $profile($target) 9]
     set ResultSetCheck [lindex $profile($target) 10]
+    set protocolRadioType [lindex $profile($target) 11]
+    if {$protocolRadioType == ""} {
+        set protocolRadioType z39v2
+    }
 
     # Databases ....
-    pack $w.top.databases -side left -pady 6 -padx 6 -expand yes -fill x
+    pack $w.top.databases -side left -pady 6 -padx 6 -expand yes -fill both
 
     label $w.top.databases.label -text "Databases"
     button $w.top.databases.add -text "Add" \
@@ -822,24 +833,36 @@ proc protocol-setup {target} {
     }
 
     # Transport ...
-    pack $w.top.cs-type -pady 6 -padx 6 -side top
+    pack $w.top.cs-type -pady 6 -padx 6 -side top -fill x
     
     label $w.top.cs-type.label -text "Transport" 
-    radiobutton $w.top.cs-type.tcpip -text "TCP/IP" \
+    radiobutton $w.top.cs-type.tcpip -text "TCP/IP" -anchor w \
             -command {puts tcp/ip} -variable csRadioType -value tcpip
-    radiobutton $w.top.cs-type.mosi -text "MOSI" \
+    radiobutton $w.top.cs-type.mosi -text "MOSI" -anchor w\
             -command {puts mosi} -variable csRadioType -value mosi
     
     pack $w.top.cs-type.label $w.top.cs-type.tcpip $w.top.cs-type.mosi \
             -padx 4 -side top -fill x
 
-    # Query ...
-    pack $w.top.query -pady 6 -padx 6 -side top
+    # Protocol ...
+    pack $w.top.protocol -pady 6 -padx 6 -side top -fill x
+    
+    label $w.top.protocol.label -text "Protocol" 
+    radiobutton $w.top.protocol.z39v2 -text "Z39.50" -anchor w \
+            -command {puts z39v2} -variable protocolRadioType -value z39v2
+    radiobutton $w.top.protocol.sr -text "SR" -anchor w \
+            -command {puts sr} -variable protocolRadioType -value sr
+    
+    pack $w.top.protocol.label $w.top.protocol.z39v2 $w.top.protocol.sr \
+            -padx 4 -side top -fill x
 
-    label $w.top.query.label -text "Query support" -anchor e
-    checkbutton $w.top.query.c1 -text "RPN query" -variable RPNCheck
-    checkbutton $w.top.query.c2 -text "CCL query" -variable CCLCheck
-    checkbutton $w.top.query.c3 -text "Result sets" -variable ResultSetCheck
+    # Query ...
+    pack $w.top.query -pady 6 -padx 6 -side top -fill x
+
+    label $w.top.query.label -text "Query support"
+    checkbutton $w.top.query.c1 -text "RPN query" -anchor w -variable RPNCheck
+    checkbutton $w.top.query.c2 -text "CCL query" -anchor w -variable CCLCheck
+    checkbutton $w.top.query.c3 -text "Result sets" -anchor w -variable ResultSetCheck
 
     pack $w.top.query.label -side top 
     pack $w.top.query.c1 $w.top.query.c2 $w.top.query.c3 \
@@ -1315,20 +1338,23 @@ proc index-lines {w realOp buttonInfo queryInfo handle} {
         }
         listbuttonx $w.$i.l [lindex $b 1] $queryInfo $handle $i
 
-        if {! [winfo exists $w.$i.e]} {
-            if {$realOp} {
-                entry $w.$i.e -width 32 -relief sunken
-            }
-            pack $w.$i.l -side left
-            if {$realOp} {
-                pack $w.$i.e -side left -fill x -expand yes
-            }
-            pack $w.$i -side top -fill x -padx 2 -pady 2
-        }
         if {$realOp} {
-            bind $w.$i.e <Left> [list left-cursor $w.$i.e]
-            bind $w.$i.e <Right> [list right-cursor $w.$i.e]
-            bind $w.$i.e <Return> search-request
+            if {! [winfo exists $w.$i.e]} {
+                entry $w.$i.e -width 32 -relief sunken -border 1
+                bind $w.$i.e <FocusIn> [list $w.$i configure \
+                        -background red]
+                bind $w.$i.e <FocusOut> [list $w.$i configure \
+                        -background white]
+                pack $w.$i.l -side left
+                pack $w.$i.e -side left -fill x -expand yes
+                pack $w.$i -side top -fill x -padx 2 -pady 2
+                bind $w.$i.e <Left> [list left-cursor $w.$i.e]
+                bind $w.$i.e <Right> [list right-cursor $w.$i.e]
+                bind $w.$i.e <Return> search-request
+            }
+        } else {
+            pack $w.$i.l -side left
+            pack $w.$i -side top -fill x -padx 2 -pady 2
         }
         incr i
     }
@@ -1344,17 +1370,12 @@ proc index-lines {w realOp buttonInfo queryInfo handle} {
     incr i -1
     while {$j < $i} {
         set k [expr $j+1]
-        bind $w.$j.e <Tab> "focus $w.$k.e \n
-        $w.$k configure -background red \n
-        $w.$j configure -background white"
+        bind $w.$j.e <Tab> "focus $w.$k.e"
         set j $k
     }
     if {$i >= 0} {
-        bind $w.$i.e <Tab> "focus $w.0.e \n
-        $w.0 configure -background red \n
-        $w.$i configure -background white"
+        bind $w.$i.e <Tab> "focus $w.0.e"
         focus $w.0.e
-        $w.0 configure -background red
     }
 }
 
