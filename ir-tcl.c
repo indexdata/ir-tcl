@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.52  1995-08-04 11:32:38  adam
+ * Revision 1.53  1995-08-04 12:49:26  adam
+ * Bug fix: reading uninitialized variable p.
+ *
+ * Revision 1.52  1995/08/04  11:32:38  adam
  * More work on output queue. Memory related routines moved
  * to mem.c
  *
@@ -484,7 +487,7 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
         return TCL_OK;
     if (!p->cs_link)
     {
-        interp->result = "not connected";
+        interp->result = "init: not connected";
         return TCL_ERROR;
     }
     apdu = zget_APDU (p->odr_out, Z_APDU_initRequest);
@@ -1134,7 +1137,7 @@ static int do_triggerResourceControl (void *obj, Tcl_Interp *interp,
         return TCL_OK;
     if (!p->cs_link)
     {
-        interp->result = "not connected";
+        interp->result = "triggerResourceControl: not connected";
         return TCL_ERROR;
     }
     apdu = zget_APDU (p->odr_out, Z_APDU_triggerResourceControlRequest);
@@ -1524,7 +1527,7 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     if (!p->cs_link)
     {
-        interp->result = "not connected";
+        interp->result = "search: not connected";
         return TCL_ERROR;
     }
     apdu = zget_APDU (p->odr_out, Z_APDU_searchRequest);
@@ -1964,8 +1967,7 @@ static int do_responseStatus (void *o, Tcl_Interp *interp,
  * do_present: Perform Present Request
  */
 
-static int do_present (void *o, Tcl_Interp *interp,
-                       int argc, char **argv)
+static int do_present (void *o, Tcl_Interp *interp, int argc, char **argv)
 {
     IrTcl_SetObj *obj = o;
     IrTcl_Obj *p;
@@ -1990,12 +1992,12 @@ static int do_present (void *o, Tcl_Interp *interp,
     }
     else 
         number = 10;
+    p = obj->parent;
     if (!p->cs_link)
     {
-        interp->result = "not connected";
+        interp->result = "present: not connected";
         return TCL_ERROR;
     }
-    p = obj->parent;
 
     obj->start = start;
     obj->number = number;
@@ -2239,7 +2241,7 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     if (!p->cs_link)
     {
-        interp->result = "not connected";
+        interp->result = "scan: not connected";
 	return TCL_ERROR;
     }
 
