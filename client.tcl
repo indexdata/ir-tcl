@@ -4,7 +4,12 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.51  1995-06-21 11:11:00  adam
+# Revision 1.52  1995-06-22 13:14:59  adam
+# Feature: SUTRS. Setting getSutrs implemented.
+# Work on display formats.
+# Preferred record syntax can be set by the user.
+#
+# Revision 1.51  1995/06/21  11:11:00  adam
 # Bug fix: libdir undefined in about-origin.
 #
 # Revision 1.50  1995/06/21  11:04:48  adam
@@ -199,6 +204,7 @@ set fullMarcSeq 0
 set displayFormat 1
 set popupMarcdf 0
 set textWrap word
+set recordSyntax USMARC
 set delayRequest {}
 
 set queryTypes {Simple}
@@ -216,9 +222,11 @@ proc read-formats {} {
     set formats [glob -nocomplain ${libdir}/formats/*.tcl]
     foreach f $formats {
 	if {[file readable $f]} {
-             source $f
-             set l [expr [string length $f] - 5]
- 	     lappend displayFormats [string range $f 8 $l]
+            source $f
+            set l [string length $f]
+            set f [string range $f [string length "${libdir}/formats/"] \
+                    [expr $l - 5]]
+            lappend displayFormats $f
         }
     }
 }
@@ -231,7 +239,7 @@ proc set-wrap {m} {
 }
 
 proc dputs {m} {
-    puts $m
+#    puts $m
 }
 
 proc set-display-format {f} {
@@ -247,7 +255,7 @@ proc set-display-format {f} {
         .bot.a.status configure -text "Reformatting"
     }
     update idletasks
-    add-title-lines 0 10000 1
+    add-title-lines -1 10000 1
     if {!$busy} {
         .bot.a.status configure -text "Ready"
     }
@@ -634,11 +642,6 @@ proc popup-marc {sno no b df} {
     set recordType [z39.$sno recordType $no]
     wm title $w "$recordType record #$no"
 
-    set ffunc [lindex $displayFormats $df]
-    set ffunc "display-$ffunc"
-
-    $ffunc $sno $no $w.top.record 0
-
     if {$new} {
         bind $w.top.record <Return> {destroy .full-marc}
         
@@ -672,6 +675,10 @@ proc popup-marc {sno no b df} {
             incr i
         }
     }
+    set ffunc [lindex $displayFormats $df]
+    set ffunc "display-$ffunc"
+
+    $ffunc $sno $no $w.top.record 0
 }
 
 proc update-target-hotlist {target base} {
@@ -786,7 +793,6 @@ proc open-target {target base} {
         show-status Ready 0 {}
         return
     }
-#    z39 options search present scan namedResultSets triggerResourceCtrl
     set hostid $target
     .top.target.m disable 0
     .top.target.m enable 1
@@ -901,6 +907,7 @@ proc search-request {bflag} {
     global busy
     global cancelFlag
     global delayRequest
+    global recordSyntax
 
     set target $hostid
 
@@ -938,6 +945,9 @@ proc search-request {bflag} {
     if {[lindex $profile($target) 9] == 1} {
         z39.$setNo queryType ccl
     }
+    dputs Setting
+    dputs $recordSyntax
+    z39.$setNo preferredRecordSyntax $recordSyntax
     z39 callback {search-response}
     z39.$setNo search $query
     show-status {Searching} 1 0
@@ -1323,7 +1333,7 @@ proc add-title-lines {setno no offset} {
     global displayFormat
     global lastSetNo
 
-    if {$setno == 0} {
+    if {$setno == -1} {
         set setno $lastSetNo
     } else {
         set lastSetNo $setno
@@ -1333,6 +1343,7 @@ proc add-title-lines {setno no offset} {
         .data.record delete 0.0 end
     }
     set ffunc [lindex $displayFormats $displayFormat]
+    dputs "ffunc=$ffunc"
     set ffunc "display-$ffunc"
     for {set i 0} {$i < $no} {incr i} {
         set o [expr $i + $offset]
@@ -1890,6 +1901,7 @@ proc save-geometry {} {
     global textWrap
     global displayFormat
     global popupMarcdf
+    global recordSyntax
     
     set windowGeometry(.) [wm geometry .]
 
@@ -1899,6 +1911,7 @@ proc save-geometry {} {
     puts $f "set textWrap $textWrap"
     puts $f "set displayFormat $displayFormat"
     puts $f "set popupMarcdf $popupMarcdf"
+    puts $f "set recordSyntax $recordSyntax"
     foreach n [array names windowGeometry] {
         puts -nonewline $f "set \{windowGeometry($n)\} \{"
         puts -nonewline $f $windowGeometry($n)
@@ -1915,7 +1928,7 @@ proc save-settings {} {
     global queryButtons
     global queryInfo
    
-    if {![file writeable "${libdir}/clientrc.tcl"]} {
+    if {![file writable "${libdir}/clientrc.tcl"]} {
 	return
     }
     set f [open "${libdir}/clientrc.tcl" w]
@@ -2759,6 +2772,7 @@ menu .top.options.m
 .top.options.m add cascade -label "Query" -menu .top.options.m.query
 .top.options.m add cascade -label "Format" -menu .top.options.m.formats
 .top.options.m add cascade -label "Wrap" -menu .top.options.m.wrap
+.top.options.m add cascade -label "Syntax" -menu .top.options.m.syntax
 
 menu .top.options.m.query
 .top.options.m.query add cascade -label "Select" \
@@ -2790,6 +2804,25 @@ menu .top.options.m.wrap
         -value word -variable textWrap -command {set-wrap word}
 .top.options.m.wrap add radiobutton -label "None" \
         -value none -variable textWrap -command {set-wrap none}
+
+menu .top.options.m.syntax
+.top.options.m.syntax add radiobutton -label "USMARC" \
+        -value USMARC -variable recordSyntax
+.top.options.m.syntax add radiobutton -label "UNIMARC" \
+        -value UNIMARC -variable recordSyntax
+.top.options.m.syntax add radiobutton -label "UKMARC" \
+        -value UKMARC -variable recordSyntax
+.top.options.m.syntax add radiobutton -label "DANMARC" \
+        -value DANMARC -variable recordSyntax
+.top.options.m.syntax add radiobutton -label "FINMARC" \
+        -value FINMARC -variable recordSyntax
+.top.options.m.syntax add radiobutton -label "NORMARC" \
+        -value NORMARC -variable recordSyntax
+.top.options.m.syntax add radiobutton -label "PICAMARC" \
+        -value PICAMARC -variable recordSyntax
+.top.options.m.syntax add separator
+.top.options.m.syntax add radiobutton -label "SUTRS" \
+        -value SUTRS -variable recordSyntax
 
 menubutton .top.help -text "Help" -menu .top.help.m
 menu .top.help.m

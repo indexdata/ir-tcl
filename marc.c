@@ -5,7 +5,12 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: marc.c,v $
- * Revision 1.3  1995-05-29 08:44:26  adam
+ * Revision 1.4  1995-06-22 13:15:09  adam
+ * Feature: SUTRS. Setting getSutrs implemented.
+ * Work on display formats.
+ * Preferred record syntax can be set by the user.
+ *
+ * Revision 1.3  1995/05/29  08:44:26  adam
  * Work on delete of objects.
  *
  * Revision 1.2  1995/05/26  11:44:11  adam
@@ -36,6 +41,8 @@ static int atoi_n (const char *buf, int len)
     {
         if (isdigit (*buf))
             val = val*10 + (*buf - '0');
+        else if (*buf != ' ')
+            return 0;
 	buf++;
     }
     return val;
@@ -102,6 +109,11 @@ int ir_tcl_get_marc (Tcl_Interp *interp, const char *buf,
     {
         Tcl_AppendResult (interp, "Unknown MARC extract mode", NULL);
 	return TCL_ERROR;
+    }
+    if (!buf)
+    {
+        Tcl_AppendResult (interp, "Not a MARC record", NULL);
+        return TCL_ERROR;
     }
     record_length = atoi_n (buf, 5);
     if (record_length < 25)

@@ -5,7 +5,12 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.45  1995-06-20 08:07:30  adam
+ * Revision 1.46  1995-06-22 13:15:06  adam
+ * Feature: SUTRS. Setting getSutrs implemented.
+ * Work on display formats.
+ * Preferred record syntax can be set by the user.
+ *
+ * Revision 1.45  1995/06/20  08:07:30  adam
  * New setting: failInfo.
  * Working on better cancel mechanism.
  *
@@ -1557,6 +1562,7 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
         ident.proto = p->protocol_type;
         ident.class = CLASS_RECSYN;
         ident.value = *obj->set_inher.preferredRecordSyntax;
+        logf (LOG_DEBUG, "Preferred record syntax is %d", ident.value);
         req->preferredRecordSyntax = odr_oiddup (p->odr_out, 
                                                  oid_getoidbyent (&ident));
     }
@@ -1903,6 +1909,41 @@ static int do_getMarc (void *o, Tcl_Interp *interp, int argc, char **argv)
     return ir_tcl_get_marc (interp, rl->u.dbrec.buf, argc, argv);
 }
 
+/*
+ * do_getSutrs: Get SUTRS Record
+ */
+static int do_getSutrs (void *o, Tcl_Interp *interp, int argc, char **argv)
+{
+    IrTcl_SetObj *obj = o;
+    int offset;
+    IrTcl_RecordList *rl;
+
+    if (argc <= 0)
+        return TCL_OK;
+    if (argc < 3)
+    {
+        sprintf (interp->result, "wrong # args");
+        return TCL_ERROR;
+    }
+    if (Tcl_GetInt (interp, argv[2], &offset)==TCL_ERROR)
+        return TCL_ERROR;
+    rl = find_IR_record (obj, offset);
+    if (!rl)
+    {
+        Tcl_AppendResult (interp, "No record at #", argv[2], NULL);
+        return TCL_ERROR;
+    }
+    if (rl->which != Z_NamePlusRecord_databaseRecord)
+    {
+        Tcl_AppendResult (interp, "No DB record at #", argv[2], NULL);
+        return TCL_ERROR;
+    }
+    if (rl->u.dbrec.type != VAL_SUTRS)
+        return TCL_OK;
+    Tcl_AppendElement (interp, rl->u.dbrec.buf);
+    return TCL_OK;
+}
+
 
 /*
  * do_responseStatus: Return response status (present or search)
@@ -1993,7 +2034,19 @@ static int do_present (void *o, Tcl_Interp *interp,
     
     req->resultSetStartPoint = &start;
     req->numberOfRecordsRequested = &number;
-    req->preferredRecordSyntax = 0;
+    if (obj->set_inher.preferredRecordSyntax)
+    {
+        struct oident ident;
+
+        ident.proto = p->protocol_type;
+        ident.class = CLASS_RECSYN;
+        ident.value = *obj->set_inher.preferredRecordSyntax;
+        logf (LOG_DEBUG, "Preferred record syntax is %d", ident.value);
+        req->preferredRecordSyntax = odr_oiddup (p->odr_out, 
+                                                 oid_getoidbyent (&ident));
+    }
+    else
+        req->preferredRecordSyntax = 0;
 
     if (!z_APDU (p->odr_out, &apdu, 0))
     {
@@ -2072,6 +2125,7 @@ static IrTcl_Method ir_set_method_tab[] = {
     { 0, "present",                 do_present },
     { 0, "type",                    do_type },
     { 0, "getMarc",                 do_getMarc },
+    { 0, "getSutrs",                do_getSutrs },
     { 0, "recordType",              do_recordType },
     { 0, "diag",                    do_diag },
     { 0, "responseStatus",          do_responseStatus },
@@ -2654,22 +2708,44 @@ static void ir_handleRecords (void *o, Z_Records *zrs)
             {
                 Z_DatabaseRecord *zr; 
                 Odr_external *oe;
+                struct oident *ident;
                 
                 zr = zrs->u.databaseOrSurDiagnostics->records[offset]
                     ->u.databaseRecord;
                 oe = (Odr_external*) zr;
 		rl->u.dbrec.size = zr->u.octet_aligned->len;
+
                 rl->u.dbrec.type = VAL_USMARC;
+                ident = oid_getentbyoid (oe->direct_reference);
+                rl->u.dbrec.type = ident->value;
+
                 if (oe->which == ODR_EXTERNAL_octet && rl->u.dbrec.size > 0)
                 {
-                    const char *buf = (char*) zr->u.octet_aligned->buf;
+                    char *buf = (char*) zr->u.octet_aligned->buf;
                     if ((rl->u.dbrec.buf = malloc (rl->u.dbrec.size)))
 		        memcpy (rl->u.dbrec.buf, buf, rl->u.dbrec.size);
-                    if (oe->direct_reference)
+                }
+                else if (rl->u.dbrec.type == VAL_SUTRS && 
+                         oe->which == ODR_EXTERNAL_single)
+                {
+                    Odr_oct *rc;
+                    
+                    logf (LOG_DEBUG, "Decoding SUTRS");
+                    odr_setbuf (p->odr_in, (char*) oe->u.single_ASN1_type->buf,
+                                oe->u.single_ASN1_type->len, 0);
+                    if (!z_SUTRS(p->odr_in, &rc, 0))
                     {
-                        struct oident *ident = 
-                            oid_getentbyoid (oe->direct_reference);
-                        rl->u.dbrec.type = ident->value;
+                        logf (LOG_WARN, "Cannot decode SUTRS");
+                        rl->u.dbrec.buf = NULL;
+                    }
+                    else 
+                    {
+                        if ((rl->u.dbrec.buf = malloc (rc->len+1)))
+                        {
+                            memcpy (rl->u.dbrec.buf, rc->buf, rc->len);
+                            rl->u.dbrec.buf[rc->len] = '\0';
+                        }
+                        rl->u.dbrec.size = rc->len;
                     }
                 }
                 else
