@@ -1,0 +1,23 @@
+$Id: CHANGELOG,v 1.1 1995-06-25 10:24:58 adam Exp $
+
+06/19/95 Release of ir-tcl-1.0b
+------------------------------------------------------
+06/20/95 Cancel mechanism changed in client.tcl. After a cancel, the
+         interface becomes 'ready' immediately.
+
+06/20/95 New setting: failInfo. It returns failback diagnostics.
+
+06/21/95 Bitmaps (book[1-9]) moved to subdirectory bitmaps.
+
+06/21/95 Install procedure change. GNU autoconf used to create the
+         Makefile. The user may type 'make install' to copy system files
+         to /usr/local/...
+
+06/22/95 SUTRS. New setting, 'getSutrs', to retrieve a SUTRS record
+         as a Tcl string. 
+
+06/22/95 Display format routines (line.tcl,medium.tcl,raw.tcl) changed
+         to handle display of SUTRS records. 
+
+06/22/95 Preferred record syntax can be specified by the user in client.tcl.
+

@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.46  1995-06-22 13:15:06  adam
+ * Revision 1.47  1995-06-25 10:25:04  adam
+ * Working on triggerResourceControl. Description of compile/install
+ * procedure moved to ir-tcl.sgml.
+ *
+ * Revision 1.46  1995/06/22  13:15:06  adam
  * Feature: SUTRS. Setting getSutrs implemented.
  * Work on display formats.
  * Preferred record syntax can be set by the user.
@@ -1151,6 +1155,53 @@ static int do_protocol (void *o, Tcl_Interp *interp, int argc, char **argv)
 }
 
 /*
+ * do_triggerResourceControl:
+ */
+static int do_triggerResourceControl (void *obj, Tcl_Interp *interp,
+                                      int argc, char **argv)
+{
+    IrTcl_Obj *p = obj;
+    Z_APDU *apdu;
+    Z_TriggerResourceControlRequest *req;
+    int r;
+
+    if (argc <= 0)
+        return TCL_OK;
+    if (!p->cs_link)
+    {
+        interp->result = "not connected";
+        return TCL_ERROR;
+    }
+    apdu = zget_APDU (p->odr_out, Z_APDU_triggerResourceControlRequest);
+    req = apdu->u.triggerResourceControlRequest;
+    
+    if (!z_APDU (p->odr_out, &apdu, 0))
+    {
+        Tcl_AppendResult (interp, odr_errlist [odr_geterror (p->odr_out)],
+                          NULL);
+        odr_reset (p->odr_out);
+        return TCL_ERROR;
+    }
+    p->sbuf = odr_getbuf (p->odr_out, &p->slen, NULL);
+    if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
+    {     
+        interp->result = "cs_put failed in triggerResourceControl";
+        do_disconnect (p, NULL, 2, NULL);
+        return TCL_ERROR;
+    }
+    else if (r == 1)
+    {
+        ir_select_add_write (cs_fileno(p->cs_link), p);
+        logf (LOG_DEBUG, "Sent part of triggerResourceControl (%d bytes)", 
+            p->slen);
+    }
+    else
+        logf (LOG_DEBUG, "Sent whole of triggerResourceControl (%d bytes)", 
+            p->slen);
+    return TCL_OK;
+}
+
+/*
  * do_databaseNames: specify database names
  */
 static int do_databaseNames (void *obj, Tcl_Interp *interp,
@@ -1379,6 +1430,7 @@ static IrTcl_Method ir_method_tab[] = {
 { 0, "initResult",                  do_initResult },
 { 0, "disconnect",                  do_disconnect },
 { 0, "callback",                    do_callback },
+{ 0, "triggerResourceControl",      do_triggerResourceControl },
 { 0, NULL, NULL}
 };
 

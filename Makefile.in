@@ -2,7 +2,7 @@
 # (c) Index Data 1995
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.5 1995-06-23 10:58:10 adam Exp $
+# $Id: Makefile.in,v 1.6 1995-06-25 10:24:59 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -17,6 +17,7 @@ exec_prefix = @exec_prefix@
 BINDIR=$(exec_prefix)/bin
 LIBDIR=$(exec_prefix)/lib
 MANDIR=$(prefix)/man
+INCDIR=$(prefix)/include
 IRTCLDIR=$(prefix)/lib/irtcl
 
 YAZDIR=@YAZDIR@
@@ -65,7 +66,7 @@ libirtcl.a: $(O)
 	ar qc libirtcl.a $(O)
 	$(RANLIB) libirtcl.a
 
-install-tcl: ir-tcl
+install: ir-tcl
 	for d in $(IRTCLDIR) $(IRTCLDIR)/formats $(IRTCLDIR)/bitmaps; do \
 		if [ ! -d $$d ]; then \
 			echo Making $$d; \
@@ -74,19 +75,12 @@ install-tcl: ir-tcl
 		fi; \
 	done;
 	$(INSTALL_PROGRAM) ir-tcl $(BINDIR)
-
-install-tk: ir-tk
-	for d in $(IRTCLDIR) $(IRTCLDIR)/formats $(IRTCLDIR)/bitmaps; do \
-		if [ ! -d $$d ]; then \
-			echo Making $$d; \
-			mkdir $$d; \
-			chmod 755 $$d; \
-		fi; \
-	done;
-	sed "s,^set libdir LIBDIR,set libdir $(IRTCLDIR)," <client.tcl >client.bak
-	$(INSTALL_PROGRAM) ir-tk $(BINDIR)
-	$(INSTALL_DATA) client.bak $(IRTCLDIR)/client.tcl
+	$(INSTALL_DATA) libirtcl.a $(LIBDIR)
+	$(INSTALL_DATA) ir-tcl.h $(INCDIR)
 	$(INSTALL_DATA) LICENSE clientrc.tcl $(IRTCLDIR)
+	sed "s,^set libdir LIBDIR,set libdir $(IRTCLDIR)," <client.tcl >client.bak
+	if [ -f ir-tk ]; then $(INSTALL_PROGRAM) ir-tk $(BINDIR)
+	$(INSTALL_DATA) client.bak $(IRTCLDIR)/client.tcl
 	$(INSTALL_DATA) formats/*.tcl $(IRTCLDIR)/formats
 	$(INSTALL_DATA) bitmaps/book? $(IRTCLDIR)/bitmaps
 

@@ -3,76 +3,13 @@
  * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
 
-$Revision: 1.5 $
+$Revision: 1.6 $
 
-Notes about IrTcl 1.0beta. 
+Documentation can be found in the doc directory.
 
-Prerequisites
--------------
-
-In order to compile you need:
-   
-  o  An ANSI-C compiler such as GNU C
-  o  Tcl version 7.3
-  o  YAZ version 1.0 or higher
-
-You may also need:
-
-  o  Tk version 3.6 
-  o  The XTI/mosi package
-
-Compilation
------------
-
-  o  Compile/install yaz/tcl, etc.
-
-  o  Edit Makefile (in current directory).
-     Set MOSI to 1/0.
-     Define include directory paths and libraries.
-
-  o  Type 'make ir-tcl' to make the Tcl version or IrTcl.
-  o  Type 'make ir-tk' to make the Tk version of IrTcl.
-
-Install/run
------------
-
-The resulting files are:
-  ir-tcl               Tcl version of IrTcl
-  ir-tk                Tk version of IrTcl.
-                           Options:
-                           -file <tclfile>
-                              Tcl startup script. Default is client.tcl.
-                           -geometry <spec>
-                              X11 geometry of main window.
-                           -display <spec>
-                              X11 display.
-                           -name <name>
-                              Name of top window.
-                           -logLevel <logLevel>
-                              log level. (fatal, debug, warn, log, all).
-                           -logFile <fname>
-                              log file. If omitted stderr is used.
-  formats/*.tcl        Small IrTcl scripts to display records in 
-                       different formats.
-  client.tcl           Tk graphical client - normally executed by ir-tk.
-  clientrc.tcl         Startup script - read by client.tcl - holds
-                       user/target definitions.
-  clientg.tcl          User preferrences - read by client.tcl. 
-                       Holds geometry of windows, current display 
-                       format, and hot targets.
-  book[1-9]            book logo.
-  LICENSE              License info - read by client.tcl.
-
-Type 'ir-tk' to run the Tk graphical client - client.tcl,
-clientrc.tcl, book[1-9] and formats/*.tcl should exist!
-
-Type 'ir-tcl' to run the Tcl client. Very similar to tclsh.
-
-Information
------------
-
-Documentation about the IrTcl API can be found in the doc directory - 
-ascii/postscript/HTML.
+   ir-tcl.txt  - ascii version
+   ir-tcl.ps   - postscript
+   ir-tcl.html - HTML.
 
 To get more information or assistance, send mail to yaz-help@index.ping.dk.
 
