@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.51 2003-01-30 13:27:07 adam Exp $
+$Id: CHANGELOG,v 1.52 2003-02-23 23:15:31 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -155,4 +155,9 @@ $Id: CHANGELOG,v 1.51 2003-01-30 13:27:07 adam Exp $
 
 09/13/02 Debian package.
 
-01/30/03 IrTcl ignores multiple "unexpected" response PDU's.
+01/30/03 Bug fix: IrTcl aborted if it received  "unexpected" response PDU's.
+
+02/18/03 Updated for YAZ 2.0.
+
+02/24/03 Release of ir-tcl-1.4.1
+------------------------------------------------------

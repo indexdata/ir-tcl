@@ -1,3 +1,9 @@
+ir-tcl (1.4.1-1) unstable; urgency=low
+
+  * Upstream.
+
+ -- Adam Dickmeiss <adam@indexdata.dk>  Sun, 24 Sep 2003 00:11:03 +0100
+
 ir-tcl (1.4-1) unstable; urgency=low
 
   * First IR Tcl debian package

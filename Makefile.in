@@ -1,7 +1,7 @@
 # IR toolkit for tcl/tk
-# (c) Index Data 1995-1999
+# (c) Index Data 1995-2003
 # See the file LICENSE for details.
-# $Id: Makefile.in,v 1.59 2003-01-30 13:27:07 adam Exp $
+# $Id: Makefile.in,v 1.60 2003-02-23 23:15:31 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
