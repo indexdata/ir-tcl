@@ -1,11 +1,14 @@
 /*
  * IR toolkit for tcl/tk
- * (c) Index Data 1996-1997
+ * (c) Index Data 1996-1998
  * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: explain.c,v $
- * Revision 1.9  1997-11-24 11:34:38  adam
+ * Revision 1.10  1998-04-02 14:31:08  adam
+ * This version works with compiled ASN.1 code.
+ *
+ * Revision 1.9  1997/11/24 11:34:38  adam
  * Using odr_nullval() instead of ODR_NULLVAL when appropriate.
  *
  * Revision 1.8  1997/09/09 10:19:51  adam
@@ -55,11 +58,13 @@ typedef struct {
     int (*handle)();
 } IrExpChoice;
 
+#ifdef ASN_COMPILED
+#else
 typedef char *Z_ElementSetName;
 typedef Odr_oid *Z_AttributeSetId;
 typedef char *Z_InternationalString;
 typedef char *Z_LanguageCode;
-
+#endif
 
 static int ir_UnitType (IrExpArg *iea,
             Z_UnitType *p, const char *name, int argi);
@@ -445,9 +450,9 @@ static int ir_DatabaseInfo (IrExpArg *iea,
             Z_DatabaseInfo *p, const char *name, int argi)
 {
     static IrExpChoice arm_recordCount [] = {
-        { "actualNumber",       Z_Exp_RecordCount_actualNumber,
+        { "actualNumber",       Z_DatabaseInfo_actualNumber,
                                ir_integer },
-        { "approxNumber",       Z_Exp_RecordCount_approxNumber,
+        { "approxNumber",       Z_DatabaseInfo_approxNumber,
                                ir_integer },
         { NULL, 0, NULL }};
 
@@ -471,8 +476,8 @@ static int ir_DatabaseInfo (IrExpArg *iea,
     ir_HumanString (iea, p->disclaimers, "disclaimers", argi);
     ir_HumanString (iea, p->news, "news", argi);
 
-    ir_choice (iea, arm_recordCount, &p->recordCount_which,
-                                     p->recordCount, argi);
+    ir_choice (iea, arm_recordCount, &p->which,
+                                     p->u.actualNumber, argi);
 
     ir_HumanString (iea, p->defaultOrder, "defaultOrder", argi);
     ir_integer (iea, p->avRecordSize, "avRecordSize", argi);
@@ -513,8 +518,8 @@ static int ir_ElementDataTypePrimitive (IrExpArg *iea,
             int *p, const char *name, int argi)
 {
     static IrExpChoice arm[] = {
-        {"octetString",  Z_PrimitiveElement_octetString, ir_choice_nop },
-        {"numeric",      Z_PrimitiveElement_numeric,     ir_choice_nop },
+        {"octetString",  Z_PrimitiveDataType_octetString, ir_choice_nop },
+        {"numeric",      Z_PrimitiveDataType_numeric,     ir_choice_nop },
         {NULL, 0, NULL}};
 
     if (!ir_match_start (name, p, iea, ++argi))
@@ -542,8 +547,8 @@ static int ir_ElementInfoList (IrExpArg *iea,
 {
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_sequence (ir_ElementInfo, iea, p->list,
-                 &p->num, "list", argi);
+    ir_sequence (ir_ElementInfo, iea, p->elements,
+                 &p->num, "elements", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -577,17 +582,17 @@ static int ir_Path (IrExpArg *iea,
 {
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_sequence (ir_PathUnit, iea, p->list, 
-                 &p->num, "list", argi);
+    ir_sequence (ir_PathUnit, iea, p->elements, 
+                 &p->num, "elements", argi);
     return ir_match_end (name, iea, argi);
 }
 
-static int ir_TagSetInfoElements (IrExpArg *iea,
-            Z_TagSetInfoElements *p, const char *name, int argi)
+static int ir_TagSetElements (IrExpArg *iea,
+            Z_TagSetElements *p, const char *name, int argi)
 {
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_InternationalString (iea, p->elementName, "elementname", argi);
+    ir_InternationalString (iea, p->elementname, "elementname", argi);
     ir_sequence (ir_InternationalString, iea, p->nicknames,
                  &p->num_nicknames, "nicknames", argi);
     ir_StringOrNumeric (iea, p->elementTag, "elementTag", argi);
@@ -606,7 +611,7 @@ static int ir_TagSetInfo (IrExpArg *iea,
     ir_oid (iea, p->tagSet, "tagSet", argi);
     ir_InternationalString (iea, p->name, "name", argi);
     ir_HumanString (iea, p->description, "description", argi);
-    ir_sequence (ir_TagSetInfoElements, iea, p->elements,
+    ir_sequence (ir_TagSetElements, iea, p->elements,
                  &p->num_elements, "elements", argi);
     return ir_match_end (name, iea, argi);
 }
@@ -672,10 +677,10 @@ static int ir_TermListElement (IrExpArg *iea,
             Z_TermListElement *p, const char *name, int argi)
 {
     static IrExpChoice searchCostArm [] = {
-        { "optimized",  Z_TermListInfo_optimized, ir_choice_nop },
-        { "normal",     Z_TermListInfo_normal,    ir_choice_nop },
-        { "expensive",  Z_TermListInfo_expensive, ir_choice_nop },
-        { "filter",     Z_TermListInfo_filter,    ir_choice_nop },
+        { "optimized",  Z_TermListElement_optimized, ir_choice_nop },
+        { "normal",     Z_TermListElement_normal,    ir_choice_nop },
+        { "expensive",  Z_TermListElement_expensive, ir_choice_nop },
+        { "filter",     Z_TermListElement_filter,    ir_choice_nop },
         { NULL, 0, NULL }};
     ir_InternationalString (iea, p->name, "name", argi);
     ir_HumanString (iea, p->title, "title", argi);
@@ -769,8 +774,8 @@ static int ir_AttributeTypeDetails (IrExpArg *iea,
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
     ir_integer (iea, p->attributeType, "attributeType", argi);
-    ir_OmittedAttributeInterpretation (iea, p->optionalType,
-                                       "optionalType", argi);
+    ir_OmittedAttributeInterpretation (iea, p->defaultIfOmitted,
+                                       "defaultIfOmitted", argi);
     ir_sequence (ir_AttributeValue, iea, p->attributeValues,
                  &p->num_attributeValues, "attributeValues", argi);
     return ir_match_end (name, iea, argi);
@@ -895,20 +900,6 @@ static int ir_SortDetails (IrExpArg *iea,
     return ir_match_end (name, iea, argi);
 }
 
-static int ir_SortKeyDetailsSortType (IrExpArg *iea,
-            Z_SortKeyDetailsSortType *p, const char *name, int argi)
-{
-    static IrExpChoice sortArm [] = {
-        { "character",   Z_SortKeyDetailsSortType_character, 
-                         ir_null },
-        { "numeric",     Z_SortKeyDetailsSortType_numeric, 
-                         ir_null },
-        { "structured",  Z_SortKeyDetailsSortType_structured, 
-                         ir_HumanString },
-        { NULL, 0, NULL }};
-    return ir_choice (iea, sortArm, &p->which, p->u.character, argi); 
-}
-
 static int ir_SortKeyDetails (IrExpArg *iea,
             Z_SortKeyDetails *p, const char *name, int argi)
 {
@@ -917,10 +908,19 @@ static int ir_SortKeyDetails (IrExpArg *iea,
                          ir_choice_nop },
         { "never",       Z_SortKeyDetails_never, 
                          ir_choice_nop },
-        { "defaultYes",  Z_SortKeyDetails_defaultYes, 
+        { "defaultYes",  Z_SortKeyDetails_default_yes, 
                          ir_choice_nop },
-        { "defaultNo",   Z_SortKeyDetails_defaultNo, 
+        { "defaultNo",   Z_SortKeyDetails_default_no, 
                          ir_choice_nop },
+        { NULL, 0, NULL }};
+
+    static IrExpChoice sortArm2 [] = {
+        { "character",   Z_SortKeyDetails_character, 
+                         ir_null },
+        { "numeric",     Z_SortKeyDetails_numeric, 
+                         ir_null },
+        { "structured",  Z_SortKeyDetails_structured, 
+                         ir_HumanString },
         { NULL, 0, NULL }};
 
     if (!ir_match_start (name, p, iea, ++argi))
@@ -930,8 +930,8 @@ static int ir_SortKeyDetails (IrExpArg *iea,
                  &p->num_elementSpecifications, "elementSpecifications", argi);
     ir_AttributeCombinations (iea, p->attributeSpecifications,
                                      "attributeSpecifications", argi);
-    ir_SortKeyDetailsSortType (iea, p->sortType, "sortType", argi);
-   
+    ir_choice (iea, sortArm2, &p->which, p->u.character, argi); 
+
     if (p->caseSensitivity) 
         ir_choice (iea, sortArm, p->caseSensitivity, odr_nullval(), argi); 
 
@@ -948,9 +948,9 @@ static int ir_ProcessingInformation (IrExpArg *iea,
                                 ir_choice_nop },
         { "retrieval",          Z_ProcessingInformation_retrieval,
                                 ir_choice_nop },
-        { "recordPresentation", Z_ProcessingInformation_recordPresentation,
+        { "recordPresentation", Z_ProcessingInformation_record_presentation,
                                 ir_choice_nop },
-        { "recordHandling",     Z_ProcessingInformation_recordHandling,
+        { "recordHandling",     Z_ProcessingInformation_record_handling,
                                 ir_choice_nop },
         { NULL, 0, NULL }};
     if (!ir_match_start (name, p, iea, ++argi))
@@ -1009,8 +1009,8 @@ static int ir_ValueSetEnumerated (IrExpArg *iea,
 {
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_sequence (ir_ValueDescription, iea, p->enumerated,
-                 &p->num_enumerated, "enumerated", argi);
+    ir_sequence (ir_ValueDescription, iea, p->elements,
+                 &p->num, "enumerated", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1163,14 +1163,13 @@ static int ir_IconObjectUnit (IrExpArg *iea,
             Z_IconObjectUnit *p, const char *name, int argi)
 {
     static IrExpChoice arm [] = {
-        { "ianaType",     Z_IconObject_ianaType,  ir_choice_nop },
-        { "z3950type",    Z_IconObject_z3950type, ir_choice_nop },
-        { "otherType",    Z_IconObject_otherType, ir_choice_nop },
+        { "ianaType",     Z_IconObjectUnit_ianaType,  ir_InternationalString },
+        { "z3950type",    Z_IconObjectUnit_z3950type, ir_InternationalString },
+        { "otherType",    Z_IconObjectUnit_otherType, ir_InternationalString },
         { NULL, 0, NULL }};
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
     ir_choice (iea, arm, &p->which, odr_nullval(), argi);
-    ir_InternationalString (iea, p->bodyType, "bodyType", argi);
     ir_octet (iea, p->content, "content", argi);
     return ir_match_end (name, iea, argi);
 }
@@ -1180,8 +1179,8 @@ static int ir_IconObject (IrExpArg *iea,
 {
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_sequence (ir_IconObjectUnit, iea, p->iconUnits,
-                 &p->num_iconUnits, "iconUnits", argi);
+    ir_sequence (ir_IconObjectUnit, iea, p->elements,
+                 &p->num, "iconUnits", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1283,7 +1282,7 @@ static int ir_QueryTypeDetails (IrExpArg *iea,
                         ir_RpnCapabilities },
         { "iso8777",    Z_QueryTypeDetails_iso8777,
                         ir_Iso8777Capabilities },
-        { "z3958",      Z_QueryTypeDetails_z3958,
+        { "z39_58",      Z_QueryTypeDetails_z39_58,
                         ir_HumanString },
         { "erpn",       Z_QueryTypeDetails_erpn,
                         ir_RpnCapabilities },
@@ -1396,17 +1395,17 @@ static int ir_AccessRestrictionsUnit (IrExpArg *iea,
             Z_AccessRestrictionsUnit *p, const char *name, int argi)
 {
     static IrExpChoice arm[] = {
-        { "any",               Z_AccessRestrictions_any,
+        { "any",               Z_AccessRestrictionsUnit_any,
                                ir_choice_nop },
-        { "search",            Z_AccessRestrictions_search,
+        { "search",            Z_AccessRestrictionsUnit_search,
                                ir_choice_nop },
-        { "present",           Z_AccessRestrictions_present,
+        { "present",           Z_AccessRestrictionsUnit_present,
                                ir_choice_nop },
-        { "specificElements",  Z_AccessRestrictions_specific_elements,
+        { "specificElements",  Z_AccessRestrictionsUnit_specific_elements,
                                ir_choice_nop },
-        { "extendedServices",  Z_AccessRestrictions_extended_services,
+        { "extendedServices",  Z_AccessRestrictionsUnit_extended_services,
                                ir_choice_nop },
-        { "byDatabase",        Z_AccessRestrictions_by_database,
+        { "byDatabase",        Z_AccessRestrictionsUnit_by_database,
                                ir_choice_nop },
         { NULL, 0, NULL }};
 
@@ -1424,8 +1423,8 @@ static int ir_AccessRestrictions (IrExpArg *iea,
 {
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_sequence (ir_AccessRestrictionsUnit, iea, p->restrictions,
-                 &p->num_restrictions, "restrictions", argi);
+    ir_sequence (ir_AccessRestrictionsUnit, iea, p->elements,
+                 &p->num, "restrictions", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1492,8 +1491,8 @@ static int ir_AttributeCombination (IrExpArg *iea,
 {
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_sequence (ir_AttributeOccurrence, iea, p->occurrences,
-                 &p->num_occurrences, "occurrences", argi);
+    ir_sequence (ir_AttributeOccurrence, iea, p->elements,
+                 &p->num, "occurrences", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1502,8 +1501,8 @@ static int ir_AttributeValueList (IrExpArg *iea,
 {
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_sequence (ir_StringOrNumeric, iea, p->attributes,
-                 &p->num_attributes, "attributes", argi);
+    ir_sequence (ir_StringOrNumeric, iea, p->elements,
+                 &p->num, "attributes", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1511,15 +1510,16 @@ static int ir_AttributeOccurrence (IrExpArg *iea,
             Z_AttributeOccurrence *p, const char *name, int argi)
 {
     static IrExpChoice arm [] = {
-        { "anyOrNone",   Z_AttributeOcc_anyOrNone, ir_null },
-        { "specific",    Z_AttributeOcc_specific,  ir_AttributeValueList },
+        { "anyOrNone",   Z_AttributeOccurrence_any_or_none, ir_null },
+        { "specific",    Z_AttributeOccurrence_specific, 
+	  ir_AttributeValueList },
         { NULL, 0, NULL } };
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
     ir_oid (iea, p->attributeSet, "attributeSet", argi);
     ir_integer (iea, p->attributeType, "attributeType", argi);
     ir_null (iea, p->mustBeSupplied, "mustBeSupplied", argi);
-    ir_choice (iea, arm, &p->which, p->attributeValues.anyOrNone, argi);
+    ir_choice (iea, arm, &p->which, p->u.any_or_none, argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1591,20 +1591,21 @@ static int ir_OtherInformationUnit (IrExpArg *iea,
             Z_OtherInformationUnit *p, const char *name, int argi)
 {
     static IrExpChoice arm[] = {
-        { "characterInfo",           Z_OtherInfo_characterInfo,
-                                    ir_InternationalString },
-        { "binaryInfo",              Z_OtherInfo_binaryInfo,
-                                    ir_octet},
-        { "externallyDefinedInfo",   Z_OtherInfo_externallyDefinedInfo,
-                                    ir_External},
-        { "oid",                     Z_OtherInfo_oid,
-                                    ir_oid},
+        { "characterInfo",
+	  Z_OtherInformationUnit_characterInfo, ir_InternationalString },
+        { "binaryInfo",
+	  Z_OtherInformationUnit_binaryInfo, ir_octet},
+        { "externallyDefinedInfo",
+	  Z_OtherInformationUnit_externallyDefinedInfo,
+	  ir_External},
+        { "oid",
+	  Z_OtherInformationUnit_oid, ir_oid},
         { NULL, 0, NULL }};
 
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
     ir_InfoCategory (iea, p->category, "category", argi);
-    ir_choice (iea, arm, &p->which, p->information.characterInfo, argi);
+    ir_choice (iea, arm, &p->which, p->u.characterInfo, argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1613,8 +1614,8 @@ static int ir_OtherInformation (IrExpArg *iea,
 {
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_sequence (ir_OtherInformationUnit, iea, p->list, 
-                 &p->num_elements, "list", argi);
+    ir_sequence (ir_OtherInformationUnit, iea, p->elements,
+                 &p->num, "list", argi);
     return ir_match_end (name, iea, argi);
 }
 

@@ -1,11 +1,14 @@
 /*
  * IR toolkit for tcl/tk
- * (c) Index Data 1995
+ * (c) Index Data 1995-1998
  * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.36  1997-11-19 11:22:09  adam
+ * Revision 1.37  1998-04-02 14:31:08  adam
+ * This version works with compiled ASN.1 code.
+ *
+ * Revision 1.36  1997/11/19 11:22:09  adam
  * Object identifiers can be accessed in GRS-1 records.
  *
  * Revision 1.35  1997/09/09 10:19:54  adam
@@ -362,7 +365,9 @@ typedef struct IrTcl_ScanObj_ {
     int         positionOfTerm;
 
     int         entries_flag;
+#if 0
     int         which;
+#endif
 
     int         num_entries;
     int         num_diagRecs;

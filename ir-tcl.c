@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.104  1998-02-27 14:26:07  adam
+ * Revision 1.105  1998-04-02 14:31:08  adam
+ * This version works with compiled ASN.1 code.
+ *
+ * Revision 1.104  1998/02/27 14:26:07  adam
  * Changed client so that it still works if target sets numberOfRecords
  * in response to an illegal value.
  *
@@ -3327,10 +3330,10 @@ static int do_scanLine (void *obj, Tcl_Interp *interp, int argc, char **argv)
                           " position\"", NULL);
         return TCL_ERROR;
     }
+    printf ("argv[2]=%s\n", argv[2]);
     if (Tcl_GetInt (interp, argv[2], &i) == TCL_ERROR)
         return TCL_ERROR;
-    if (!p->entries_flag || p->which != Z_ListEntries_entries || !p->entries
-        || i >= p->num_entries || i < 0)
+    if (!p->entries_flag || !p->entries || i >= p->num_entries || i < 0)
         return TCL_OK;
     switch (p->entries[i].which)
     {
@@ -3545,7 +3548,7 @@ static void ir_handleDiags (IrTcl_Diagnostic **dst_list, int *dst_num,
                             Z_DiagRec **list, int num)
 {
     int i;
-    char *addinfo;
+    char *addinfo = NULL;
 
     *dst_num = num;
     *dst_list = ir_tcl_malloc (sizeof(**dst_list) * num);
@@ -3556,7 +3559,19 @@ static void ir_handleDiags (IrTcl_Diagnostic **dst_list, int *dst_num,
         {
         case Z_DiagRec_defaultFormat:
             (*dst_list)[i].condition = *list[i]->u.defaultFormat->condition;
+#ifdef ASN_COMPILED
+	    switch (list[i]->u.defaultFormat->which)
+	    {
+	    case Z_DefaultDiagFormat_v2Addinfo:
+		addinfo = list[i]->u.defaultFormat->u.v2Addinfo;
+		break;
+	    case Z_DefaultDiagFormat_v3Addinfo:
+		addinfo = list[i]->u.defaultFormat->u.v3Addinfo;
+		break;
+	    }
+#else
             addinfo = list[i]->u.defaultFormat->addinfo;
+#endif
             if (addinfo && 
                 ((*dst_list)[i].addinfo = ir_tcl_malloc (strlen(addinfo)+1)))
                 strcpy ((*dst_list)[i].addinfo, addinfo);
@@ -3703,12 +3718,19 @@ static void ir_handleZRecords (void *o, Z_Records *zrs, IrTcl_SetObj *setobj,
     }
     else
     {
+#ifdef ASN_COMPILED
+        Z_DiagRec dr, *dr_p = &dr;
+        dr.which = Z_DiagRec_defaultFormat;
+        dr.u.defaultFormat = zrs->u.nonSurrogateDiagnostic;
+#else
+        Z_DiagRec *dr_p = zrs->u.nonSurrogateDiagnostic;
+#endif
         logf (LOG_DEBUG, "NonSurrogateDiagnostic");
+
         setobj->numberOfRecordsReturned = 0;
         ir_handleDiags (&setobj->nonSurrogateDiagnosticList,
                         &setobj->nonSurrogateDiagnosticNum,
-                        &zrs->u.nonSurrogateDiagnostic,
-                        1);
+                        &dr_p, 1);
     }
 }
 
@@ -3805,67 +3827,81 @@ static void ir_scanResponse (void *o, Z_ScanResponse *scanrs,
 
     xfree (scanobj->entries);
     scanobj->entries = NULL;
-
+    scanobj->num_entries = 0;
+    scanobj->entries_flag = 0;
+	
     ir_deleteDiags (&scanobj->nonSurrogateDiagnosticList,
                     &scanobj->nonSurrogateDiagnosticNum);
     if (scanrs->entries)
     {
         int i;
-        Z_Entry *ze;
+        Z_Entry **ze;
 
         scanobj->entries_flag = 1;
-        scanobj->which = scanrs->entries->which;
-        switch (scanobj->which)
-        {
-        case Z_ListEntries_entries:
+#ifdef ASN_COMPILED
+	if (scanrs->entries)
+	{
+            scanobj->num_entries = scanrs->entries->num_entries;
+            scanobj->entries = ir_tcl_malloc (scanobj->num_entries * 
+					      sizeof(*scanobj->entries));
+	    ze = scanrs->entries->entries;
+	}
+#else
+	if (scanrs->entries->which == Z_ListEntries_entries)
+	{
             scanobj->num_entries = scanrs->entries->u.entries->num_entries;
             scanobj->entries = ir_tcl_malloc (scanobj->num_entries * 
-                                       sizeof(*scanobj->entries));
-            for (i=0; i<scanobj->num_entries; i++)
-            {
-                ze = scanrs->entries->u.entries->entries[i];
-                scanobj->entries[i].which = ze->which;
-                switch (ze->which)
-                {
-                case Z_Entry_termInfo:
-                    if (ze->u.termInfo->term->which == Z_Term_general)
-                    {
-                        int l = ze->u.termInfo->term->u.general->len;
-                        scanobj->entries[i].u.term.buf = ir_tcl_malloc (1+l);
-                        memcpy (scanobj->entries[i].u.term.buf, 
-                                ze->u.termInfo->term->u.general->buf,
-                                l);
-                        scanobj->entries[i].u.term.buf[l] = '\0';
-                    }
-                    else
-                        scanobj->entries[i].u.term.buf = NULL;
-                    if (ze->u.termInfo->globalOccurrences)
-                        scanobj->entries[i].u.term.globalOccurrences = 
-                            *ze->u.termInfo->globalOccurrences;
-                    else
-                        scanobj->entries[i].u.term.globalOccurrences = 0;
-                    break;
-                case Z_Entry_surrogateDiagnostic:
-                    ir_handleDiags (&scanobj->entries[i].u.diag.list,
-                                    &scanobj->entries[i].u.diag.num,
-                                    &ze->u.surrogateDiagnostic,
-                                    1);
-                    break;
-                }
-            }
-            break;
-        case Z_ListEntries_nonSurrogateDiagnostics:
+					      sizeof(*scanobj->entries));
+	    ze = scanrs->entries->u.entries->entries;
+	}
+#endif
+	for (i=0; i<scanobj->num_entries; i++, ze++)
+	{
+	    scanobj->entries[i].which = (*ze)->which;
+	    switch ((*ze)->which)
+	    {
+	    case Z_Entry_termInfo:
+		if ((*ze)->u.termInfo->term->which == Z_Term_general)
+		{
+		    int l = (*ze)->u.termInfo->term->u.general->len;
+		    scanobj->entries[i].u.term.buf = ir_tcl_malloc (1+l);
+		    memcpy (scanobj->entries[i].u.term.buf, 
+			    (*ze)->u.termInfo->term->u.general->buf,
+			    l);
+		    scanobj->entries[i].u.term.buf[l] = '\0';
+		}
+		else
+		    scanobj->entries[i].u.term.buf = NULL;
+		if ((*ze)->u.termInfo->globalOccurrences)
+		    scanobj->entries[i].u.term.globalOccurrences = 
+			*(*ze)->u.termInfo->globalOccurrences;
+		else
+		    scanobj->entries[i].u.term.globalOccurrences = 0;
+		break;
+	    case Z_Entry_surrogateDiagnostic:
+		ir_handleDiags (&scanobj->entries[i].u.diag.list,
+				&scanobj->entries[i].u.diag.num,
+				&(*ze)->u.surrogateDiagnostic,
+				1);
+		break;
+	    }
+	}
+#ifdef ASN_COMPILED
+	if (scanrs->entries->nonsurrogateDiagnostics)
+	    ir_handleDiags (&scanobj->nonSurrogateDiagnosticList,
+                            &scanobj->nonSurrogateDiagnosticNum,
+                            scanrs->entries->nonsurrogateDiagnostics,
+                            scanrs->entries->num_nonsurrogateDiagnostics);
+#else
+	if (scanrs->entries->which == Z_ListEntries_nonSurrogateDiagnostics)
             ir_handleDiags (&scanobj->nonSurrogateDiagnosticList,
                             &scanobj->nonSurrogateDiagnosticNum,
                             scanrs->entries->u.nonSurrogateDiagnostics->
                             diagRecs,
                             scanrs->entries->u.nonSurrogateDiagnostics->
                             num_diagRecs);
-            break;
-        }
+#endif
     }
-    else
-        scanobj->entries_flag = 0;
 }
 
 /*
