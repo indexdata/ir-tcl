@@ -2,7 +2,7 @@
 # (c) Index Data 1995
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.9 1995-06-26 11:15:26 adam Exp $
+# $Id: Makefile.in,v 1.10 1995-06-26 14:46:24 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -23,6 +23,8 @@ IRTCLDIR=$(prefix)/lib/irtcl
 YAZDIR=@YAZDIR@
 MOSIDIR=@MOSIDIR@
 LIBS=@LIBS@ -lm
+
+CC=@CC@
 
 # X11 libraries and include file paths
 XLIB=@XLIBSW@
