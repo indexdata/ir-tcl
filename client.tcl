@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.72  1995-10-16 17:00:52  adam
+# Revision 1.73  1995-10-17 10:58:06  adam
+# More work on presentation formats.
+#
+# Revision 1.72  1995/10/16  17:00:52  adam
 # New setting: elementSetNames.
 # Various client improvements. Medium presentation format looks better.
 #
@@ -1799,9 +1802,17 @@ proc protocol-setup {target} {
     global RPNCheck
     global CCLCheck
     global ResultSetCheck
-
-    set wno [lindex $profile($target) 12]
-    set w .setup-${wno}
+    
+    if {1} {
+        set wno [lindex $profile($target) 12]
+        set w .setup-${wno}
+    } else {
+        set b 0
+        while {[winfo exists .setup-$b]} {
+            incr b
+        }
+        set w .setup-$b
+    }
 
     toplevelG $w
 
@@ -3168,7 +3179,8 @@ if {! $monoFlag} {
 .data.record tag configure marc-data -foreground black
 .data.record tag configure marc-head \
         -font -Adobe-Times-Medium-R-Normal-*-140-* \
-        -foreground white -background black
+        -foreground brown -relief raised -borderwidth 1
+.data.record tag configure marc-small-head -foreground brown
 .data.record tag configure marc-pref \
         -font -Adobe-Times-Medium-R-Normal-*-140-* \
         -foreground blue

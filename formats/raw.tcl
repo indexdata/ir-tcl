@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: raw.tcl,v $
-# Revision 1.7  1995-10-12 14:46:58  adam
+# Revision 1.8  1995-10-17 10:58:09  adam
+# More work on presentation formats.
+#
+# Revision 1.7  1995/10/12  14:46:58  adam
 # The record position in the raw format is much more visible.
 #
 # Revision 1.6  1995/09/20  11:37:07  adam
@@ -46,7 +49,8 @@ proc display-grs-raw {w r i} {
 
 proc display-raw {sno no w hflag} {
     if {$hflag} {
-        insertWithTags $w "$no\n" marc-head
+        insertWithTags $w " $no " marc-head
+        insertWithTags $w "\n"
     } else {
         $w delete 0.0 end
     }

@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: medium.tcl,v $
-# Revision 1.7  1995-10-16 17:01:03  adam
+# Revision 1.8  1995-10-17 10:58:09  adam
+# More work on presentation formats.
+#
+# Revision 1.7  1995/10/16  17:01:03  adam
 # Medium presentation format looks better.
 #
 # Revision 1.6  1995/09/20  11:37:06  adam
@@ -29,14 +32,14 @@
 proc display-grs-medium {w r i} {
     foreach e $r {
         for {set j 0} {$j < $i} {incr j} {
-            insertWithTags $w "  " {}
+            insertWithTags $w "  " marc-tag
         }
-        insertWithTags $w "([lindex $e 0]:[lindex $e 2])" marc-tag
+        insertWithTags $w "([lindex $e 0]:[lindex $e 2]) " marc-tag
         if {[lindex $e 3] == "string"} {
-            insertWithTags $w [lindex $e 4] {}
-            insertWithTags $w "\n" {}
+            insertWithTags $w [lindex $e 4] marc-text
+            insertWithTags $w "\n" marc-text
         } elseif {[lindex $e 3] == "subtree"} {
-            insertWithTags $w "\n" {}
+            insertWithTags $w "\n" marc-text
             display-grs-medium $w [lindex $e 4] [expr $i+1]
         } else {
             insertWithTags [lindex $e 4] {}
@@ -47,7 +50,8 @@ proc display-grs-medium {w r i} {
 
 proc display-medium {sno no w hflag} {
     if {$hflag} {
-        insertWithTags $w "\n$no\n" marc-data
+        insertWithTags $w " $no " marc-head
+        insertWithTags $w "\n"
     } else {
         $w delete 0.0 end
     }

@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: line.tcl,v $
-# Revision 1.7  1995-09-20 11:37:06  adam
+# Revision 1.8  1995-10-17 10:58:08  adam
+# More work on presentation formats.
+#
+# Revision 1.7  1995/09/20  11:37:06  adam
 # Work on GRS.
 #
 # Revision 1.6  1995/06/29  12:34:20  adam
@@ -68,7 +71,7 @@ proc display-line {sno no w hflag} {
     }
     if {$hflag} {
         set nostr [format "%5d " $no]
-        insertWithTags $w $nostr marc-tag
+        insertWithTags $w $nostr marc-small-head
     }
     if {$type == "DB"} {
         set rtype [z39.$sno recordType $no]
@@ -80,7 +83,8 @@ proc display-line {sno no w hflag} {
             if {[catch {
                 set title [lindex [z39.$sno getMarc $no field 245 * a] 0]
                 set year  [lindex [z39.$sno getMarc $no field 260 * c] 0]
-                insertWithTags $w "$title - $year\n" marc-data
+                insertWithTags $w "$title - " marc-text
+                insertWithTags $w "$year\n" marc-it
             }]} {
                 insertWithTags $w "Unknown record type: $rtype\n" marc-id
             }
