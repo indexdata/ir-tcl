@@ -1,13 +1,13 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.11 1995-06-30 12:39:49 adam Exp $
+  $Id: ir-tcl.sgml,v 1.12 1995-08-28 12:21:52 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference
 <author>Index Data, <tt/info@index.ping.dk/
-<date>$Revision: 1.11 $
+<date>$Revision: 1.12 $
 <abstract>
 This document describes IrTcl &mdash; an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
@@ -51,13 +51,13 @@ In order to compile you need:
 <itemize>
 <item> An ANSI C compiler such as GNU C.
 <item> Tcl. Version 7.3 and 7.4 has been tested.
-<item> YAZ version 1.0b or higher
+<item> YAZ version 1.0b3 or higher.
 </itemize>
 
 As an option you may want:
 <itemize>
-<item> Tk. Version 3.6 and 4.0b4 has been tested.
-<item> XTI/mosi
+<item> Tk. Version 3.6 and 4.0 has been tested.
+<item> XTI/mOSI
 </itemize>
 
 Unpack the <sf/IrTcl/ package at the same directory level as <bf/YAZ/. 
