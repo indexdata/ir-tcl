@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.84  1996-01-11 13:12:10  adam
+# Revision 1.85  1996-01-19 16:22:36  adam
+# New method: apduDump - returns information about last incoming APDU.
+#
+# Revision 1.84  1996/01/11  13:12:10  adam
 # Bug fix.
 #
 # Revision 1.83  1995/11/28  17:26:36  adam
@@ -361,6 +364,7 @@ set textWrap word
 set recordSyntax None
 set elementSetNames None
 set delayRequest {}
+set debugMode 0
 
 set queryTypes {Simple}
 set queryButtons { { {I 0} {I 1} {I 2} } }
@@ -409,18 +413,19 @@ set queryInfoFind [lindex $queryInfo 0]
 proc read-formats {} {
     global displayFormats
     global libdir
-    if {[catch {set formats [glob -nocomplain ${libdir}/formats/*.tcl]}]} {
-        set formats ./formats/raw.tcl
-    }
+
+    set oldDir [pwd]
+    cd ${libdir}/formats
+    set formats [glob {*.[tT][cC][lL]}]
     foreach f $formats {
 	if {[file readable $f]} {
             source $f
             set l [string length $f]
-            set f [string range $f [string length "${libdir}/formats/"] \
-                    [expr $l - 5]]
+            set f [string tolower [string range $f 0 [expr $l - 5]]]
             lappend displayFormats $f
         }
     }
+    cd $oldDir
 }
 
 proc set-wrap {m} {
@@ -431,8 +436,52 @@ proc set-wrap {m} {
 }
 
 proc dputs {m} {
-#    puts $m
+    global debugMode
+    if {$debugMode} {
+        puts $m
+    }
 }
+
+proc apduDump {} {
+    global debugMode
+
+    set w .apdu
+
+    if {$debugMode == 0} return
+    set x [z39 apduInfo]
+
+    set offset [lindex $x 1]
+    set length [lindex $x 0]
+
+    if {![winfo exists $w]} {
+        catch {destroy $w}
+        toplevelG $w
+
+        wm title $w "APDU information" 
+        
+        wm minsize $w 0 0
+        
+        top-down-window $w
+        
+        text $w.top.t -width 60 -height 12 -wrap word -relief flat \
+                -borderwidth 0 \
+                -yscrollcommand [list $w.top.s set]
+        scrollbar $w.top.s -command [list $w.top.t yview]
+        
+        pack $w.top.s -side right -fill y
+        pack $w.top.t -expand yes -fill both
+
+        bottom-buttons $w [list {Close} [list destroy $w]] 0
+    }
+    $w.top.t insert end "Length: ${length}\n"
+    if {$offset != -1} {
+        $w.top.t insert end "Offset: ${offset}\n"
+    }
+    $w.top.t insert end [lindex $x 2]
+    $w.top.t insert end "---------------------------------\n"
+
+}
+
 
 proc set-display-format {f} {
     global displayFormat
@@ -970,8 +1019,14 @@ proc define-target-action {} {
 }
 
 proc fail-response {target} {
+    global debugMode
+
     set c [lindex [z39 failInfo] 0]
     set m [lindex [z39 failInfo] 1]
+    if {$c == 4 || $c == 5} {
+        set debugMode 1        
+        apduDump
+    }
     close-target
     tkerror "$m ($c)"
 }
@@ -1131,6 +1186,7 @@ proc init-response {} {
     global scanEnable
 
     dputs {init-reponse}
+    apduDump
     if {$cancelFlag} {
         close-target
         return
@@ -1332,6 +1388,7 @@ proc scan-response {attr start toget} {
 
     set w .scan-window
     dputs "In scan-response"
+    apduDump
     set m [z39.scan numberOfEntriesReturned]
     dputs $m
     dputs attr=$attr
@@ -1502,7 +1559,7 @@ proc search-response {} {
     global delayRequest
     global presentChunk
 
-
+    apduDump
     dputs "In search-response"
     if {$cancelFlag} {
         dputs "Handling cancel"
@@ -1662,6 +1719,7 @@ proc present-response {} {
     global presentChunk
 
     dputs "In present-response"
+    apduDump
     set no [z39.$setNo numberOfRecordsReturned]
     dputs "Returned $no records, setOffset $setOffset"
     add-title-lines $setNo $no $setOffset
@@ -3212,6 +3270,7 @@ menu .top.options.m
 .top.options.m add cascade -label "Wrap" -menu .top.options.m.wrap
 .top.options.m add cascade -label "Syntax" -menu .top.options.m.syntax
 .top.options.m add cascade -label "Elements" -menu .top.options.m.elements
+.top.options.m add radiobutton -label "Debug" -variable debugMode -value 1
 
 menu .top.options.m.query
 .top.options.m.query add cascade -label "Select" \

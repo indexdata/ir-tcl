@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.22  1996-01-10 09:18:44  adam
+ * Revision 1.23  1996-01-19 16:22:40  adam
+ * New method: apduDump - returns information about last incoming APDU.
+ *
+ * Revision 1.22  1996/01/10  09:18:44  adam
  * PDU specific callbacks implemented: initRespnse, searchResponse,
  *  presentResponse and scanResponse.
  * Bug fix in the command line shell (tclmain.c) - discovered on OSF/1.
@@ -174,6 +177,9 @@ typedef struct {
     char       *callback;
     char       *failback;
     char       *initResponse;
+
+    int        apduLen;
+    int        apduOffset;
 
 #if CCL2RPN
     CCL_bibset  bibset;

@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.11 1996-01-11 11:41:13 adam Exp $
+$Id: CHANGELOG,v 1.12 1996-01-19 16:22:36 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -66,3 +66,9 @@ $Id: CHANGELOG,v 1.11 1996-01-11 11:41:13 adam Exp $
          searchResponse, presentResponse and scanResponse.
 
 11/01/96 Release of ir-tcl-1.1
+------------------------------------------------------
+
+19/01/96 New feature: apduInfo - returns information about last incoming
+         APDU. Three elements returned: length offset dump.
+
+

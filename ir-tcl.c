@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.70  1996-01-10 09:18:34  adam
+ * Revision 1.71  1996-01-19 16:22:38  adam
+ * New method: apduDump - returns information about last incoming APDU.
+ *
+ * Revision 1.70  1996/01/10  09:18:34  adam
  * PDU specific callbacks implemented: initRespnse, searchResponse,
  *  presentResponse and scanResponse.
  * Bug fix in the command line shell (tclmain.c) - discovered on OSF/1.
@@ -251,6 +254,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #ifdef WINDOWS
 #include <time.h>
 #else
@@ -681,6 +685,54 @@ static int do_options (void *obj, Tcl_Interp *interp,
         return TCL_OK;
     }
     return ir_named_bits (options_tab, &p->options, interp, argc-2, argv+2);
+}
+
+/*
+ * do_apduInfo: Get APDU information
+ */
+static int do_apduInfo (void *obj, Tcl_Interp *interp, int argc, char **argv)
+{
+    char buf[16];
+    FILE *apduf;
+    IrTcl_Obj *p = obj;
+
+    if (argc <= 0)
+        return TCL_OK;
+    sprintf (buf, "%d", p->apduLen);
+    Tcl_AppendElement (interp, buf);
+    sprintf (buf, "%d", p->apduOffset);
+    Tcl_AppendElement (interp, buf);
+    if (!p->buf_in)
+    {
+        Tcl_AppendElement (interp, "");
+        return TCL_OK;
+    }
+    apduf = fopen ("apdu.tmp", "w");
+    if (!apduf)
+    {
+        Tcl_AppendElement (interp, "");
+        return TCL_OK;
+    }
+    odr_dumpBER (apduf, p->buf_in, p->apduLen);
+    fclose (apduf);
+    if (!(apduf = fopen ("apdu.tmp", "r")))
+        Tcl_AppendElement (interp, "");
+    else
+    {
+        int c;
+        
+        Tcl_AppendResult (interp, " {", NULL);
+        while ((c = getc (apduf)) != EOF)
+        {
+            buf[0] = c;
+            buf[1] = '\0';
+            Tcl_AppendResult (interp, buf, NULL);
+        }
+        fclose (apduf);
+        Tcl_AppendResult (interp, "}", NULL);
+    }
+    unlink ("apdu.tmp");
+    return TCL_OK;
 }
 
 /*
@@ -1565,6 +1617,7 @@ static IrTcl_Method ir_method_tab[] = {
 { 1, "protocol",                    do_protocol },
 { 0, "failback",                    do_failback },
 { 0, "failInfo",                    do_failInfo },
+{ 0, "apduInfo",                    do_apduInfo },
 { 0, "logLevel",                    do_logLevel },
 
 { 0, "eventType",                   do_eventType },
@@ -3340,6 +3393,8 @@ void ir_select_read (ClientData clientData)
         if (r == 1)
             return ;
         /* got complete APDU. Now decode */
+        p->apduLen = r;
+        p->apduOffset = -1;
         odr_setbuf (p->odr_in, p->buf_in, r, 0);
         logf (LOG_DEBUG, "cs_get ok, got %d", r);
         if (!z_APDU (p->odr_in, &apdu, 0))
@@ -3349,6 +3404,7 @@ void ir_select_read (ClientData clientData)
             if (p->failback)
             {
                 p->failInfo = IR_TCL_FAIL_IN_APDU;
+                p->apduOffset = odr_offset (p->odr_in);
                 IrTcl_eval (p->interp, p->failback);
             }
             /* release ir object now if failback deleted it */
