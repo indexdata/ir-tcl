@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.88  1996-06-03 09:04:22  adam
+ * Revision 1.89  1996-06-11 15:27:15  adam
+ * Event type set to connect a little earlier in the do_connect function.
+ *
+ * Revision 1.88  1996/06/03  09:04:22  adam
  * Changed a few logf calls.
  *
  * Revision 1.87  1996/05/29  06:37:51  adam
@@ -1095,13 +1098,13 @@ static int do_connect (void *obj, Tcl_Interp *interp,
         }
         if (ir_tcl_strdup (interp, &p->hostname, argv[2]) == TCL_ERROR)
             return TCL_ERROR;
+        p->eventType = "connect";
         if ((r=cs_connect (p->cs_link, addr)) < 0)
         {
             interp->result = "connect fail";
             ir_tcl_disconnect (p);
             return TCL_ERROR;
         }
-        p->eventType = "connect";
         ir_select_add (cs_fileno (p->cs_link), p);
         if (r == 1)
         {
