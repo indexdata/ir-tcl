@@ -2,33 +2,47 @@
 # (c) Index Data 1995
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.2 1995-06-21 15:16:43 adam Exp $
+# $Id: Makefile.in,v 1.3 1995-06-22 07:15:57 adam Exp $
 SHELL=/bin/sh
 
+# IrTcl Version
+VERSION=1.0
+
+# Directory prefix with machine independent files (scripts, setup files, etc.)
 prefix = @prefix@
+
+# Directory prefix with machine dependent files (executables, libraries)
 exec_prefix = @exec_prefix@
 
 BINDIR=$(exec_prefix)/bin
 LIBDIR=$(exec_prefix)/lib
 MANDIR=$(prefix)/man
-IRTCLDIR=$(LIBDIR)/irtcl
+IRTCLDIR=$(prefix)/lib/irtcl
 
 YAZDIR=@YAZDIR@
 MOSIDIR=@MOSIDIR@
 LIBS=@LIBS@ -lm
+
+# X11 libraries and include file paths
 XLIB=@XLIB@ -lX11
 XINCLUDE=@XINCLUDE@
 
-# Enable MOSI by setting MOSI=1 and set MOSILIB to 
-#  $(YAZDIR)/lib/librfc.a $(MOSIDIR)/libmosi.a
+# Tcl/Tk libraries
+TCLLIB=@TCLLIB@
+TKLIB=@TKLIB@
+
+# MOSI directory with libmosi.a and source
 MOSILIB=@MOSILIB@
+
+# All YAZ libraries - including MOSI libraries.
 YAZLIB=$(YAZDIR)/lib/libyaz.a $(MOSILIB) $(YAZDIR)/lib/libutil.a
 
+# All include paths
 INCLUDE=-I$(YAZDIR)/include $(XINCLUDE) -I$(MOSIDIR) -I/usr/local/include
-DEFS=-DCCL2RPN=0 @DEFS@ -DMOSI=@MOSI@ -DIRTCLDIR=\"$(IRTCLDIR)\" $(INCLUDE)
 
-TCLLIB=@TCLLIB@
-TKLIB=-@TKLIB@
+# All command line options except CFLAGS
+DEFS=-DCCL2RPN=0 @DEFS@ -DMOSI=@MOSI@ -DIRTCLDIR=\"$(IRTCLDIR)\" \
+	$(INCLUDE) -DIR_TCL_VERSION=\"$(VERSION)\"
 
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -36,25 +50,34 @@ INSTALL_DATA = @INSTALL_DATA@
 RANLIB = @RANLIB@
 
 O=ir-tcl.o marc.o
-P1=ir-tk
-P2=ir-tcl
 
-all: $(P1) $(P2)
+all: ir-tk ir-tcl
 
-$(P1): $(O) tkmain.o
-	$(CC) $(CFLAGS) $(DEFS) $(O) tkmain.o -o $(P1) $(YAZLIB) $(TKLIB) $(TCLLIB) $(XLIB) $(LIBS)
+ir-tk: $(O) tkmain.o
+	$(CC) $(CFLAGS) $(O) tkmain.o -o ir-tk $(YAZLIB) $(TKLIB) \
+	$(TCLLIB) $(XLIB) $(LIBS)
 
-$(P2): $(O) tclmain.o
-	$(CC) $(CFLAGS) $(DEFS) $(O) tclmain.o -o $(P2) $(YAZLIB) $(TCLLIB) $(LIBS)
+ir-tcl: $(O) tclmain.o
+	$(CC) $(CFLAGS) $(O) tclmain.o -o ir-tcl $(YAZLIB) $(TCLLIB) $(LIBS)
 
-install-tcl:
-	-mkdir $(IRTCLDIR)
+install-tcl: ir-tcl
+	for d in $(IRTCLDIR) $(IRTCLDIR)/formats $(IRTCLDIR)/bitmaps; do \
+		if [ ! -d $$d ]; then \
+			echo Making $$d; \
+			mkdir $$d; \
+			chmod 755 $$d; \
+		fi; \
+	done;
 	$(INSTALL_PROGRAM) ir-tcl $(BINDIR)
 
-install-tk:
-	-mkdir $(IRTCLDIR)
-	-mkdir $(IRTCLDIR)/formats
-	-mkdir $(IRTCLDIR)/bitmaps
+install-tk: ir-tk
+	for d in $(IRTCLDIR) $(IRTCLDIR)/formats $(IRTCLDIR)/bitmaps; do \
+		if [ ! -d $$d ]; then \
+			echo Making $$d; \
+			mkdir $$d; \
+			chmod 755 $$d; \
+		fi; \
+	done;
 	sed "s,^set libdir LIBDIR,set libdir $(IRTCLDIR)," <client.tcl >client.bak
 	$(INSTALL_PROGRAM) ir-tk $(BINDIR)
 	$(INSTALL_DATA) client.bak $(IRTCLDIR)/client.tcl
@@ -63,7 +86,12 @@ install-tk:
 	$(INSTALL_DATA) bitmaps/book? $(IRTCLDIR)/bitmaps
 
 clean:
-	rm -f *.[oa] $(P1) $(P2) core gmon.out mon.out *.bak
+	rm -f *.[oa] ir-tk ir-tcl core gmon.out mon.out *.bak config.cache
+
+autoconf:
+	-rm config.cache
+	autoconf
+	configure
 
 .c.o:
 	$(CC) -c $(CFLAGS) $(DEFS) $<

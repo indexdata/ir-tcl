@@ -1,7 +1,7 @@
 dnl IR toolkit for tcl/tk
 dnl (c) Index Data 1995
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.2 1995-06-21 15:16:43 adam Exp $
+dnl $Id: configure.in,v 1.3 1995-06-22 07:15:59 adam Exp $
 AC_INIT(README)
 AC_PROG_CC
 AC_PROG_RANLIB
@@ -14,44 +14,34 @@ fi
 if test "$checkBoth" = 1; then
     tk_oldLibs=$LIBS
     LIBS="$LIBS -lsocket -lnsl"
-    AC_CHECK_FUNC(accept, tk_checkNsl=0, [LIBS=$tk_oldLibs])
+    AC_CHECK_FUNC(accept, , [LIBS=$tk_oldLibs])
 fi
 AC_CHECK_FUNC(gethostbyname, , AC_CHECK_LIB(nsl, main, [LIBS="$LIBS -lnsl"]))
 AC_STDC_HEADERS
 AC_SUBST(TCLLIB)
-AC_CHECK_LIB(m, sin)
-tclFound=0
-AC_CHECK_LIB(tcl, Tcl_Eval, tclFound=1)
+AC_CHECK_LIB(tcl, Tcl_Eval, tclFound=1, tclFound=0, -lm)
 if test "$tclFound" = 1; then
     TCLLIB=-ltcl
 else
     TCLLIB=/usr/local/lib/libtcl.a
 fi
-AC_SUBST(TKLIB)
-tkFound=0
-AC_CHECK_LIB(tk, Tk_MainLoop, tkFound=1,, -ltcl)
-if test "$tkFound" = 1; then
-    TKLIB=-ltk
-else
-    TKLIB=/usr/local/lib/libtk.a
-fi
 AC_SUBST(YAZDIR)
 AC_SUBST(MOSI)
 AC_SUBST(MOSILIB)
 AC_SUBST(MOSIDIR)
-AC_MSG_CHECKING(for Yaz directory)
+AC_MSG_CHECKING(for YAZ directory)
 AC_ARG_WITH(yazdir,[  --with-yazdir           Yaz directory], [YAZDIR=$withval])
 if test "$YAZDIR" = "yes"; then
-	YAZDIR="../yaz"
+	YAZDIR="../yaz-1.0b"
 elif test "$YAZDIR" = ""; then
-	YAZDIR="../yaz"
-	if test -d "../yaz-1.0b"; then
-		YAZDIR="../yaz-1.0b"
+	YAZDIR="../yaz-1.0b"
+	if test -d "../yaz"; then
+		YAZDIR="../yaz"
 	fi
 fi
 AC_MSG_RESULT($YAZDIR)
 if test ! -d $YAZDIR; then
-	AC_MSG_WARN(Yaz directory doesnt exist)
+	AC_MSG_WARN(YAZ directory doesnt exist)
 fi
 AC_MSG_CHECKING(for MOSI)
 AC_ARG_WITH(mosidir, [  --with-mosidir          MOSI directory], [MOSIDIR=$withval])
@@ -84,5 +74,12 @@ if test "x$x_libraries" != x; then
 	XLIB=-L$x_libraries
 else
 	XLIB=""
+fi
+AC_SUBST(TKLIB)
+AC_CHECK_LIB(tk, Tk_MainLoop, tkFound=1, tkFound=0, $TCLLIB $XLIB -lX11 -lm)
+if test "$tkFound" = 1; then
+    TKLIB=-ltk
+else
+    TKLIB=/usr/local/lib/libtk.a
 fi
 AC_OUTPUT(Makefile)

@@ -24,7 +24,11 @@
  * OF THIS SOFTWARE.
  *
  * $Log: ir-tcl.h,v $
- * Revision 1.9  1995-06-19 13:54:21  adam
+ * Revision 1.10  1995-06-22 07:15:59  adam
+ * Version number moved to Makefile.in
+ * Some work on autoconf.
+ *
+ * Revision 1.9  1995/06/19  13:54:21  adam
  * New version.
  *
  * Revision 1.8  1995/06/19  13:06:08  adam
@@ -51,8 +55,6 @@
 
 #ifndef IR_TCL_H
 #define IR_TCL_H
-
-#define IR_TCL_VERSION "1.0beta"
 
 int ir_tcl_init (Tcl_Interp *interp);
 
