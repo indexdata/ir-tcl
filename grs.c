@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: grs.c,v $
- * Revision 1.5  1996-05-29 20:28:08  adam
+ * Revision 1.6  1996-06-05 08:59:23  adam
+ * Changed syntax of element specs in GRS-1 retrieval.
+ *
+ * Revision 1.5  1996/05/29  20:28:08  adam
  * Bug fix: Function ir_tcl_grs_del sometimes free'd bad memory.
  *
  * Revision 1.4  1996/05/29  06:37:42  adam
@@ -174,12 +177,14 @@ static int ir_tcl_get_grs_r (Tcl_Interp *interp, IrTcl_GRS_Record *grs_record,
         else
         {
             const char *cp0 = argv[argno];
-            const char *cp1 = strchr (cp0, '.');
+            const char *cp1 = strchr (cp0, ',');
 
             if (!cp1 || cp1-cp0 < 1)
                 yes = 1;
             else
             {
+                if (*cp0 == '(')
+                    cp++;
                 if (atoi(cp0) == e->tagType) 
                 {
                     if (e->tagWhich == Z_StringOrNumeric_numeric)

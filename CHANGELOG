@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.16 1996-05-29 06:37:40 adam Exp $
+$Id: CHANGELOG,v 1.17 1996-06-05 08:59:22 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -84,6 +84,6 @@ $Id: CHANGELOG,v 1.16 1996-05-29 06:37:40 adam Exp $
          oid utilities.
 
 29/05/96 Set function getGrs enhanced so that specific elements can be
-         extracted by <tagType>.<tagVal> - pairs.
+         extracted by (<tagType>,<tagVal>) - pairs.
 
 
