@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.15  1995-03-28 12:45:22  adam
+# Revision 1.16  1995-03-31 08:56:36  adam
+# New button "Search".
+#
+# Revision 1.15  1995/03/28  12:45:22  adam
 # New ir method failback: called on disconnect/protocol error.
 # New ir set/get method: protocol: SR / Z3950.
 # Simple popup and disconnect when failback is invoked.
@@ -58,7 +61,7 @@ set hostid Default
 set settingsChanged 0
 set setNo 0
 
-wm minsize . 300 200
+wm minsize . 300 250
 
 if {[file readable "~/.tk-c"]} {
     source "~/.tk-c"
@@ -356,7 +359,6 @@ proc init-request {} {
     z39 callback {init-response}
     z39 init
     show-status {Initializing} 1
-    set setNo 0
 }
 
 proc init-response {} {
@@ -409,12 +411,34 @@ proc search-response {} {
         }
         return
     }
-    if {$setMax > 10} {
-        set setMax 10
+    if {$setMax > 4} {
+        set setMax 4
     }
     z39 callback {present-response}
     set setOffset 1
-    z39.$setNo present 1 $setMax
+    z39.$setNo present $setOffset $setMax
+    show-status {Retrieve} 1
+}
+
+proc present-more {number} {
+    global setNo
+    global setOffset
+    global setMax
+
+    puts "present-more"
+    set max [z39.$setNo resultCount]
+    if {$max <= $setMax} {
+        return
+    }
+    puts "max=$max"
+    puts "setOffset=$setOffset"
+    if {$number == ""} {
+        set setMax $max
+    } else {
+        incr setMax $number
+    }
+    z39 callback {present-response}
+    z39.$setNo present $setOffset [expr $setMax - $setOffset + 1]
     show-status {Retrieve} 1
 }
 
@@ -890,10 +914,17 @@ menu .top.target.m.clist
 menu .top.target.m.slist
 cascade-target-list
 
-menubutton .top.database -text "Database" -underline 0 -menu .top.database.m
-menu .top.database.m
-.top.database.m add command -label "Select ..." -command {database-select}
-.top.database.m add command -label "Add ..." -command {puts "Add"}
+menubutton .top.search -text "Search" -underline 0 -menu .top.search.m
+menu .top.search.m
+.top.search.m add command -label "Database" -command {database-select}
+.top.search.m add cascade -label "Query type" -menu .top.search.m.querytype
+menu .top.search.m.querytype
+.top.search.m.querytype add radiobutton -label "RPN"
+.top.search.m.querytype add radiobutton -label "CCL"
+.top.search.m add cascade -label "Present" -menu .top.search.m.present
+menu .top.search.m.present
+.top.search.m.present add command -label "More" -command [list present-more 10]
+.top.search.m.present add command -label "All" -command [list present-more {}]
 
 menubutton .top.help -text "Help" -menu .top.help.m
 menu .top.help.m
@@ -901,7 +932,7 @@ menu .top.help.m
 .top.help.m add command -label "Help on help" -command {puts "Help on help"}
 .top.help.m add command -label "About" -command {puts "About"}
 
-pack .top.file .top.target .top.database -side left
+pack .top.file .top.target .top.search -side left
 pack .top.help -side right
 
 label .mid.searchlabel -text {Search:}

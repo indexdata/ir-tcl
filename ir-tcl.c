@@ -4,7 +4,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.20  1995-03-29 16:07:09  adam
+ * Revision 1.21  1995-03-31 08:56:37  adam
+ * New button "Search".
+ *
+ * Revision 1.20  1995/03/29  16:07:09  adam
  * Bug fix: Didn't use setName in present request.
  *
  * Revision 1.19  1995/03/28  12:45:23  adam
@@ -70,7 +73,7 @@
 #include <assert.h>
 
 #include <yaz-ccl.h>
-#include <iso2709p.h>
+#include <iso2709.h>
 #include <comstack.h>
 #include <tcpip.h>
 
@@ -345,6 +348,11 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
     Z_InitRequest req;
     int r;
 
+    if (!p->cs_link)
+    {
+        interp->result = "not connected";
+        return TCL_ERROR;
+    }
     req.referenceId = 0;
     req.options = &p->options;
     req.protocolVersion = &p->protocolVersion;
@@ -372,6 +380,7 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
     if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
     {     
         interp->result = "cs_put failed in init";
+        do_disconnect (p, NULL, 0, NULL);
         return TCL_ERROR;
     }
     else if (r == 1)
@@ -558,6 +567,7 @@ static int do_connect (void *obj, Tcl_Interp *interp,
         if ((r=cs_connect (p->cs_link, addr)) < 0)
         {
             interp->result = "cs_connect fail";
+            do_disconnect (p, NULL, 0, NULL);
             return TCL_ERROR;
         }
         ir_select_add (cs_fileno (p->cs_link), p);
@@ -573,7 +583,8 @@ static int do_connect (void *obj, Tcl_Interp *interp,
                 Tcl_Eval (p->interp, p->callback);
         }
     }
-    Tcl_AppendElement (interp, p->hostname);
+    if (p->hostname)
+        Tcl_AppendElement (interp, p->hostname);
     return TCL_OK;
 }
 
@@ -589,12 +600,14 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
     {
         free (p->hostname);
         p->hostname = NULL;
+        ir_select_remove_write (cs_fileno (p->cs_link), p);
         ir_select_remove (cs_fileno (p->cs_link), p);
 
         assert (p->cs_link);
         cs_close (p->cs_link);
         p->cs_link = NULL;
     }
+    assert (!p->cs_link);
     return TCL_OK;
 }
 
@@ -886,6 +899,11 @@ static int do_search (void *o, Tcl_Interp *interp,
         interp->result = "no databaseNames";
         return TCL_ERROR;
     }
+    if (!p->cs_link)
+    {
+        interp->result = "not connected";
+        return TCL_ERROR;
+    }
     apdu.which = Z_APDU_searchRequest;
     apdu.u.searchRequest = &req;
     apdup = &apdu;
@@ -1019,76 +1037,62 @@ static int do_numberOfRecordsReturned (void *o, Tcl_Interp *interp,
     return TCL_OK;
 }
 
-static int marc_cmp (const char *field, const char *pattern)
-{
-    if (*pattern == '*')
-        return 0;
-    for (; *field && *pattern; field++, pattern++)
-    {
-        if (*pattern == '?')
-            continue;
-        if (*pattern != *field)
-            break;
-    }
-    return *field - *pattern;
-}
-
 static int get_marc_fields(Tcl_Interp *interp, Iso2709Rec rec,
                            int argc, char **argv)
 {
-    struct iso2709_dir *dir;
-    struct iso2709_field *field;
+    Iso2709Anchor a;
+    char *data;
 
-    for (dir = rec->directory; dir; dir = dir->next)
+    a = iso2709_a_mk (rec);
+    while (iso2709_a_search (a, argv[4], argv[5], argv[6]))
     {
-        if (argc > 4 && marc_cmp (dir->tag, argv[4]))
-            continue;
-        if (argc > 5 && marc_cmp (dir->indicator, argv[5]))
-            continue;
-        for (field = dir->fields; field; field = field->next)
-        {
-            if (argc > 6 && marc_cmp (field->identifier, argv[6]))
-                continue;
-            Tcl_AppendElement (interp, field->data);
-        }
+        if (!(iso2709_a_info_field (a, NULL, NULL, NULL, &data)))
+            break;
+        Tcl_AppendElement (interp, data);
+        iso2709_a_next (a);
     }
+
+    iso2709_a_rm (a);
     return TCL_OK;
 }
 
-static int get_marc_lines (Tcl_Interp *interp, Iso2709Rec rec,
-                           int argc, char **argv)
+static int get_marc_lines(Tcl_Interp *interp, Iso2709Rec rec,
+                         int argc, char **argv)
 {
-    struct iso2709_dir *dir;
-    struct iso2709_field *field;
+    Iso2709Anchor a;
+    char *tag;
+    char *indicator;
+    char *identifier;
+    char *data;
+    char *ptag = "";
     
-    for (dir = rec->directory; dir; dir = dir->next)
+    a = iso2709_a_mk (rec);
+    while (iso2709_a_search (a, argv[4], argv[5], argv[6]))
     {
-        if (argc > 4 && marc_cmp (dir->tag, argv[4]))
-            continue;
-        if (!dir->indicator)
-            Tcl_AppendResult (interp, "{", dir->tag, " {} {", NULL);
-        else
+        if (!(iso2709_a_info_field (a, &tag, &indicator, &identifier, &data)))
+            break;
+        if (strcmp (tag, ptag))
         {
-            if (argc > 5 && marc_cmp (dir->indicator, argv[5]))
-                continue;
-            Tcl_AppendResult (interp, "{", dir->tag, " {", dir->indicator, 
-                              "} {", NULL);
-        }
-        for (field = dir->fields; field; field = field->next)
-        {
-            if (!field->identifier)
-                Tcl_AppendResult (interp, "{{}", NULL);
+            if (*ptag)
+                Tcl_AppendResult (interp, "}} ", NULL);
+            if (!indicator)
+                Tcl_AppendResult (interp, "{", tag, " {} {", NULL);
             else
-            {
-                if (argc > 6 && marc_cmp (field->identifier, argv[6]))
-                    continue;
-                Tcl_AppendResult (interp, "{", field->identifier, NULL);
-            }
-            Tcl_AppendElement (interp, field->data);
-            Tcl_AppendResult (interp, "} ", NULL);
+                Tcl_AppendResult (interp, "{", tag, " {", indicator, 
+                                  "} {", NULL);
+            ptag = tag;
         }
-        Tcl_AppendResult (interp, "}} ", NULL);
+        if (!identifier)
+            Tcl_AppendResult (interp, "{{}", NULL);
+        else
+            Tcl_AppendResult (interp, "{", identifier, NULL);
+        Tcl_AppendElement (interp, data);
+        Tcl_AppendResult (interp, "} ", NULL);
+        iso2709_a_next (a);
     }
+    if (*ptag)
+        Tcl_AppendResult (interp, "}} ", NULL);
+    iso2709_a_rm (a);
     return TCL_OK;
 }
 
@@ -1260,6 +1264,11 @@ static int do_present (void *o, Tcl_Interp *interp,
     }
     else 
         number = 10;
+    if (!p->cs_link)
+    {
+        interp->result = "not connected";
+        return TCL_ERROR;
+    }
     obj->start = start;
     obj->number = number;
 
@@ -1563,6 +1572,7 @@ void ir_select_read (ClientData clientData)
             printf ("cs_rcvconnect error\n");
             if (p->failback)
                 Tcl_Eval (p->interp, p->failback);
+            do_disconnect (p, NULL, 0, NULL);
             return;
         }
         if (p->callback)
@@ -1577,6 +1587,7 @@ void ir_select_read (ClientData clientData)
             ir_select_remove (cs_fileno (p->cs_link), p);
             if (p->failback)
                 Tcl_Eval (p->interp, p->failback);
+            do_disconnect (p, NULL, 0, NULL);
             return;
         }        
         if (r == 1)
@@ -1588,6 +1599,7 @@ void ir_select_read (ClientData clientData)
             printf ("%s\n", odr_errlist [odr_geterror (p->odr_in)]);
             if (p->failback)
                 Tcl_Eval (p->interp, p->failback);
+            do_disconnect (p, NULL, 0, NULL);
             return;
         }
         switch(apdu->which)
@@ -1606,6 +1618,7 @@ void ir_select_read (ClientData clientData)
                    apdu->which);
             if (p->failback)
                 Tcl_Eval (p->interp, p->failback);
+            do_disconnect (p, NULL, 0, NULL);
         }
         if (p->callback)
 	    Tcl_Eval (p->interp, p->callback);
@@ -1633,6 +1646,7 @@ void ir_select_write (ClientData clientData)
             ir_select_remove_write (cs_fileno (p->cs_link), p);
             if (p->failback)
                 Tcl_Eval (p->interp, p->failback);
+            do_disconnect (p, NULL, 0, NULL);
             return;
         }
         ir_select_remove_write (cs_fileno (p->cs_link), p);
@@ -1643,9 +1657,9 @@ void ir_select_write (ClientData clientData)
     if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
     {   
         printf ("select write fail\n");
-        cs_close (p->cs_link);
         if (p->failback)
             Tcl_Eval (p->interp, p->failback);
+        do_disconnect (p, NULL, 0, NULL);
     }
     else if (r == 0)            /* remove select bit */
     {
