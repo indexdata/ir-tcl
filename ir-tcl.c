@@ -2,7 +2,10 @@
  * IR toolkit for tcl/tk
  * (c) Index Data 1995
  *
- * $Id: ir-tcl.c,v 1.3 1995-03-09 08:35:53 adam Exp $
+ * $Log: ir-tcl.c,v $
+ * Revision 1.4  1995-03-09 16:15:08  adam
+ * First presentRequest attempts. Hot-target list.
+ *
  */
 
 #include <stdlib.h>
@@ -51,10 +54,13 @@ typedef struct {
     int replaceIndicator;
     char **databaseNames;
     int num_databaseNames;
+
+    struct IRSetObj_ *child;
 } IRObj;
 
-typedef struct {
+typedef struct IRSetObj_ {
     IRObj *parent;
+    int resultCount;
 } IRSetObj;
 
 typedef struct {
@@ -85,7 +91,10 @@ static int get_parent_info (Tcl_Interp *interp, const char *name,
     memcpy (parent_name, name, pos);
     parent_name[pos] = '\0';
     if (!Tcl_GetCommandInfo (interp, parent_name, parent_info))
+    {
+        interp->result = "No parent";
         return TCL_ERROR;
+    }
     return TCL_OK;
 }
 
@@ -502,7 +511,7 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     }
     obj->cs_link = cs_create (tcpip_type);
 
-    obj->maximumMessageSize = 10000;
+    obj->maximumMessageSize = 9000;
     obj->preferredMessageSize = 4096;
 
     obj->idAuthentication = NULL;
@@ -569,6 +578,7 @@ static int do_search (void *o, Tcl_Interp *interp,
     char *sbuf;
     int slen;
 
+    p->child = o;
     if (argc != 3)
     {
         interp->result = "wrong # args";
@@ -625,6 +635,75 @@ static int do_query (void *obj, Tcl_Interp *interp,
     return TCL_OK;
 }
 
+/*
+ * do_resultCount: Get number of hits
+ */
+static int do_resultCount (void *o, Tcl_Interp *interp,
+		       int argc, char **argv)
+{
+    IRSetObj *obj = o;
+
+    sprintf (interp->result, "%d", obj->resultCount);
+    return TCL_OK;
+}
+
+
+/*
+ * do_present: Perform present Request
+ */
+
+static int do_present (void *o, Tcl_Interp *interp,
+                       int argc, char **argv)
+{
+    IRSetObj *obj = o;
+    IRObj *p = obj->parent;
+    Z_APDU apdu, *apdup;
+    Z_PresentRequest req;
+    int start;
+    int number;
+    char *sbuf;
+    int slen;
+
+    if (argc >= 3)
+    {
+        if (Tcl_GetInt (interp, argv[2], &start) == TCL_ERROR)
+            return TCL_ERROR;
+    }
+    else
+        start = 1;
+    if (argc >= 4)
+    {
+        if (Tcl_GetInt (interp, argv[3], &number) == TCL_ERROR)
+            return TCL_ERROR;
+    }
+    else 
+        number = 10;
+    apdup = &apdu;
+    apdu.which = Z_APDU_presentRequest;
+    apdu.u.presentRequest = &req;
+    req.referenceId = 0;
+    /* sprintf(setstring, "%d", setnumber); */
+    req.resultSetId = "Default";
+    req.resultSetStartPoint = &start;
+    req.numberOfRecordsRequested = &number;
+    req.elementSetNames = 0;
+    req.preferredRecordSyntax = 0;
+
+    if (!z_APDU (p->odr_out, &apdup, 0))
+    {
+        interp->result = odr_errlist [odr_geterror (p->odr_out)];
+        odr_reset (p->odr_out);
+        return TCL_ERROR;
+    } 
+    sbuf = odr_getbuf (p->odr_out, &slen);
+    if (cs_put (p->cs_link, sbuf, slen) < 0)
+    {
+        interp->result = "cs_put failed in init";
+        return TCL_ERROR;
+    }
+    printf ("Present request\n");
+    return TCL_OK;
+}
 
 /* 
  * ir_set_obj_method: IR Set Object methods
@@ -635,6 +714,8 @@ static int ir_set_obj_method (ClientData clientData, Tcl_Interp *interp,
     static IRMethod tab[] = {
     { "query", do_query },
     { "search", do_search },
+    { "resultCount", do_resultCount },
+    { "present", do_present },
     { NULL, NULL}
     };
 
@@ -669,10 +750,7 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
         return TCL_ERROR;
     }
     if (get_parent_info (interp, argv[1], &parent_info) == TCL_ERROR)
-    {
-        interp->result = "No parent";
         return TCL_ERROR;
-    }
     obj = malloc (sizeof(*obj));
     if (!obj)
     {
@@ -687,13 +765,18 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
 
 /* ------------------------------------------------------- */
 
-static void ir_searchResponse (void *obj, Z_SearchResponse *searchrs)
+static void ir_searchResponse (void *o, Z_SearchResponse *searchrs)
 {    
+    IRObj *p = o;
+    IRSetObj *obj = p->child;
+
+    if (obj)
+        obj->resultCount = *searchrs->resultCount;
     if (searchrs->searchStatus)
         printf("Search was a success.\n");
     else
         printf("Search was a bloomin' failure.\n");
-    printf("Number of hits: %d, setno %d\n", *searchrs->resultCount, 1);
+    printf("Number of hits: %d\n", *searchrs->resultCount);
 #if 0
     if (searchrs->records)
         display_records(searchrs->records);
@@ -702,6 +785,8 @@ static void ir_searchResponse (void *obj, Z_SearchResponse *searchrs)
 
 static void ir_initResponse (void *obj, Z_InitResponse *initrs)
 {
+    IRObj *p = obj;
+
     if (!*initrs->result)
         printf("Connection rejected by target.\n");
     else
@@ -722,8 +807,11 @@ static void ir_initResponse (void *obj, Z_InitResponse *initrs)
 #endif
 }
 
-static void ir_presentResponse (void *obj, Z_PresentResponse *presrs)
+static void ir_presentResponse (void *o, Z_PresentResponse *presrs)
 {
+    IRObj *p = o;
+    IRSetObj *obj = p->child;
+
     printf("Received presentResponse.\n");
     if (presrs->records)
         printf ("Got records\n");
@@ -742,6 +830,7 @@ void ir_select_proc (ClientData clientData)
         if ((r=cs_get (p->cs_link, &p->buf_in, &p->len_in))  < 0)
         {
             printf ("cs_get failed\n");
+            ir_select_remove (cs_fileno (p->cs_link), p);
             return;
         }        
         odr_setbuf (p->odr_in, p->buf_in, r);
@@ -751,25 +840,23 @@ void ir_select_proc (ClientData clientData)
             printf ("%s\n", odr_errlist [odr_geterror (p->odr_in)]);
             return;
         }
-        if (p->callback)
-        {
-	    Tcl_Eval (p->interp, p->callback);
-	}
         switch(apdu->which)
         {
         case Z_APDU_initResponse:
-            ir_initResponse (NULL, apdu->u.initResponse);
+            ir_initResponse (p, apdu->u.initResponse);
             break;
         case Z_APDU_searchResponse:
-            ir_searchResponse (NULL, apdu->u.searchResponse);
+            ir_searchResponse (p, apdu->u.searchResponse);
             break;
         case Z_APDU_presentResponse:
-            ir_presentResponse (NULL, apdu->u.presentResponse);
+            ir_presentResponse (p, apdu->u.presentResponse);
             break;
         default:
             printf("Received unknown APDU type (%d).\n", 
                    apdu->which);
         }
+        if (p->callback)
+	    Tcl_Eval (p->interp, p->callback);
     } while (cs_more (p->cs_link));    
 }
 
@@ -786,5 +873,3 @@ int ir_tcl_init (Tcl_Interp *interp)
     		       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
     return TCL_OK;
 }
-
-
