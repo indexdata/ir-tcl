@@ -24,7 +24,11 @@
  * OF THIS SOFTWARE.
  *
  * $Log: ir-tcl.h,v $
- * Revision 1.15  1996-07-26 09:15:09  adam
+ * Revision 1.16  1997-04-13 18:57:28  adam
+ * Better error reporting and aligned with Tcl/Tk style.
+ * Rework of notifier code with Tcl_File handles.
+ *
+ * Revision 1.15  1996/07/26 09:15:09  adam
  * IrTcl version 1.2 patch level 1.
  *
  * Revision 1.14  1996/02/21  10:16:19  adam
@@ -74,7 +78,9 @@
 #ifndef IR_TCL_H
 #define IR_TCL_H
 
+#ifndef WINDOWS
 int Irtcl_Init (Tcl_Interp *interp);
+#endif
 
 void *ir_tcl_malloc (size_t size);
 void ir_tcl_select_set (void (*f)(ClientData clientData, int r, int w, int e),

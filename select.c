@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: select.c,v $
- * Revision 1.2  1996-09-13 10:51:48  adam
+ * Revision 1.3  1997-04-13 18:57:28  adam
+ * Better error reporting and aligned with Tcl/Tk style.
+ * Rework of notifier code with Tcl_File handles.
+ *
+ * Revision 1.2  1996/09/13 10:51:48  adam
  * Bug fix: ir_tcl_select_set called Tcl_GetFile at disconnect.
  *
  * Revision 1.1  1996/08/20  09:33:23  adam
@@ -105,7 +109,7 @@ void ir_tcl_select_set (void (*f)(ClientData clientData, int r, int w, int e),
                         int fd, ClientData clientData, int r, int w, int e)
 {
     int mask = 0;
-    struct sel_proc *sp = sel_proc_list;
+    struct sel_proc **sp = &sel_proc_list;
 
     if (r)
         mask |= TCL_READABLE;
@@ -113,32 +117,37 @@ void ir_tcl_select_set (void (*f)(ClientData clientData, int r, int w, int e),
         mask |= TCL_WRITABLE;
     if (e)
         mask |= TCL_EXCEPTION;
-    while (sp)
+    while (*sp)
     {
-        if (sp->fd == fd)
+        if ((*sp)->fd == fd)
              break;
-        sp = sp->next;
+        sp = &(*sp)->next;
     }
-    if (!sp)
+    logf (LOG_DEBUG, "r=%d w=%d e=%d sp=%p", r, w, e, *sp);
+    if (!f)
     {
-        if (!f)
-            return;
-        sp = ir_tcl_malloc (sizeof(*sp));
-        sp->next = sel_proc_list;
-        sel_proc_list = sp;
-        sp->fd = fd;
+        if (*sp)
+        {
+            Tcl_DeleteFileHandler ((*sp)->tcl_File);
+            Tcl_FreeFile ((*sp)->tcl_File);
+            *sp = (*sp)->next;
+        }
+        return ;
+    }
+    if (!*sp)
+    {
+        *sp = ir_tcl_malloc (sizeof(**sp));
+        (*sp)->next = NULL;
+        (*sp)->fd = fd;
 #if WINDOWS
-        sp->tcl_File = Tcl_GetFile ((ClientData) fd, TCL_WIN_SOCKET);
+        (*sp)->tcl_File = Tcl_GetFile ((ClientData) fd, TCL_WIN_SOCKET);
 #else
-        sp->tcl_File = Tcl_GetFile ((ClientData) fd, TCL_UNIX_FD);
+        (*sp)->tcl_File = Tcl_GetFile ((ClientData) fd, TCL_UNIX_FD);
 #endif
     }
-    sp->f = f;
-    sp->clientData = clientData;
-    if (f)
-        Tcl_CreateFileHandler (sp->tcl_File, mask, ir_tcl_tk_select_proc, sp);
-    else
-        Tcl_DeleteFileHandler (sp->tcl_File);
+    (*sp)->f = f;
+    (*sp)->clientData = clientData;
+    Tcl_CreateFileHandler ((*sp)->tcl_File, mask, ir_tcl_tk_select_proc, *sp);
 }
 #endif
 

@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.97  1996-11-14 17:11:07  adam
+ * Revision 1.98  1997-04-13 18:57:20  adam
+ * Better error reporting and aligned with Tcl/Tk style.
+ * Rework of notifier code with Tcl_File handles.
+ *
+ * Revision 1.97  1996/11/14 17:11:07  adam
  * Added Explain documentaion.
  *
  * Revision 1.96  1996/10/08  13:02:50  adam
@@ -360,6 +364,43 @@
 
 #include "ir-tclp.h"
 
+#if defined(__WIN32__)
+#   define WIN32_LEAN_AND_MEAN
+#   include <windows.h>
+#   undef WIN32_LEAN_AND_MEAN
+ 
+/*
+ * VC++ has an alternate entry point called DllMain, so we need to rename
+ * our entry point.
+ */
+ 
+#   if defined(_MSC_VER)
+#     define EXPORT(a,b) __declspec(dllexport) a b
+#     define DllEntryPoint DllMain
+#   else
+#     if defined(__BORLANDC__)
+#         define EXPORT(a,b) a _export b
+#     else
+#         define EXPORT(a,b) a b
+#     endif
+#   endif
+#else
+#   define EXPORT(a,b) a b
+#endif
+
+static char *wrongArgs = "wrong # args: should be \"";
+
+static int ir_tcl_error_exec (Tcl_Interp *interp, int argc, char **argv)
+{
+    int i;
+    Tcl_AppendResult (interp, " while executing ", NULL);
+    for (i = 0; i<argc; i++)
+        Tcl_AppendResult (interp, (i ? " " : "\""), argv[i], NULL);
+    Tcl_AppendResult (interp, "\"", NULL);
+    return TCL_ERROR;
+}
+
+
 static void ir_deleteDiags (IrTcl_Diagnostic **dst_list, int *dst_num);
 
 static void ir_select_notify (ClientData clientData, int r, int w, int e);
@@ -528,6 +569,24 @@ int ir_tcl_get_set_int (int *val, Tcl_Interp *interp, int argc, char **argv)
     return TCL_OK;
 }
 
+
+/*
+ * ir_tcl_method_error
+ */
+int ir_tcl_method_error (Tcl_Interp *interp, int argc, char **argv,
+                         IrTcl_Methods *tab)
+{
+    IrTcl_Methods *tab_i = tab;
+    IrTcl_Method *t;
+
+    Tcl_AppendResult (interp, "bad method: \"", *argv, " ", argv[1],
+                      "\"\nmethod should be  of:", NULL);
+    for (tab_i = tab; tab_i->tab; tab_i++)
+        for (t = tab_i->tab; t->name; t++)
+            Tcl_AppendResult (interp, " ", t->name, NULL);
+    return TCL_ERROR;
+}
+
 /*
  * ir_tcl_method: Search for method in table and invoke method handler
  */
@@ -553,13 +612,6 @@ int ir_tcl_method (Tcl_Interp *interp, int argc, char **argv,
 
     if (argc <= 0)
         return TCL_OK;
-#if 0
-    Tcl_AppendResult (interp, "Bad method: ", argv[1], 
-                      ". Possible methods:", NULL);
-    for (tab_i = tab; tab_i->tab; tab_i++)
-        for (t = tab_i->tab; t->name; t++)
-            Tcl_AppendResult (interp, " ", t->name, NULL);
-#endif
     *ret = TCL_ERROR;
     return TCL_ERROR;
 }
@@ -585,8 +637,8 @@ int ir_tcl_named_bits (struct ir_named_entry *tab, Odr_bitmask *ob,
                 }
             if (!ti->name)
             {
-                Tcl_AppendResult (interp, "Bad bit mask: ", argv[no], NULL);
-                return TCL_ERROR;
+                Tcl_AppendResult (interp, "bad bit mask ", argv[no], NULL);
+                return ir_tcl_error_exec (interp, argc, argv);
             }
         }
         return TCL_OK;
@@ -640,8 +692,8 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
     logf (LOG_DEBUG, "init %s", *argv);
     if (!p->cs_link)
     {
-        interp->result = "init: not connected";
-        return TCL_ERROR;
+        Tcl_AppendResult (interp, "not connected", NULL);
+        return ir_tcl_error_exec (interp, argc, argv);
     }
     apdu = zget_APDU (p->odr_out, Z_APDU_initRequest);
     req = apdu->u.initRequest;
@@ -1091,13 +1143,23 @@ static int do_connect (void *obj, Tcl_Interp *interp,
 
     if (argc <= 0)
         return TCL_OK;
-    if (argc == 3)
+    if (argc > 3)
+    {
+        Tcl_AppendResult (interp, wrongArgs, *argv, " ", argv[1],
+                          " ?hostname?\"", NULL);
+        return TCL_ERROR;
+    }
+    else if (argc < 3)
+    {
+        Tcl_AppendResult (interp, p->hostname, NULL);
+    }
+    else
     {
         logf (LOG_DEBUG, "connect %s %s", *argv, argv[2]);
         if (p->hostname)
         {
-            interp->result = "already connected";
-            return TCL_ERROR;
+            Tcl_AppendResult (interp, "already connected", NULL);
+            return ir_tcl_error_exec (interp, argc, argv);
         }
         if (!strcmp (p->comstackType, "tcpip"))
         {
@@ -1105,8 +1167,8 @@ static int do_connect (void *obj, Tcl_Interp *interp,
             addr = tcpip_strtoaddr (argv[2]);
             if (!addr)
             {
-                interp->result = "tcpip_strtoaddr fail";
-                return TCL_ERROR;
+                Tcl_AppendResult (interp, "tcpip_strtoaddr fail", NULL);
+                return ir_tcl_error_exec (interp, argc, argv);
             }
             logf (LOG_DEBUG, "tcp/ip connect %s", argv[2]);
         }
@@ -1117,29 +1179,29 @@ static int do_connect (void *obj, Tcl_Interp *interp,
             addr = mosi_strtoaddr (argv[2]);
             if (!addr)
             {
-                interp->result = "mosi_strtoaddr fail";
-                return TCL_ERROR;
+                Tcl_AppendResult (interp, "mosi_strtoaddr fail", NULL);
+                return ir_tcl_error_exec (interp, argc, argv);
             }
             logf (LOG_DEBUG, "mosi connect %s", argv[2]);
 #else
-            interp->result = "MOSI support not there";
-            return TCL_ERROR;
+            Tcl_AppendResult (interp, "mosi not supported", NULL);
+            return ir_tcl_error_exec (interp, argc, argv);
 #endif
         }
         else 
         {
-            Tcl_AppendResult (interp, "Bad comstack type: ", 
+            Tcl_AppendResult (interp, "bad comstack type ", 
                               p->comstackType, NULL);
-            return TCL_ERROR;
+            return ir_tcl_error_exec (interp, argc, argv);
         }
         if (ir_tcl_strdup (interp, &p->hostname, argv[2]) == TCL_ERROR)
             return TCL_ERROR;
         p->eventType = "connect";
         if ((r=cs_connect (p->cs_link, addr)) < 0)
         {
-            interp->result = "connect fail";
             ir_tcl_disconnect (p);
-            return TCL_ERROR;
+            Tcl_AppendResult (interp, "conncet fail", NULL);
+            return ir_tcl_error_exec (interp, argc, argv);
         }
         ir_select_add (cs_fileno (p->cs_link), p);
         if (r == 1)
@@ -1156,8 +1218,6 @@ static int do_connect (void *obj, Tcl_Interp *interp,
                 ir_tcl_eval (p->interp, p->callback);
         }
     }
-    else
-        Tcl_AppendResult (interp, p->hostname, NULL);
     return TCL_OK;
 }
 
@@ -1378,8 +1438,8 @@ static int do_protocol (void *o, Tcl_Interp *interp, int argc, char **argv)
             p->protocol_type = PROTO_SR;
         else
         {
-            Tcl_AppendResult (interp, "Bad protocol: ", argv[2], NULL);
-            return TCL_ERROR;
+            Tcl_AppendResult (interp, "bad protocol ", argv[2], NULL);
+            return ir_tcl_error_exec (interp, argc, argv);
         }
         return TCL_OK;
     }
@@ -1410,8 +1470,8 @@ static int do_triggerResourceControl (void *obj, Tcl_Interp *interp,
         return TCL_OK;
     if (!p->cs_link)
     {
-        interp->result = "triggerResourceControl: not connected";
-        return TCL_ERROR;
+        Tcl_AppendResult (interp, "not connected", NULL);
+        return ir_tcl_error_exec (interp, argc, argv);
     }
     apdu = zget_APDU (p->odr_out, Z_APDU_triggerResourceControlRequest);
     req = apdu->u.triggerResourceControlRequest;
@@ -1770,7 +1830,10 @@ static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
     int r;
 
     if (argc < 2)
+    {
+        Tcl_AppendResult (interp, wrongArgs, *argv, "method args...\"", NULL);
         return TCL_ERROR;
+    }
     
     tab[0].tab = ir_method_tab;
     tab[0].obj = p;
@@ -1778,7 +1841,8 @@ static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
     tab[1].obj = &p->set_inher;
     tab[2].tab = NULL;
     
-    ir_tcl_method (interp, argc, argv, tab, &r);
+    if (ir_tcl_method (interp, argc, argv, tab, &r) == TCL_ERROR)
+        return ir_tcl_method_error (interp, argc, argv, tab);
     return r;
 }
 
@@ -1826,7 +1890,7 @@ int ir_obj_init (ClientData clientData, Tcl_Interp *interp,
 
     if (argc != 2)
     {
-        interp->result = "wrong # args";
+        Tcl_AppendResult (interp, wrongArgs, *argv, " objName\"", NULL);
         return TCL_ERROR;
     }
     obj = ir_tcl_malloc (sizeof(*obj));
@@ -1910,22 +1974,23 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
         return TCL_OK;
 
     p = obj->parent;
+    assert (argc > 1);
     if (argc != 3)
     {
-        logf (LOG_DEBUG, "search %s", *argv);
-        interp->result = "wrong # args";
+	Tcl_AppendResult (interp, wrongArgs, *argv, " ", argv[1], "query\"",
+                          NULL);
         return TCL_ERROR;
     }
     logf (LOG_DEBUG, "search %s %s", *argv, argv[2]);
     if (!obj->set_inher.num_databaseNames)
     {
-        interp->result = "no databaseNames";
-        return TCL_ERROR;
+        Tcl_AppendResult (interp, "no databaseNames", NULL);
+        return ir_tcl_error_exec (interp, argc, argv);
     }
     if (!p->cs_link)
     {
-        interp->result = "search: not connected";
-        return TCL_ERROR;
+        Tcl_AppendResult (interp, "not connected", NULL);
+        return ir_tcl_error_exec (interp, argc, argv);
     }
     apdu = zget_APDU (p->odr_out, Z_APDU_searchRequest);
     req = apdu->u.searchRequest;
@@ -1939,7 +2004,7 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
     req->largeSetLowerBound = &obj->set_inher.largeSetLowerBound;
     req->mediumSetPresentNumber = &obj->set_inher.mediumSetPresentNumber;
     req->replaceIndicator = &obj->set_inher.replaceIndicator;
-    req->resultSetName = obj->setName ? obj->setName : "Default";
+    req->resultSetName = obj->setName ? obj->setName : "default";
     logf (LOG_DEBUG, "Search, resultSetName %s", req->resultSetName);
     req->num_databaseNames = obj->set_inher.num_databaseNames;
     req->databaseNames = obj->set_inher.databaseNames;
@@ -1993,8 +2058,8 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
         RPNquery = p_query_rpn (p->odr_out, p->protocol_type, argv[2]);
         if (!RPNquery)
         {
-            Tcl_AppendResult (interp, "Syntax error in query", NULL);
-            return TCL_ERROR;
+            Tcl_AppendResult (interp, "query syntax error", NULL);
+            return ir_tcl_error_exec (interp, argc, argv);
         }
         query.which = Z_Query_type_1;
         query.u.type_1 = RPNquery;
@@ -2015,9 +2080,9 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
         rpn = ccl_find_str(p->bibset, argv[2], &error, &pos);
         if (error)
         {
-            Tcl_AppendResult (interp, "CCL error: ", 
-                              ccl_err_msg(error), NULL);
-            return TCL_ERROR;
+            Tcl_AppendResult (interp, "ccl syntax error ", ccl_err_msg(error),
+                              NULL);
+            return ir_tcl_error_exec (interp, argc, argv);
         }
 #if 0
         ccl_pr_tree (rpn, stderr);
@@ -2038,8 +2103,9 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     else
     {
-        interp->result = "unknown query method";
-        return TCL_ERROR;
+        Tcl_AppendResult (interp, "invalid query method ",
+                          obj->set_inher.queryType, NULL);
+        return ir_tcl_error_exec (interp, argc, argv);
     }
     return ir_tcl_send_APDU (interp, p, apdu, "search", *argv);
 }
@@ -2225,7 +2291,8 @@ static int do_type (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     if (argc != 3)
     {
-        sprintf (interp->result, "wrong # args");
+        Tcl_AppendResult (interp, wrongArgs, *argv, " ", argv[1],
+                          " position\"", NULL);
         return TCL_ERROR;
     }
     if (Tcl_GetInt (interp, argv[2], &offset)==TCL_ERROR)
@@ -2233,7 +2300,7 @@ static int do_type (void *o, Tcl_Interp *interp, int argc, char **argv)
     rl = find_IR_record (obj, offset);
     if (!rl)
     {
-        logf (LOG_DEBUG, "No record at position %d", offset);
+        logf (LOG_DEBUG, "%s %s %s: no record", argv[0], argv[1], argv[2]);
         return TCL_OK;
     }
     switch (rl->which)
@@ -2268,14 +2335,18 @@ static int do_recordType (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     if (argc != 3)
     {
-        sprintf (interp->result, "wrong # args");
+        Tcl_AppendResult (interp, wrongArgs, *argv, " ", argv[1],
+                          " position\"", NULL);
         return TCL_ERROR;
     }
     if (Tcl_GetInt (interp, argv[2], &offset)==TCL_ERROR)
         return TCL_ERROR;
     rl = find_IR_record (obj, offset);
     if (!rl)
+    {
+        logf (LOG_DEBUG, "%s %s %s: no record", argv[0], argv[1], argv[2]);
         return TCL_OK;
+    }
     if (rl->which != Z_NamePlusRecord_databaseRecord)
     {
         Tcl_AppendResult (interp, "No DB record at #", argv[2], NULL);
@@ -2303,7 +2374,8 @@ static int do_recordElements (void *o, Tcl_Interp *interp,
         return ir_tcl_strdel (NULL, &obj->recordElements);
     if (argc > 3)
     {
-        sprintf (interp->result, "wrong # args");
+        Tcl_AppendResult (interp, wrongArgs, *argv, " ", argv[1],
+                          " ?position?\"", NULL);
         return TCL_ERROR;
     }
     if (argc == 3)
@@ -2355,7 +2427,8 @@ static int do_diag (void *o, Tcl_Interp *interp, int argc, char **argv)
         return TCL_OK;
     if (argc != 3)
     {
-        sprintf (interp->result, "wrong # args");
+        Tcl_AppendResult (interp, wrongArgs, *argv, " ", argv[1],
+                          " position\"", NULL);
         return TCL_ERROR;
     }
     if (Tcl_GetInt (interp, argv[2], &offset)==TCL_ERROR)
@@ -2388,7 +2461,8 @@ static int do_getMarc (void *o, Tcl_Interp *interp, int argc, char **argv)
         return TCL_OK;
     if (argc < 7)
     {
-        sprintf (interp->result, "wrong # args");
+        Tcl_AppendResult (interp, wrongArgs, *argv, " ", argv[1],
+                          " position line|field tag ind field\"", NULL);
         return TCL_ERROR;
     }
     if (Tcl_GetInt (interp, argv[2], &offset)==TCL_ERROR)
@@ -2420,7 +2494,8 @@ static int do_getSutrs (void *o, Tcl_Interp *interp, int argc, char **argv)
         return TCL_OK;
     if (argc != 3)
     {
-        sprintf (interp->result, "wrong # args");
+        Tcl_AppendResult (interp, wrongArgs, *argv, " ", argv[1],
+                          " position\"", NULL);
         return TCL_ERROR;
     }
     if (Tcl_GetInt (interp, argv[2], &offset)==TCL_ERROR)
@@ -2456,7 +2531,8 @@ static int do_getGrs (void *o, Tcl_Interp *interp, int argc, char **argv)
         return TCL_OK;
     if (argc < 3)
     {
-        sprintf (interp->result, "wrong # args");
+        Tcl_AppendResult (interp, wrongArgs, *argv, " ", argv[1],
+                          " position ?(set,tag) (set,tag) ...?\"", NULL);
         return TCL_ERROR;
     }
     if (Tcl_GetInt (interp, argv[2], &offset)==TCL_ERROR)
@@ -2494,7 +2570,8 @@ static int do_getExplain (void *o, Tcl_Interp *interp, int argc, char **argv)
         return TCL_OK;
     if (argc < 3)
     {
-        sprintf (interp->result, "wrong # args");
+        Tcl_AppendResult (interp, wrongArgs, *argv, " ", argv[1],
+                          " position ?mask? ...\"", NULL);
         return TCL_ERROR;
     }
     if (Tcl_GetInt (interp, argv[2], &offset)==TCL_ERROR)
@@ -2598,10 +2675,9 @@ static int do_present (void *o, Tcl_Interp *interp, int argc, char **argv)
     p = obj->parent;
     if (!p->cs_link)
     {
-        interp->result = "present: not connected";
-        return TCL_ERROR;
+        Tcl_AppendResult (interp, "not connected", NULL);
+        return ir_tcl_error_exec (interp, argc, argv);
     }
-
     obj->start = start;
     obj->number = number;
 
@@ -2673,7 +2749,8 @@ static int do_loadFile (void *o, Tcl_Interp *interp,
         return TCL_OK;
     if (argc < 3)
     {
-        interp->result = "wrong # args";
+        Tcl_AppendResult (interp, wrongArgs, *argv, " ", argv[1],
+                          " filename ?start? ?number?\"", NULL);
         return TCL_ERROR;
     }
     if (argc > 3)
@@ -2686,7 +2763,7 @@ static int do_loadFile (void *o, Tcl_Interp *interp,
     if (!inf)
     {
         Tcl_AppendResult (interp, "Cannot open ", argv[2], NULL);
-        return TCL_ERROR;
+        return ir_tcl_error_exec (interp, argc, argv);
     }
     while (offset < (start+number))
     {
@@ -2707,10 +2784,9 @@ static int do_loadFile (void *o, Tcl_Interp *interp,
             rl->u.dbrec.size = size;
             if (size != head.size)
             {
-                Tcl_AppendResult (interp, "Bad ISO2709 encoding in file",
-                                  argv[2], NULL);
                 fclose (inf);
-                return TCL_ERROR;
+                Tcl_AppendResult (interp, "bad ISO2709 encoding", NULL);
+                return ir_tcl_error_exec (interp, argc, argv);
             }
         } 
         else if (head.encoding == IR_TCL_RECORD_ENCODING_RAW)
@@ -2719,10 +2795,9 @@ static int do_loadFile (void *o, Tcl_Interp *interp,
             rl->u.dbrec.buf = ir_tcl_malloc (head.size + 1);
             if (fread (rl->u.dbrec.buf, rl->u.dbrec.size, 1, inf) < 1)
             {
-                Tcl_AppendResult (interp, "Bad RAW encoding in file",
-                                  argv[2], NULL);
                 fclose (inf);
-                return TCL_ERROR;
+                Tcl_AppendResult (interp, "bad raw encoding", NULL);
+                return ir_tcl_error_exec (interp, argc, argv);
             }
             rl->u.dbrec.buf[rl->u.dbrec.size] = '\0';
         }
@@ -2730,9 +2805,9 @@ static int do_loadFile (void *o, Tcl_Interp *interp,
         {
             rl->u.dbrec.buf = NULL;
             rl->u.dbrec.size = 0;
-            Tcl_AppendResult (interp, "Bad encoding in file", argv[2], NULL);
             fclose (inf);
-            return TCL_ERROR;
+            Tcl_AppendResult (interp, "bad encoding", NULL);
+            return ir_tcl_error_exec (interp, argc, argv);
         }
         offset++;
     }
@@ -2758,7 +2833,8 @@ static int do_saveFile (void *o, Tcl_Interp *interp,
         return TCL_OK;
     if (argc < 3)
     {
-        interp->result = "wrong # args";
+        Tcl_AppendResult (interp, wrongArgs, *argv, " ", argv[1],
+                          " filename ?start? ?number?\"", NULL);
         return TCL_ERROR;
     }
     if (argc > 3)
@@ -2770,8 +2846,8 @@ static int do_saveFile (void *o, Tcl_Interp *interp,
     outf = fopen (argv[2], "w");
     if (!outf)
     {
-        Tcl_AppendResult (interp, "Cannot open ", argv[2], NULL);
-        return TCL_ERROR;
+        Tcl_AppendResult (interp, "cannot open file", NULL);
+        return ir_tcl_error_exec (interp, argc, argv);
     }
     while (offset < (start+number) && (rl = find_IR_record (setobj, offset)))
     {
@@ -2785,21 +2861,21 @@ static int do_saveFile (void *o, Tcl_Interp *interp,
             head.size = rl->u.dbrec.size;
             if (fwrite (&head, sizeof(head), 1, outf) < 1)
             {
-                Tcl_AppendResult (interp, "Cannot write ", argv[2], NULL);
-                return TCL_ERROR;
+                Tcl_AppendResult (interp, "cannot write", NULL);
+                return ir_tcl_error_exec (interp, argc, argv);
             }
             if (fwrite (rl->u.dbrec.buf, rl->u.dbrec.size, 1, outf) < 1)
             {
-                Tcl_AppendResult (interp, "Cannot write ", argv[2], NULL);
-                return TCL_ERROR;
+                Tcl_AppendResult (interp, "cannot write", NULL);
+                return ir_tcl_error_exec (interp, argc, argv);
             }
         }
         offset++;
     }
     if (fclose (outf))
     {
-        Tcl_AppendResult (interp, "Cannot write ", argv[2], NULL);
-        return TCL_ERROR;
+        Tcl_AppendResult (interp, "cannot write ", NULL);
+        return ir_tcl_error_exec (interp, argc, argv);
     }
     return TCL_OK;
 }
@@ -2842,7 +2918,7 @@ static int ir_set_obj_method (ClientData clientData, Tcl_Interp *interp,
 
     if (argc < 2)
     {
-        interp->result = "wrong # args";
+        Tcl_AppendResult (interp, wrongArgs, *argv, " method args...\"", NULL);
         return TCL_ERROR;
     }
     tabs[0].tab = ir_set_method_tab;
@@ -2851,7 +2927,8 @@ static int ir_set_obj_method (ClientData clientData, Tcl_Interp *interp,
     tabs[1].obj = &p->set_inher;
     tabs[2].tab = NULL;
 
-    ir_tcl_method (interp, argc, argv, tabs, &r);
+    if (ir_tcl_method (interp, argc, argv, tabs, &r) == TCL_ERROR)
+        return ir_tcl_method_error (interp, argc, argv, tabs);
     return r;
 }
 
@@ -2888,7 +2965,8 @@ static int ir_set_obj_init (ClientData clientData, Tcl_Interp *interp,
 
     if (argc < 2 || argc > 3)
     {
-        interp->result = "wrong # args";
+        Tcl_AppendResult (interp, wrongArgs, *argv,
+                          " objSetName ?objParent?\"", NULL);
         return TCL_ERROR;
     }
     obj = ir_tcl_malloc (sizeof(*obj));
@@ -2979,8 +3057,8 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
         Tcl_CmdInfo parent_info;
         if (!Tcl_GetCommandInfo (interp, argv[2], &parent_info))
         {
-            interp->result = "No parent";
-            return TCL_ERROR;
+            Tcl_AppendResult (interp, "no object parent", NULL);
+            return ir_tcl_error_exec (interp, argc, argv);
         }
         parentData = parent_info.clientData;
     }
@@ -3020,19 +3098,20 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
         return TCL_OK;
     if (argc != 3)
     {
-        interp->result = "wrong # args";
+        Tcl_AppendResult (interp, wrongArgs, *argv, " ", argv[1],
+                          " scanQuery\"", NULL);
         return TCL_ERROR;
     }
     logf (LOG_DEBUG, "scan %s %s", *argv, argv[2]);
     if (!p->set_inher.num_databaseNames)
     {
-        interp->result = "no databaseNames";
-        return TCL_ERROR;
+        Tcl_AppendResult (interp, "no databaseNames", NULL);
+        return ir_tcl_error_exec (interp, argc, argv);
     }
     if (!p->cs_link)
     {
-        interp->result = "scan: not connected";
-        return TCL_ERROR;
+        Tcl_AppendResult (interp, "not connected", NULL);
+        return ir_tcl_error_exec (interp, argc, argv);
     }
 
     apdu = zget_APDU (p->odr_out, Z_APDU_scanRequest);
@@ -3047,15 +3126,15 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
           p_query_scan (p->odr_out, p->protocol_type,
                         &req->attributeSet, argv[2])))
     {
-        Tcl_AppendResult (interp, "Syntax error in query", NULL);
-        return TCL_ERROR;
+        Tcl_AppendResult (interp, "query syntax error", NULL);
+        return ir_tcl_error_exec (interp, argc, argv);
     }
 #else
     rpn = ccl_find_str(p->bibset, argv[2], &r, &pos);
     if (r)
     {
-        Tcl_AppendResult (interp, "CCL error: ", ccl_err_msg (r), NULL);
-        return TCL_ERROR;
+        Tcl_AppendResult (interp, "ccl syntax error ", ccl_err_msg(r), NULL);
+        return ir_tcl_error_exec (interp, argc, argv);
     }
     bib1.proto = p->protocol_type;
     bib1.oclass = CLASS_ATTSET;
@@ -3225,7 +3304,8 @@ static int do_scanLine (void *obj, Tcl_Interp *interp, int argc, char **argv)
     }
     if (argc != 3)
     {
-        interp->result = "wrong # args";
+        Tcl_AppendResult (interp, wrongArgs, *argv, " ", argv[1],
+                          " position\"", NULL);
         return TCL_ERROR;
     }
     if (Tcl_GetInt (interp, argv[2], &i) == TCL_ERROR)
@@ -3277,14 +3357,15 @@ static int ir_scan_obj_method (ClientData clientData, Tcl_Interp *interp,
 
     if (argc < 2)
     {
-        interp->result = "wrong # args";
+        Tcl_AppendResult (interp, wrongArgs, *argv, " method args...\"", NULL);
         return TCL_ERROR;
     }
     tabs[0].tab = ir_scan_method_tab;
     tabs[0].obj = clientData;
     tabs[1].tab = NULL;
 
-    ir_tcl_method (interp, argc, argv, tabs, &r);
+    if (ir_tcl_method (interp, argc, argv, tabs, &r) == TCL_ERROR)
+        return ir_tcl_method_error (interp, argc, argv, tabs);
     return r;
 }
 
@@ -3316,14 +3397,15 @@ static int ir_scan_obj_mk (ClientData clientData, Tcl_Interp *interp,
 
     if (argc != 3)
     {
-        interp->result = "wrong # args";
+        Tcl_AppendResult (interp, wrongArgs, *argv,
+                          "objScanName objParentName\"", NULL);
         return TCL_ERROR;
     }
     logf (LOG_DEBUG, "ir scan create %s", argv[1]);
     if (!Tcl_GetCommandInfo (interp, argv[2], &parent_info))
     {
-        interp->result = "No parent";
-        return TCL_ERROR;
+        Tcl_AppendResult (interp, "no object parent", NULL);
+        return ir_tcl_error_exec (interp, argc, argv);
     }
     obj = ir_tcl_malloc (sizeof(*obj));
     obj->parent = (IrTcl_Obj *) parent_info.clientData;
@@ -3341,6 +3423,28 @@ static int ir_scan_obj_mk (ClientData clientData, Tcl_Interp *interp,
 
 /* ------------------------------------------------------- */
 
+/* 
+ * ir_log_proc: set yaz log level
+ */
+static int ir_log_init_proc (ClientData clientData, Tcl_Interp *interp,
+                             int argc, char **argv)
+{
+    if (argc <= 1 || argc > 4)
+    {
+        Tcl_AppendResult (interp, wrongArgs, *argv,
+                          " ?level ?prefix ?filename\"", NULL);
+        return TCL_OK;
+    }
+    if (argc == 2)
+        log_init (log_mask_str (argv[1]), "", NULL);
+    else if (argc == 3)
+        log_init (log_mask_str (argv[1]), argv[2], NULL);
+    else 
+        log_init (log_mask_str (argv[1]), argv[2], argv[3]);
+    return TCL_OK;
+}
+
+/* ------------------------------------------------------- */
 static void ir_initResponse (void *obj, Z_InitResponse *initrs)
 {
     IrTcl_Obj *p = obj;
@@ -3961,18 +4065,46 @@ static void ir_select_notify (ClientData clientData, int r, int w, int e)
     }
 }
 
-/* ------------------------------------------------------- */
+/*----------------------------------------------------------- */
+/* 
+ * DllEntryPoint --
+ * 
+ *    This wrapper function is used by Windows to invoke the
+ *    initialization code for the DLL.  If we are compiling
+ *    with Visual C++, this routine will be renamed to DllMain.
+ *    routine.
+ * 
+ * Results:
+ *    Returns TRUE;
+ * 
+ * Side effects:
+ *    None.
+ */
+ 
+#ifdef __WIN32__
+BOOL APIENTRY
+DllEntryPoint(hInst, reason, reserved)
+    HINSTANCE hInst;          /* Library instance handle. */
+    DWORD reason;             /* Reason this function is being called. */
+    LPVOID reserved;          /* Not used. */
+{
+    return TRUE;
+}
+#endif
 
+/* ------------------------------------------------------- */
 /*
  * Irtcl_init: Registration of TCL commands.
  */
-int Irtcl_Init (Tcl_Interp *interp)
+EXPORT (int,Irtcl_Init) (Tcl_Interp *interp)
 {
     Tcl_CreateCommand (interp, "ir", ir_obj_mk, (ClientData) NULL,
                        (Tcl_CmdDeleteProc *) NULL);
     Tcl_CreateCommand (interp, "ir-set", ir_set_obj_mk,
                        (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
     Tcl_CreateCommand (interp, "ir-scan", ir_scan_obj_mk,
+                       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
+    Tcl_CreateCommand (interp, "ir-log-init", ir_log_init_proc,
                        (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
     return TCL_OK;
 }
