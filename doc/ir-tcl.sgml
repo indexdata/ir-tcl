@@ -1,14 +1,14 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.25 1998-01-16 11:01:20 adam Exp $
+  $Id: ir-tcl.sgml,v 1.26 1998-01-16 11:30:44 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference 
 <author><htmlurl url="http://www.indexdata.dk/" name="Index Data">,
 <tt><htmlurl url="mailto:info@indexdata.dk" name="info@indexdata.dk"></tt>
-<date>$Revision: 1.25 $
+<date>$Revision: 1.26 $
 <abstract>
 This document describes IrTcl -- an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
@@ -200,12 +200,12 @@ To start the client using a dynamic library use:
 $ wish -f client.tcl
 </verb></tscreen>
 
-Note: some installations a slightly different name for wish, eg.
-<tt/wish8.0/.
+Note: Substitute the real name for the wish interpreter above, for
+version 8.0 it probably called <tt/wish8.0/.
 
 To start the client without dynamic library support use:
 <tscreen><verb>
-$ ir-tk -f client.tcl
+$ ./ir-tk -f client.tcl
 </verb></tscreen>
 
 The client lets up define targets and query types within the interface.
