@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.85  1996-01-19 16:22:36  adam
+# Revision 1.86  1996-01-22 09:29:01  adam
+# Wrote comments.
+#
+# Revision 1.85  1996/01/19  16:22:36  adam
 # New method: apduDump - returns information about last incoming APDU.
 #
 # Revision 1.84  1996/01/11  13:12:10  adam
@@ -296,6 +299,7 @@
 #
 #
 
+# Procedure tk4 is defined - returns 0 if tk 3.6 - returns 1 otherwise
 if {$tk_version == "3.6"} {
     proc tk4 {} {
         return 0
@@ -305,6 +309,19 @@ if {$tk_version == "3.6"} {
         return 1
     }
 }
+
+# The following two procedures deals with menu entries. The interface
+# changed from Tk 3.6 to 4.X
+
+# Procedure configure-enable-e {w n}
+#  w   is a menu
+#  n   menu entry number (0 is first entry)
+# Enables menu entry
+
+# Procedure configure-disable-e {w n}
+#  w   is a menu
+#  n   menu entry number (0 is first entry)
+# Disables menu entry
 
 if {[tk4]} {
     proc configure-enable-e {w n} {
@@ -326,6 +343,8 @@ if {[tk4]} {
     set noFocus {}
 }
 
+# Set monoFlag to 1 if screen is known not to support colors; otherwise
+#  set monoFlag to 0
 if {![tk4]} {
     if {[tk colormodel .] == "color"} {
         set monoFlag 0
@@ -336,10 +355,18 @@ if {![tk4]} {
     set monoFlag 0
 }
 
+# Define libdir to the IrTcl configuration directory.
+# In the line below LIBDIR will be modified during 'make install'.
 set libdir LIBDIR
+
+# If the bitmaps sub directory is present with a bitmap we assume 
+# the client is run from the source directory in which case we
+# set libdir the current directory.
 if {[file readable bitmaps/book2]} {
     set libdir .
 }
+
+# Make a final check to see if libdir was set ok.
 if {! [file readable ${libdir}/bitmaps/book2]} {
     puts "Cannot locate system files in ${libdir}. You must either run this"
     puts "program from the source directory root of ir-tcl or you must assure"
@@ -347,6 +374,7 @@ if {! [file readable ${libdir}/bitmaps/book2]} {
     exit 1
 }
 
+# Initialize a lot of globals.
 set hotTargets {}
 set hotInfo {}
 set busy 0
@@ -375,6 +403,9 @@ wm minsize . 0 0
 set setOffset 0
 set setMax 0
 
+# Procedure tkerror {err}
+#   err   error message
+# Override the Tk error handler function.
 proc tkerror err {
     set w .tkerrorw
 
@@ -395,6 +426,7 @@ proc tkerror err {
     bottom-buttons $w [list {Close} [list destroy $w]] 1
 }
 
+# Read the global configuration file.
 if {[file readable "clientrc.tcl"]} {
     source "clientrc.tcl"
 } else {
@@ -403,13 +435,19 @@ if {[file readable "clientrc.tcl"]} {
     }
 }
 
+# Read the user configuration file.
 if {[file readable "~/.clientrc.tcl"]} {
     source "~/.clientrc.tcl"
 }
 
+# These globals describe the current query type. They are set to the
+# first query type.
 set queryButtonsFind [lindex $queryButtons 0]
 set queryInfoFind [lindex $queryInfo 0]
 
+# Procedure read-formats
+# Read all Tcl source files in the subdirectory 'formats'.
+# The name of each source will correspond to a display format.
 proc read-formats {} {
     global displayFormats
     global libdir
@@ -428,6 +466,9 @@ proc read-formats {} {
     cd $oldDir
 }
 
+# Procedure set-wrap {m}
+#  m    boolean wrap mode
+# Handler to enable/disable text wrap in the main record window
 proc set-wrap {m} {
     global textWrap
 
@@ -435,6 +476,9 @@ proc set-wrap {m} {
     .data.record configure -wrap $m
 }
 
+# Procedure dputs {m}
+#  m    string to be printed
+# puts utility for debugging.
 proc dputs {m} {
     global debugMode
     if {$debugMode} {
@@ -442,6 +486,8 @@ proc dputs {m} {
     }
 }
 
+# Procedure apduDump {}
+# Logs BER dump of last APDU in window if debugMode is true.
 proc apduDump {} {
     global debugMode
 
@@ -482,7 +528,9 @@ proc apduDump {} {
 
 }
 
-
+# Procedure set-display-format {f}
+#  f    display format
+# Reformats main record window to use display format given by f
 proc set-display-format {f} {
     global displayFormat
     global setNo
@@ -499,6 +547,8 @@ proc set-display-format {f} {
     add-title-lines -1 10000 1
 }
 
+# Procedure initBindings
+# Disables various default bindings for Text and Listbox widgets.
 proc initBindings {} {
     set w Text
     bind $w <1> {}
@@ -524,6 +574,10 @@ proc initBindings {} {
     set w Entry
 }
 
+# Procedure post-menu {wbutton wmenu}
+#   wbutton    button widget
+#   wmenu      menu widget
+# Post menu near button. Note: not used.
 proc post-menu {wbutton wmenu} {
     $wmenu activate none
     focus $wmenu
@@ -532,10 +586,22 @@ proc post-menu {wbutton wmenu} {
 
 }
 
+# Procedure destroyGW {w}
+#   w     top level widget
+# Saves geometry of widget w in windowGeometry array. This
+# Procedure is used to save current geometry of a window before
+# it is destroyed.
+# See also topLevelG.
 proc destroyGW {w} {
     global windowGeometry
     set windowGeometry($w) [wm geometry $w]
 }    
+
+# Procedure topLevelG
+#   w     top level widget
+# Makes a new top level widget named w; sets geometry of window if it 
+# exists in windowGeometry array. The destroyGW procedure is set 
+# to be called when the Destroy event occurs.
 proc toplevelG {w} {
     global windowGeometry
 
@@ -549,7 +615,9 @@ proc toplevelG {w} {
     bind $w <Destroy> [list destroyGW $w]
 }
 
-
+# Procedure top-down-window {w}
+#  w    window (possibly top level)
+# Makes two frames inside w called top and bot.
 proc top-down-window {w} {
     frame $w.top -relief raised -border 1
     frame $w.bot -relief raised -border 1
@@ -558,6 +626,14 @@ proc top-down-window {w} {
     pack  $w.bot -fill both
 }
 
+# Procedure top-down-ok-cancel {w ok-action g}
+#  w          top level widget with $w.bot-frame
+#  ok-action  ok script
+#  g          grab flag
+# Makes two buttons in the bot frame called Ok and Cancel. The
+# ok-action is executed if Ok is pressed. If Cancel is activated
+# The window is destroyed. If g is true a grab is performed on the
+# window and the procedure waits until the window is destroyed.
 proc top-down-ok-cancel {w ok-action g} {
     frame $w.bot.left -relief sunken -border 1
     pack $w.bot.left -side left -expand yes -ipadx 2 -ipady 2 -padx 1 -pady 1
@@ -574,6 +650,15 @@ proc top-down-ok-cancel {w ok-action g} {
     }
 }
 
+# Procedure bottom-buttons {w buttonList g}
+#  w          top level widget with $w.bot-frame
+#  buttonList button specifications
+#  g          grab flag
+# Makes a list of buttons in the $w.bot frame. The buttonList is a list 
+# of button specifications. Each button specification consists of two
+# items; the first item is button label name; the second item is a script
+# of be executed when that button is executed. A grab is performed if g 
+# is true and it waits for the window to be destroyed.
 proc bottom-buttons {w buttonList g} {
     set i 0
     set l [llength $buttonList]
@@ -598,6 +683,12 @@ proc bottom-buttons {w buttonList g} {
     }
 }
 
+# Procedure cancel-operation
+# This handler is invoked when the user wishes to cancel an operation.
+# If the system is currently busy a "Cancel" will be displayed in the
+# status area and the cancelFlag is set to true indicating that future
+# responses from the target should be ignored. The system is no longer
+# when this procedure exists.
 proc cancel-operation {} {
     global cancelFlag
     global busy
@@ -610,6 +701,10 @@ proc cancel-operation {} {
     }
 }
 
+# Procedure show-target {target base}
+#  target     name of target
+#  base       name of database
+# Displays target name and database name in the target status area.
 proc show-target {target base} {
     global profile
 
@@ -624,6 +719,12 @@ proc show-target {target base} {
     }
 }
 
+# Procedure show-logo {v1}
+#  v1    integer level
+# This procedure maintains the book logo in the bottom of the screen.
+# It is invoked only once during initialization of windows, etc., and
+# by itself. The global 'busy' variable determines whether the logo is
+# moving or not.
 proc show-logo {v1} {
     global busy
     global libdir
@@ -646,7 +747,14 @@ proc show-logo {v1} {
         }
     }
 }
-        
+
+# Procedure show-status {status b sb}
+#  status     status message string
+#  b          busy indicator
+#  sb         search busy indicator
+# Display status information according to 'status' and sets the global
+# busy flag 'busy' to b if b is non-empty. If sb is non-empty it indicates
+# whether service buttons should be enabled or disabled.
 proc show-status {status b sb} {
     global busy
     global scanEnable
@@ -696,10 +804,19 @@ proc show-status {status b sb} {
     }
 }
 
+# Procedure show-message {msg}
+#  msg    message string
+# Sets message the bottom of the screen to msg.
 proc show-message {msg} {
     .bot.a.message configure -text "$msg"
 }
 
+# Procedure insertWithTags {w text args}
+#  w      text widget
+#  text   string to be inserted
+#  args   list of tags
+# Inserts text at the insertion point in widget w. The text is tagged 
+# with the tags in args.
 proc insertWithTags {w text args} {
     set start [$w index insert]
     $w insert insert $text
@@ -711,6 +828,8 @@ proc insertWithTags {w text args} {
     }
 }
 
+# Procedure popup-license
+# Displays LICENSE information.
 proc popup-license {} {
     global libdir
     set w .popup-licence
@@ -740,6 +859,9 @@ proc popup-license {} {
     bottom-buttons $w [list {Close} [list destroy $w]] 1
 }
 
+# Procedure about-target
+# Displays various information about the current target, such
+# as implementation-name, implementation-id, etc.
 proc about-target {} {
     set w .about-target-w
     global hostid
@@ -774,6 +896,9 @@ proc about-target {} {
     bottom-buttons $w [list {Close} [list destroy $w]] 1
 }
 
+# Procedure about-origin-logo {n}
+#   n    integer level
+# Displays book logo in the .about-origin-w widget
 proc about-origin-logo {n} {
     global libdir
     set w .about-origin-w
@@ -788,6 +913,8 @@ proc about-origin-logo {n} {
     after 140 [list about-origin-logo $n]
 }
 
+# Procedure about-origin
+# Display various information about origin (this client).
 proc about-origin {} {
     set w .about-origin-w
     global libdir
@@ -829,6 +956,13 @@ proc about-origin {} {
                             {License} [list popup-license]] 0
 }
 
+# Procedure popup-marc {sno no b df}
+#  sno     result set number
+#  no      record position number
+#  b       popup window number
+#  df      display format
+# Displays record in set $sno at position $no in window .full-marc$b.
+# The global variable $popupMarcdf holds the current format method.
 proc popup-marc {sno no b df} {
     global displayFormats
     global popupMarcdf
@@ -930,6 +1064,12 @@ proc popup-marc {sno no b df} {
     $ffunc $sno $no $w.top.record 0
 }
 
+# Procedure update-target-hotlist {target base}
+#  target     current target name
+#  base       current database name
+# Updates the global $hotTargets so that $target and $base are
+# moved to the front, i.e. they become the number 1 target/base.
+# The target menu is updated by a call to set-target-hotlist.
 proc update-target-hotlist {target base} {
     global hotTargets
 
@@ -946,6 +1086,10 @@ proc update-target-hotlist {target base} {
     set-target-hotlist $olen
 } 
 
+# Procedure delete-target-hotlist {target}
+#  target    target to be deleted
+# Updates the global $hotTargets so that $target is removed.
+# The target menu is updated by a call to set-target-hotlist.
 proc delete-target-hotlist {target} {
     global hotTargets
 
@@ -960,6 +1104,10 @@ proc delete-target-hotlist {target} {
     set-target-hotlist $olen
 }
 
+# Procedure set-target-hotlist {olen}
+#  olen     number of hot target entries to be deleted from menu
+# Updates the target menu with the targets with the first 8 entries
+# in the $hotTargets global.
 proc set-target-hotlist {olen} {
     global hotTargets
    
@@ -988,12 +1136,21 @@ proc set-target-hotlist {olen} {
     }
 }
 
+# Procedure reopen-target {target base}
+#  target    target to be opened
+#  base      base to be used
+# Closes connection with current target and opens a new connection
+# with $target and database $base.
 proc reopen-target {target base} {
     close-target
     open-target $target $base
     update-target-hotlist $target $base
 }
 
+# Procedure define-target-action
+# Prepares the setup of a new target. The name of the target
+# is read from the dialog .target-define dialog and the target
+# definition window is displayed by a call to protocol-setup.
 proc define-target-action {} {
     global profile
     
@@ -1018,6 +1175,10 @@ proc define-target-action {} {
     destroy .target-define
 }
 
+# Procedure fail-response {target}
+#  target   current target
+# Error handler (IrTcl failback) that takes care of serious protocol
+# errors, connection lost, etc.
 proc fail-response {target} {
     global debugMode
 
@@ -1031,12 +1192,20 @@ proc fail-response {target} {
     tkerror "$m ($c)"
 }
 
+# Procedure connect-response {target base}
+#  target   current target
+#  base     current database
+# IrTcl connect response handler.
 proc connect-response {target base} {
     dputs "connect-response"
     show-target $target $base
     init-request
 }
 
+# Procedure open-target {target base}
+#  target   target to be opened
+#  base     database to be used
+# Opens a new connection with $target/$base.
 proc open-target {target base} {
     global profile
     global hostid
@@ -1098,6 +1267,8 @@ proc open-target {target base} {
     configure-enable-e .top.target.m 2
 }
 
+# Procedure close-target
+# Shuts down the connection with current target.
 proc close-target {} {
     global hostid
     global cancelFlag

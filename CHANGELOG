@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.12 1996-01-19 16:22:36 adam Exp $
+$Id: CHANGELOG,v 1.13 1996-01-22 09:28:57 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -70,5 +70,8 @@ $Id: CHANGELOG,v 1.12 1996-01-19 16:22:36 adam Exp $
 
 19/01/96 New feature: apduInfo - returns information about last incoming
          APDU. Three elements returned: length offset dump.
+
+19/01/96 Bug fix: When running in Windows NT/95 displayFormats wasn't
+         properly read from the subdirectory formats.
 
 
