@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: explain.c,v $
- * Revision 1.3  1996-08-21 13:32:50  adam
+ * Revision 1.4  1996-08-22 13:39:31  adam
+ * More work on explain.
+ *
+ * Revision 1.3  1996/08/21  13:32:50  adam
  * Implemented saveFile method and extended loadFile method to work with it.
  *
  * Revision 1.2  1996/08/20  09:27:48  adam
@@ -181,7 +184,8 @@ ir_match_start (const char *name, void *p, IrExpArg *iea, int argi)
 {
     if (!p)
     {
-        Tcl_AppendResult (iea->interp, name, " ", NULL);
+        if (argi >= iea->argc)
+            Tcl_AppendResult (iea->interp, name, " ", NULL);
         return 0;
     }
     if (argi < iea->argc)
@@ -189,26 +193,34 @@ ir_match_start (const char *name, void *p, IrExpArg *iea, int argi)
         if (strcmp (name, iea->argv[argi]))
             return 0;
     }
-    Tcl_AppendResult (iea->interp, "{", name, " ", NULL);
+    else
+        Tcl_AppendResult (iea->interp, "{", name, " ", NULL);
     return 1;
 }
 
 static int 
 ir_match_end (const char *name, IrExpArg *iea, int argi)
 {
-    Tcl_AppendResult (iea->interp, "} ", NULL);
+    if (argi >= iea->argc)
+        Tcl_AppendResult (iea->interp, "} ", NULL);
     return TCL_OK;
 }
 
 static int
-ir_choice (IrExpArg *iea, IrExpChoice *clist, int what, void *p, int argi)
+ir_choice (IrExpArg *iea, IrExpChoice *clist, int *what, void *p,
+           int argi)
 {
-    while (clist->name)
+    if (p)
     {
-        if (clist->id == what)
-            return (*clist->handle)(iea, p, clist->name, argi);
-        clist++;
+        while (clist->name)
+        {
+            if (clist->id == *what)
+                return (*clist->handle)(iea, p, clist->name, argi);
+            clist++;
+        }
     }
+    if (argi >= iea->argc)
+        Tcl_AppendResult (iea->interp, "{} ", NULL);
     return TCL_OK;
 }
 
@@ -301,7 +313,8 @@ static int ir_octet (IrExpArg *iea,
 static int ir_choice_nop (IrExpArg *iea,
             void *p, const char *name, int argi)
 {
-    Tcl_AppendResult (iea->interp, name, " ", NULL);
+    if (argi >= iea->argc)
+        Tcl_AppendResult (iea->interp, name, " ", NULL);
     return TCL_OK;
 }
 
@@ -320,7 +333,7 @@ static int ir_integer (IrExpArg *iea,
     char buf[64];
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    sprintf (buf, " %d", *p);
+    sprintf (buf, "%d", *p);
     Tcl_AppendResult (iea->interp, buf, NULL);
     return ir_match_end (name, iea, argi);
 }
@@ -340,7 +353,7 @@ static int ir_External (IrExpArg *iea,
     return ir_match_end (name, iea, argi);
 }
 
-static int ir_sequence (int (*fh)(), IrExpArg *iea, void *p, int num, 
+static int ir_sequence (int (*fh)(), IrExpArg *iea, void *p, int *num,
                  const char *name, int argi)
 {
     void **pp = (void **) p;
@@ -348,7 +361,7 @@ static int ir_sequence (int (*fh)(), IrExpArg *iea, void *p, int num,
 
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    for (i = 0; i<num; i++)
+    for (i = 0; i < *num; i++)
         (*fh)(iea, pp[i], "", argi);
     return ir_match_end (name, iea, argi);
 }
@@ -376,7 +389,7 @@ static int ir_Term (IrExpArg *iea,
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
 
-    ir_choice (iea, arm, p->which, p->u.general, argi);
+    ir_choice (iea, arm, &p->which, p->u.general, argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -399,14 +412,14 @@ static int ir_TargetInfo (IrExpArg *iea,
     ir_ContactInfo (iea, p->contactInfo, "contactInfo", argi);
     ir_HumanString (iea, p->description, "description", argi);
     ir_sequence (ir_InternationalString, iea, p->nicknames,
-                 p->num_nicknames, "nicknames", argi);
+                 &p->num_nicknames, "nicknames", argi);
     ir_HumanString (iea, p->usageRest, "usageRest", argi);
     ir_HumanString (iea, p->paymentAddr, "paymentAddr", argi);
     ir_HumanString (iea, p->hours, "hours", argi);
     ir_sequence (ir_DatabaseList, iea, p->dbCombinations,
-                 p->num_dbCombinations, "dbCombinations", argi);
+                 &p->num_dbCombinations, "dbCombinations", argi);
     ir_sequence (ir_NetworkAddress, iea, p->addresses,
-                 p->num_addresses, "addresses", argi);
+                 &p->num_addresses, "addresses", argi);
     ir_AccessInfo (iea, p->commonAccessInfo, "commonAccessInfo", argi);
     return ir_match_end (name, iea, argi);
 }
@@ -423,24 +436,25 @@ static int ir_DatabaseInfo (IrExpArg *iea,
 
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
+
     ir_CommonInfo (iea, p->commonInfo, "commonInfo", argi);
     ir_DatabaseName (iea, p->name, "name", argi);
     ir_null (iea, p->explainDatabase, "explainDatabase", argi);
     ir_sequence (ir_DatabaseName, iea, p->nicknames,
-                 p->num_nicknames, "nicknames", argi);
+                 &p->num_nicknames, "nicknames", argi);
     ir_IconObject (iea, p->icon, "icon", argi);
     ir_bool (iea, p->userFee, "userFee", argi);
     ir_bool (iea, p->available, "available", argi);
     ir_HumanString (iea, p->titleString, "titleString", argi);
     ir_sequence (ir_HumanString, iea, p->keywords,
-                 p->num_keywords, "keywords", argi);
+                 &p->num_keywords, "keywords", argi);
     ir_HumanString (iea, p->description, "description", argi);
     ir_DatabaseList (iea, p->associatedDbs, "associatedDbs", argi);
     ir_DatabaseList (iea, p->subDbs, "subDbs", argi);
     ir_HumanString (iea, p->disclaimers, "disclaimers", argi);
     ir_HumanString (iea, p->news, "news", argi);
 
-    ir_choice (iea, arm_recordCount, p->recordCount_which,
+    ir_choice (iea, arm_recordCount, &p->recordCount_which,
                                      p->recordCount, argi);
 
     ir_HumanString (iea, p->defaultOrder, "defaultOrder", argi);
@@ -472,9 +486,9 @@ static int ir_SchemaInfo (IrExpArg *iea,
     ir_HumanString (iea, p->description, "description", argi);
  
     ir_sequence (ir_TagTypeMapping, iea, p->tagTypeMapping,
-                 p->num_tagTypeMapping, "tagTypeMapping", argi);
+                 &p->num_tagTypeMapping, "tagTypeMapping", argi);
     ir_sequence (ir_ElementInfo, iea, p->recordStructure,
-                 p->num_recordStructure, "recordStructure", argi);
+                 &p->num_recordStructure, "recordStructure", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -488,7 +502,7 @@ static int ir_ElementDataTypePrimitive (IrExpArg *iea,
 
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_choice (iea, arm, *p, NULL, argi);
+    ir_choice (iea, arm, p, ODR_NULLVAL, argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -512,7 +526,7 @@ static int ir_ElementInfoList (IrExpArg *iea,
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
     ir_sequence (ir_ElementInfo, iea, p->list,
-                 p->num, "list", argi);
+                 &p->num, "list", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -527,7 +541,7 @@ static int ir_ElementDataType (IrExpArg *iea,
         { NULL, 0, NULL }};
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_choice (iea, arm, p->which, p->u.primitive, argi);
+    ir_choice (iea, arm, &p->which, p->u.primitive, argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -547,7 +561,7 @@ static int ir_Path (IrExpArg *iea,
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
     ir_sequence (ir_PathUnit, iea, p->list, 
-                 p->num, "list", argi);
+                 &p->num, "list", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -558,7 +572,7 @@ static int ir_TagSetInfoElements (IrExpArg *iea,
         return TCL_OK;
     ir_InternationalString (iea, p->elementName, "elementname", argi);
     ir_sequence (ir_InternationalString, iea, p->nicknames,
-                 p->num_nicknames, "nicknames", argi);
+                 &p->num_nicknames, "nicknames", argi);
     ir_StringOrNumeric (iea, p->elementTag, "elementTag", argi);
     ir_HumanString (iea, p->description, "description", argi);
     ir_PrimitiveDataType (iea, p->dataType, "dataType", argi);
@@ -569,15 +583,14 @@ static int ir_TagSetInfoElements (IrExpArg *iea,
 static int ir_TagSetInfo (IrExpArg *iea,
             Z_TagSetInfo *p, const char *name, int argi)
 {
-    int i;
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
     ir_CommonInfo (iea, p->commonInfo, "commonInfo", argi);
     ir_oid (iea, p->tagSet, "tagSet", argi);
     ir_InternationalString (iea, p->name, "name", argi);
     ir_HumanString (iea, p->description, "description", argi);
-    for (i = 0; i<p->num_elements; i++)
-         ir_TagSetInfoElements (iea, p->elements[i], "elements", argi);
+    ir_sequence (ir_TagSetInfoElements, iea, p->elements,
+                 &p->num_elements, "elements", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -590,11 +603,11 @@ static int ir_RecordSyntaxInfo (IrExpArg *iea,
     ir_oid (iea, p->recordSyntax, "recordSyntax", argi);
     ir_InternationalString (iea, p->name, "name", argi);
     ir_sequence (ir_oid, iea, p->transferSyntaxes,
-                 p->num_transferSyntaxes, "transferSyntaxes", argi);
+                 &p->num_transferSyntaxes, "transferSyntaxes", argi);
     ir_HumanString (iea, p->description, "description", argi);
     ir_InternationalString (iea, p->asn1Module, "asn1Module", argi);
     ir_sequence (ir_ElementInfo, iea, p->abstractStructure,
-                 p->num_abstractStructure, "abstractStructure", argi);
+                 &p->num_abstractStructure, "abstractStructure", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -607,7 +620,7 @@ static int ir_AttributeType (IrExpArg *iea,
     ir_HumanString (iea, p->description, "description", argi);
     ir_integer (iea, p->attributeType, "attributeType", argi);
     ir_sequence (ir_AttributeDescription, iea, p->attributeValues,
-                 p->num_attributeValues, "attributeValues", argi);
+                 &p->num_attributeValues, "attributeValues", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -620,7 +633,7 @@ static int ir_AttributeSetInfo (IrExpArg *iea,
     ir_oid (iea, p->attributeSet, "attributeSet", argi);
     ir_InternationalString (iea, p->name, "name", argi);
     ir_sequence (ir_AttributeType, iea, p->attributes,
-                 p->num_attributes, "attributes", argi);
+                 &p->num_attributes, "attributes", argi);
     ir_HumanString (iea, p->description, "description", argi);
     return ir_match_end (name, iea, argi);
 }
@@ -634,7 +647,7 @@ static int ir_AttributeDescription (IrExpArg *iea,
     ir_HumanString (iea, p->description, "description", argi);
     ir_StringOrNumeric (iea, p->attributeValue, "attributeValue", argi);
     ir_sequence (ir_StringOrNumeric,iea, p->equivalentAttributes,
-                 p->num_equivalentAttributes, "equivalentAttributes", argi);
+                 &p->num_equivalentAttributes, "equivalentAttributes", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -650,13 +663,13 @@ static int ir_TermListElement (IrExpArg *iea,
     ir_InternationalString (iea, p->name, "name", argi);
     ir_HumanString (iea, p->title, "title", argi);
     if (p->searchCost)
-        ir_choice (iea, searchCostArm, *p->searchCost, NULL, argi);
+        ir_choice (iea, searchCostArm, p->searchCost, ODR_NULLVAL, argi);
 
     ir_bool (iea, p->scanable, "scanable", argi);
     ir_sequence (ir_InternationalString, iea, p->broader,
-                 p->num_broader, "broader", argi);
+                 &p->num_broader, "broader", argi);
     ir_sequence (ir_InternationalString, iea, p->narrower,
-                 p->num_narrower, "narrower", argi);
+                 &p->num_narrower, "narrower", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -668,7 +681,7 @@ static int ir_TermListInfo (IrExpArg *iea,
     ir_CommonInfo (iea, p->commonInfo, "commonInfo", argi);
     ir_DatabaseName (iea, p->databaseName, "databaseName", argi);
     ir_sequence (ir_TermListElement, iea, p->termLists,
-                 p->num_termLists, "termLists", argi);    
+                 &p->num_termLists, "termLists", argi);    
     return ir_match_end (name, iea, argi);
 }
 
@@ -700,7 +713,7 @@ static int ir_ExtendedServicesInfo (IrExpArg *iea,
     ir_bool (iea, p->available, "available", argi);
     ir_bool (iea, p->retentionSupported, "retentionSupported", argi);
 
-    ir_choice (iea, waitActionArm, *p->waitAction, NULL, argi);
+    ir_choice (iea, waitActionArm, p->waitAction, ODR_NULLVAL, argi);
 
     ir_HumanString (iea, p->description, "description", argi);
     ir_External (iea, p->specificExplain, "specificExplain", argi);
@@ -716,7 +729,7 @@ static int ir_AttributeDetails (IrExpArg *iea,
     ir_CommonInfo (iea, p->commonInfo, "commonInfo", argi);
     ir_DatabaseName (iea, p->databaseName, "databaseName", argi);
     ir_sequence (ir_AttributeSetDetails, iea, p->attributesBySet,
-                 p->num_attributesBySet, "attributesBySet", argi);
+                 &p->num_attributesBySet, "attributesBySet", argi);
     ir_AttributeCombinations (iea, p->attributeCombinations,
                                      "attributeCombinations", argi);
     return ir_match_end (name, iea, argi);
@@ -729,7 +742,7 @@ static int ir_AttributeSetDetails (IrExpArg *iea,
         return TCL_OK;
     ir_oid (iea, p->attributeSet, "attributeSet", argi);
     ir_sequence (ir_AttributeTypeDetails, iea, p->attributesByType, 
-                 p->num_attributesByType, "attributesByType", argi);
+                 &p->num_attributesByType, "attributesByType", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -742,7 +755,7 @@ static int ir_AttributeTypeDetails (IrExpArg *iea,
     ir_OmittedAttributeInterpretation (iea, p->optionalType,
                                        "optionalType", argi);
     ir_sequence (ir_AttributeValue, iea, p->attributeValues,
-                 p->num_attributeValues, "attributeValues", argi);
+                 &p->num_attributeValues, "attributeValues", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -781,7 +794,7 @@ static int ir_TermListDetails (IrExpArg *iea,
 
     ir_integer (iea, p->estNumberTerms, "estNumberTerms", argi);
     ir_sequence (ir_Term, iea, p->sampleTerms,
-                p->num_sampleTerms, "sampleTerms", argi);
+                &p->num_sampleTerms, "sampleTerms", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -797,7 +810,7 @@ static int ir_ElementSetDetails (IrExpArg *iea,
     ir_oid (iea, p->schema, "schema", argi);
     ir_HumanString (iea, p->description, "description", argi);
     ir_sequence (ir_PerElementDetails, iea, p->detailsPerElement,
-                 p->num_detailsPerElement, "detailsPerElement", argi);
+                 &p->num_detailsPerElement, "detailsPerElement", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -812,7 +825,7 @@ static int ir_RetrievalRecordDetails (IrExpArg *iea,
     ir_oid (iea, p->recordSyntax, "recordSyntax", argi);
     ir_HumanString (iea, p->description, "description", argi);
     ir_sequence (ir_PerElementDetails, iea, p->detailsPerElement,
-                 p->num_detailsPerElement, "detailsPerElement", argi);
+                 &p->num_detailsPerElement, "detailsPerElement", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -824,7 +837,7 @@ static int ir_PerElementDetails (IrExpArg *iea,
     ir_InternationalString (iea, p->name, "name", argi);
     ir_RecordTag (iea, p->recordTag, "recordTag", argi);
     ir_sequence (ir_Path, iea, p->schemaTags,
-                 p->num_schemaTags, "schemaTags", argi);
+                 &p->num_schemaTags, "schemaTags", argi);
     ir_integer (iea, p->maxSize, "maxSize", argi);
     ir_integer (iea, p->minSize, "minSize", argi);
     ir_integer (iea, p->avgSize, "avgSize", argi);
@@ -836,9 +849,9 @@ static int ir_PerElementDetails (IrExpArg *iea,
     ir_HumanString (iea, p->billingInfo, "billingInfo", argi);
     ir_HumanString (iea, p->restrictions, "restrictions", argi);
     ir_sequence (ir_InternationalString, iea, p->alternateNames,
-                 p->num_alternateNames, "alternateNames", argi);
+                 &p->num_alternateNames, "alternateNames", argi);
     ir_sequence (ir_InternationalString, iea, p->genericNames,
-                 p->num_genericNames, "genericNames", argi);
+                 &p->num_genericNames, "genericNames", argi);
     ir_AttributeCombinations (iea, p->searchAccess, "searchAccess", argi);
     return ir_match_end (name, iea, argi);
 }
@@ -861,7 +874,7 @@ static int ir_SortDetails (IrExpArg *iea,
     ir_CommonInfo (iea, p->commonInfo, "commonInfo", argi);
     ir_DatabaseName (iea, p->databaseName, "databaseName", argi);
     ir_sequence (ir_SortKeyDetails, iea, p->sortKeys,
-                 p->num_sortKeys, "sortKeys", argi);
+                 &p->num_sortKeys, "sortKeys", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -876,7 +889,7 @@ static int ir_SortKeyDetailsSortType (IrExpArg *iea,
         { "structured",  Z_SortKeyDetailsSortType_structured, 
                          ir_HumanString },
         { NULL, 0, NULL }};
-    return ir_choice (iea, sortArm, p->which, p->u.character, argi); 
+    return ir_choice (iea, sortArm, &p->which, p->u.character, argi); 
 }
 
 static int ir_SortKeyDetails (IrExpArg *iea,
@@ -897,13 +910,13 @@ static int ir_SortKeyDetails (IrExpArg *iea,
         return TCL_OK;
     ir_HumanString (iea, p->description, "description", argi);
     ir_sequence (ir_Specification, iea, p->elementSpecifications,
-                 p->num_elementSpecifications, "elementSpecifications", argi);
+                 &p->num_elementSpecifications, "elementSpecifications", argi);
     ir_AttributeCombinations (iea, p->attributeSpecifications,
                                      "attributeSpecifications", argi);
     ir_SortKeyDetailsSortType (iea, p->sortType, "sortType", argi);
    
     if (p->caseSensitivity) 
-        ir_choice (iea, sortArm, *p->caseSensitivity, NULL, argi); 
+        ir_choice (iea, sortArm, p->caseSensitivity, ODR_NULLVAL, argi); 
 
     return ir_match_end (name, iea, argi);
 }
@@ -928,7 +941,7 @@ static int ir_ProcessingInformation (IrExpArg *iea,
     ir_CommonInfo (iea, p->commonInfo, "commonInfo", argi);
     ir_DatabaseName (iea, p->databaseName, "databaseName", argi);
 
-    ir_choice (iea, arm, *p->processingContext, NULL, argi);
+    ir_choice (iea, arm, p->processingContext, ODR_NULLVAL, argi);
     ir_InternationalString (iea, p->name, "name", argi);
     ir_oid (iea, p->oid, "oid", argi);
     ir_HumanString (iea, p->description, "description", argi);
@@ -945,7 +958,7 @@ static int ir_VariantSetInfo (IrExpArg *iea,
     ir_oid (iea, p->variantSet, "variantSet", argi);
     ir_InternationalString (iea, p->name, "name", argi);
     ir_sequence (ir_VariantClass, iea, p->variants,
-                 p->num_variants, "variants", argi);
+                 &p->num_variants, "variants", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -958,7 +971,7 @@ static int ir_VariantClass (IrExpArg *iea,
     ir_HumanString (iea, p->description, "description", argi);
     ir_integer (iea, p->variantClass, "variantClass", argi);
     ir_sequence (ir_VariantType, iea, p->variantTypes,
-                 p->num_variantTypes, "variantTypes", argi);
+                 &p->num_variantTypes, "variantTypes", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -980,7 +993,7 @@ static int ir_ValueSetEnumerated (IrExpArg *iea,
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
     ir_sequence (ir_ValueDescription, iea, p->enumerated,
-                 p->num_enumerated, "enumerated", argi);
+                 &p->num_enumerated, "enumerated", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -993,7 +1006,7 @@ static int ir_ValueSet (IrExpArg *iea,
         { NULL, 0, NULL }};
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_choice (iea, arm, p->which, p->u.range, argi);
+    ir_choice (iea, arm, &p->which, p->u.range, argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1032,7 +1045,7 @@ static int ir_ValueDescription (IrExpArg *iea,
 
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_choice (iea, arm, p->which, p->u.integer, argi);
+    ir_choice (iea, arm, &p->which, p->u.integer, argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1045,7 +1058,7 @@ static int ir_UnitInfo (IrExpArg *iea,
     ir_InternationalString (iea, p->unitSystem, "unitSystem", argi);
     ir_HumanString (iea, p->description, "description", argi);
     ir_sequence (ir_UnitType, iea, p->units,
-                 p->num_units, "units", argi);
+                 &p->num_units, "units", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1057,7 +1070,7 @@ static int ir_UnitType (IrExpArg *iea,
     ir_InternationalString (iea, p->name, "name", argi);
     ir_HumanString (iea, p->description, "description", argi);
     ir_StringOrNumeric (iea, p->unitType, "unitType", argi);
-    ir_sequence (ir_Units, iea, p->units, p->num_units, "units", argi);
+    ir_sequence (ir_Units, iea, p->units, &p->num_units, "units", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1079,7 +1092,7 @@ static int ir_CategoryList (IrExpArg *iea,
         return TCL_OK;
     ir_CommonInfo (iea, p->commonInfo, "commonInfo", argi);
     ir_sequence (ir_CategoryInfo, iea, p->categories,
-                 p->num_categories, "categories", argi);
+                 &p->num_categories, "categories", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1125,7 +1138,7 @@ static int ir_HumanString (IrExpArg *iea,
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
     ir_sequence (ir_HumanStringUnit, iea, p->strings,
-                 p->num_strings, "strings", argi);
+                 &p->num_strings, "strings", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1139,7 +1152,7 @@ static int ir_IconObjectUnit (IrExpArg *iea,
         { NULL, 0, NULL }};
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_choice (iea, arm, p->which, NULL, argi);
+    ir_choice (iea, arm, &p->which, ODR_NULLVAL, argi);
     ir_InternationalString (iea, p->bodyType, "bodyType", argi);
     ir_octet (iea, p->content, "content", argi);
     return ir_match_end (name, iea, argi);
@@ -1151,7 +1164,7 @@ static int ir_IconObject (IrExpArg *iea,
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
     ir_sequence (ir_IconObjectUnit, iea, p->iconUnits,
-                 p->num_iconUnits, "iconUnits", argi);
+                 &p->num_iconUnits, "iconUnits", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1210,7 +1223,7 @@ static int ir_NetworkAddress (IrExpArg *iea,
         { NULL, 0, NULL }};
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_choice (iea, arm, p->which, p->u.internetAddress, argi);
+    ir_choice (iea, arm, &p->which, p->u.internetAddress, argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1220,25 +1233,25 @@ static int ir_AccessInfo (IrExpArg *iea,
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
     ir_sequence (ir_QueryTypeDetails, iea, p->queryTypesSupported,
-                 p->num_queryTypesSupported, "queryTypesSupported", argi);
+                 &p->num_queryTypesSupported, "queryTypesSupported", argi);
     ir_sequence (ir_oid, iea, p->diagnosticsSets,
-                 p->num_diagnosticsSets, "diagnosticsSets", argi);
+                 &p->num_diagnosticsSets, "diagnosticsSets", argi);
     ir_sequence (ir_oid, iea, p->attributeSetIds,
-                 p->num_attributeSetIds, "attributeSetIds", argi);
+                 &p->num_attributeSetIds, "attributeSetIds", argi);
     ir_sequence (ir_oid, iea, p->schemas,
-                 p->num_schemas, "schemas", argi);
+                 &p->num_schemas, "schemas", argi);
     ir_sequence (ir_oid, iea, p->recordSyntaxes,
-                 p->num_recordSyntaxes, "recordSyntaxes", argi);
+                 &p->num_recordSyntaxes, "recordSyntaxes", argi);
     ir_sequence (ir_oid, iea, p->resourceChallenges,
-                 p->num_resourceChallenges, "resourceChallenges", argi);
+                 &p->num_resourceChallenges, "resourceChallenges", argi);
     ir_AccessRestrictions (iea, p->restrictedAccess, "restrictedAccess", argi);
     ir_Costs (iea, p->costInfo, "costInfo", argi);
     ir_sequence (ir_oid, iea, p->variantSets,
-                 p->num_variantSets, "variantSets", argi);
+                 &p->num_variantSets, "variantSets", argi);
     ir_sequence (ir_ElementSetName, iea, p->elementSetNames,
-                 p->num_elementSetNames, "elementSetNames", argi);
+                 &p->num_elementSetNames, "elementSetNames", argi);
     ir_sequence (ir_InternationalString, iea, p->unitSystems,
-                 p->num_unitSystems, "unitSystems", argi);
+                 &p->num_unitSystems, "unitSystems", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1263,7 +1276,7 @@ static int ir_QueryTypeDetails (IrExpArg *iea,
 
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_choice (iea, arm, p->which, p->u.private, argi);
+    ir_choice (iea, arm, &p->which, p->u.private, argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1284,11 +1297,11 @@ static int ir_PrivateCapabilities (IrExpArg *iea,
         return TCL_OK;
 
     ir_sequence (ir_PrivateCapOperator, iea, p->operators,
-                 p->num_operators, "operators", argi);
+                 &p->num_operators, "operators", argi);
     ir_sequence (ir_SearchKey, iea, p->searchKeys,
-                 p->num_searchKeys, "searchKeys", argi);
+                 &p->num_searchKeys, "searchKeys", argi);
     ir_sequence (ir_HumanString, iea, p->description,
-                 p->num_description, "description", argi);
+                 &p->num_description, "description", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1298,7 +1311,7 @@ static int ir_RpnCapabilities (IrExpArg *iea,
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
     ir_sequence (ir_integer, iea, p->operators, 
-                 p->num_operators, "operators", argi);
+                 &p->num_operators, "operators", argi);
     ir_bool (iea, p->resultSetAsOperandSupported,
              "resultSetAsOperandSupported", argi);
     ir_bool (iea, p->restrictionOperandSupported,
@@ -1313,7 +1326,7 @@ static int ir_Iso8777Capabilities (IrExpArg *iea,
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
     ir_sequence (ir_SearchKey, iea, p->searchKeys,
-                 p->num_searchKeys, "searchKeys", argi);
+                 &p->num_searchKeys, "searchKeys", argi);
     ir_HumanString (iea, p->restrictions, "restrictions", argi);
     return ir_match_end (name, iea, argi);
 }
@@ -1337,7 +1350,7 @@ static int ir_ProxSupportUnit (IrExpArg *iea,
         { NULL, 0, NULL }};
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_choice (iea, arm, p->which, p->u.private, argi);
+    ir_choice (iea, arm, &p->which, p->u.private, argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1348,7 +1361,7 @@ static int ir_ProximitySupport (IrExpArg *iea,
         return TCL_OK;
     ir_bool (iea, p->anySupport, "anySupport", argi);
     ir_sequence (ir_ProxSupportUnit, iea, p->unitsSupported,
-                 p->num_unitsSupported, "unitsSupported", argi);
+                 &p->num_unitsSupported, "unitsSupported", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1382,10 +1395,10 @@ static int ir_AccessRestrictionsUnit (IrExpArg *iea,
 
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_choice (iea, arm, *p->accessType, NULL, argi);
+    ir_choice (iea, arm, p->accessType, ODR_NULLVAL, argi);
     ir_HumanString (iea, p->accessText, "accessText", argi);
     ir_sequence (ir_oid, iea, p->accessChallenges,
-                 p->num_accessChallenges, "accessChallenges", argi);
+                 &p->num_accessChallenges, "accessChallenges", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1395,7 +1408,7 @@ static int ir_AccessRestrictions (IrExpArg *iea,
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
     ir_sequence (ir_AccessRestrictionsUnit, iea, p->restrictions,
-                 p->num_restrictions, "restrictions", argi);
+                 &p->num_restrictions, "restrictions", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1421,7 +1434,7 @@ static int ir_Costs (IrExpArg *iea,
     ir_Charge (iea, p->subscriptCharge, "subscriptCharge", argi);
 
     ir_sequence (ir_CostsOtherCharge, iea, p->otherCharges,
-                 p->num_otherCharges, "otherCharges", argi);
+                 &p->num_otherCharges, "otherCharges", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1442,7 +1455,7 @@ static int ir_DatabaseList (IrExpArg *iea,
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
     ir_sequence (ir_DatabaseName, iea, p->databases,
-                 p->num_databases, "databases", argi);
+                 &p->num_databases, "databases", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1453,7 +1466,7 @@ static int ir_AttributeCombinations (IrExpArg *iea,
         return TCL_OK;
     ir_oid (iea, p->defaultAttributeSet, "defaultAttributeSet", argi);
     ir_sequence (ir_AttributeCombination, iea, p->legalCombinations,
-                 p->num_legalCombinations, "legalCombinations", argi);
+                 &p->num_legalCombinations, "legalCombinations", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1463,7 +1476,7 @@ static int ir_AttributeCombination (IrExpArg *iea,
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
     ir_sequence (ir_AttributeOccurrence, iea, p->occurrences,
-                 p->num_occurrences, "occurrences", argi);
+                 &p->num_occurrences, "occurrences", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1473,7 +1486,7 @@ static int ir_AttributeValueList (IrExpArg *iea,
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
     ir_sequence (ir_StringOrNumeric, iea, p->attributes,
-                 p->num_attributes, "attributes", argi);
+                 &p->num_attributes, "attributes", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1489,7 +1502,7 @@ static int ir_AttributeOccurrence (IrExpArg *iea,
     ir_oid (iea, p->attributeSet, "attributeSet", argi);
     ir_integer (iea, p->attributeType, "attributeType", argi);
     ir_null (iea, p->mustBeSupplied, "mustBeSupplied", argi);
-    ir_choice (iea, arm, p->which, p->attributeValues->anyOrNone, argi);
+    ir_choice (iea, arm, &p->which, p->attributeValues->anyOrNone, argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1501,9 +1514,9 @@ static int ir_AttributeValue (IrExpArg *iea,
     ir_StringOrNumeric (iea, p->value, "value", argi);
     ir_HumanString (iea, p->description, "description", argi);
     ir_sequence (ir_StringOrNumeric, iea, p->subAttributes,
-                 p->num_subAttributes, "subAttributes", argi);
+                 &p->num_subAttributes, "subAttributes", argi);
     ir_sequence (ir_StringOrNumeric, iea, p->superAttributes,
-                 p->num_superAttributes, "superAttributes", argi);
+                 &p->num_superAttributes, "superAttributes", argi);
     ir_null (iea, p->partialSupport, "partialSupport", argi);
     return ir_match_end (name, iea, argi);
 }
@@ -1517,7 +1530,7 @@ static int ir_StringOrNumeric (IrExpArg *iea,
         { NULL, 0, NULL }};
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_choice (iea, arm, p->which, p->u.string, argi);
+    ir_choice (iea, arm, &p->which, p->u.string, argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1533,7 +1546,7 @@ static int ir_ElementSpec (IrExpArg *iea,
 
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_choice (iea, arm, p->which, p->u.elementSetName, argi);
+    ir_choice (iea, arm, &p->which, p->u.elementSetName, argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1574,7 +1587,7 @@ static int ir_OtherInformationUnit (IrExpArg *iea,
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
     ir_InfoCategory (iea, p->category, "category", argi);
-    ir_choice (iea, arm, p->which, p->information.characterInfo, argi);
+    ir_choice (iea, arm, &p->which, p->information.characterInfo, argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1584,7 +1597,7 @@ static int ir_OtherInformation (IrExpArg *iea,
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
     ir_sequence (ir_OtherInformationUnit, iea, p->list, 
-                 p->num_elements, "list", argi);
+                 &p->num_elements, "list", argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1650,7 +1663,7 @@ int ir_ExplainRecord (IrExpArg *iea, Z_ExplainRecord *p, int argi)
         {NULL,                         0,   NULL }};
         
 
-    return ir_choice (iea, arm, p->which, p->u.targetInfo, argi);
+    return ir_choice (iea, arm, &p->which, p->u.targetInfo, argi);
 }
 
 int ir_tcl_get_explain (Tcl_Interp *interp, Z_ExplainRecord *rec,
