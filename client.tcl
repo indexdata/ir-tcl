@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.38  1995-06-14 07:22:45  adam
+# Revision 1.39  1995-06-14 12:16:22  adam
+# hotTargets, textWrap and displayFormat saved in clientg.tcl.
+#
+# Revision 1.38  1995/06/14  07:22:45  adam
 # Target definitions can be deleted.
 # Listbox used in the query definition dialog.
 #
@@ -146,6 +149,7 @@ set cancelFlag 0
 set searchEnable 0
 set fullMarcSeq 0
 set displayFormat 1
+set textWrap word
 
 set queryTypes {Simple}
 set queryButtons { { {I 0} {I 1} {I 2} } }
@@ -161,6 +165,13 @@ proc read-formats {} {
         set l [expr [string length $f] - 5]
  	lappend displayFormats [string range $f 8 $l]
     }
+}
+
+proc set-wrap {m} {
+    global textWrap
+
+    set textWrap $m
+    .data.record configure -wrap $m
 }
 
 proc set-display-format {f} {
@@ -472,7 +483,7 @@ proc about-origin {} {
 proc popup-marc {sno no b df} {
     global fullMarcSeq
     global displayFormats
-    global popupMarcOdf
+    global popupMarcdf
 
     if {[z39.$sno type $no] != "DB"} {
         return
@@ -480,8 +491,14 @@ proc popup-marc {sno no b df} {
     if {$b} {
         set w .full-marc-$fullMarcSeq
         incr fullMarcSeq
+        set df $popupMarcdf
     } else {
         set w .full-marc
+        if {[info exists popupMarcdf]} {
+            set df $popupMarcdf
+        } else {
+            set popupMarcdf $df
+        }
     }
     if {[winfo exists $w]} {
         set new 0
@@ -527,27 +544,17 @@ proc popup-marc {sno no b df} {
         
         if {$b} {
             bottom-buttons $w [list \
-                {Close} [list destroy $w] \
-                {Duplicate} [list popup-marc $sno $no 1 $df]] 0
-            menubutton $w.bot.formats -text "Format" -menu $w.bot.formats.m
-            menu $w.bot.formats.m
-            set i 0
-            foreach f $displayFormats {
-                $w.bot.formats.m add radiobutton -label $f \
-                        -command [list display-$f $sno $no $w.top.record 0]
-                incr i
-            }
-            pack $w.bot.formats -expand yes -ipadx 2 -ipady 2 \
-                    -padx 3 -pady 3 -side left
+                {Close} [list destroy $w]] 0
         } else {
             bottom-buttons $w [list \
-                {Close} [list destroy $w] \
-                {Duplicate} [list popup-marc $sno $no 1 $df]] 0
+                    {Close} [list destroy $w] \
+                    {Duplicate} [list popup-marc $sno $no 1 0]] 0
             menubutton $w.bot.formats -text "Format" -menu $w.bot.formats.m
             menu $w.bot.formats.m
             set i 0
             foreach f $displayFormats {
                 $w.bot.formats.m add radiobutton -label $f \
+                        -variable popupMarcdf -value $i \
                         -command [list display-$f $sno $no $w.top.record 0]
                 incr i
             }
@@ -786,6 +793,12 @@ proc search-request {} {
     show-status {Search} 1 0
 }
 
+proc scan-focus {w} {
+    set oldFocus [focus]
+    bind $w <Leave> [list focus $oldFocus]
+    focus $w.top.entry
+}
+
 proc scan-request {} {
     set w .scan-window
 
@@ -806,12 +819,11 @@ proc scan-request {} {
     foreach a [lrange [lindex $queryInfoFind [lindex $b 1]] 1 end] {
         set attr "@attr $a $attr"
     }
+    set title [lindex [lindex $queryInfoFind [lindex $b 1]] 0]
     ir-scan z39.scan z39
 
     if {![winfo exists $w]} {
         toplevelG $w
-        
-        wm title $w "Scan"
         
         wm minsize $w 0 0
 
@@ -837,9 +849,10 @@ proc scan-request {} {
                 {Down} [list scan-down $attr]] 0
         bind $w.top.list <Up> [list scan-up $attr]
         bind $w.top.list <Down> [list scan-down $attr]
-
-#       bind $w.top <Any-Enter> [list focus $w.top.entry]
     }
+    wm title $w "Scan $title"
+#    bind $w.top <Any-Enter> [list scan-focus $w]
+        
     z39 callback [list scan-response $attr 0 35]
     z39.scan numberOfTermsRequested 5
     z39.scan preferredPositionInResponse 1
@@ -1121,6 +1134,7 @@ proc add-title-lines {setno no offset} {
         .data.record tag add r$o $insert0 insert
         .data.record tag bind r$o <1> \
                 [list popup-marc $setno $o 0 0]
+        update idletasks
     }
 }
 
@@ -1645,11 +1659,17 @@ proc cascade-query-list {} {
 
 proc save-geometry {} {
     global windowGeometry
+    global hotTargets
+    global textWrap
+    global displayFormat
     
     set windowGeometry(.) [wm geometry .]
 
     set f [open "clientg.tcl" w]
 
+    puts $f "set hotTargets \{ $hotTargets \}"
+    puts $f "set textWrap $textWrap"
+    puts $f "set displayFormat $displayFormat"
     foreach n [array names windowGeometry] {
         puts -nonewline $f "set \{windowGeometry($n)\} \{"
         puts -nonewline $f $windowGeometry($n)
@@ -1659,7 +1679,6 @@ proc save-geometry {} {
 }
 
 proc save-settings {} {
-    global hotTargets 
     global profile
     global settingsChanged
     global queryTypes
@@ -1668,7 +1687,6 @@ proc save-settings {} {
     
     set f [open "clientrc.tcl" w]
     puts $f "# Setup file"
-    puts $f "set hotTargets \{ $hotTargets \}"
 
     foreach n [array names profile] {
         puts -nonewline $f "set \{profile($n)\} \{"
@@ -1700,7 +1718,8 @@ proc alert {ask} {
     top-down-window $w
 
     label $w.top.warning -bitmap warning
-    message $w.top.message -text $ask -aspect 200
+    message $w.top.message -text $ask -aspect 200 \
+            -font -Adobe-Times-Medium-R-Normal-*-180-*
 
     pack $w.top.warning $w.top.message -side left -pady 5 -padx 10 -expand yes
   
@@ -2117,6 +2136,9 @@ proc index-setup {attr queryNo indexNo} {
             }
         }
     }
+    if {[winfo exists $w]} {
+        destroy $w
+    }
     toplevelG $w
 
     set n [lindex $attr 0]
@@ -2195,8 +2217,9 @@ proc index-setup {attr queryNo indexNo} {
 
 proc query-edit-index {queryNo} {
     global queryInfoTmp
+    set w .query-setup
 
-    set i [lindex [.query-setup.top.index curselection] 0]
+    set i [lindex [$w.top.index.list curselection] 0]
     if {$i == ""} {
         return
     }
@@ -2210,13 +2233,13 @@ proc query-delete-index {queryNo} {
     global queryButtonsTmp
     set w .query-setup
 
-    set i [lindex [$w.top.index curselection] 0]
+    set i [lindex [$w.top.index.list curselection] 0]
     if {$i == ""} {
         return
     }
     set queryInfoTmp [lreplace $queryInfoTmp $i $i]
     index-lines $w.top.lines 0 $queryButtonsTmp $queryInfoTmp activate-e-index
-    $w.top.index delete $i
+    $w.top.index.list delete $i
 }
     
 proc query-setup {queryNo} {
@@ -2234,7 +2257,7 @@ proc query-setup {queryNo} {
     set queryInfoTmp [lindex $queryInfo $queryNo]
     set queryButtonsTmp [lindex $queryButtons $queryNo]
 
-    toplevel $w
+    toplevelG $w
 
     wm minsize $w 0 0
     wm title $w "Query setup $queryName"
@@ -2243,32 +2266,42 @@ proc query-setup {queryNo} {
 
     frame $w.top.lines -relief ridge -border 2
 
+    pack $w.top.lines -side left -pady 6 -padx 6 -fill y
+
     # Index Lines
 
     index-lines $w.top.lines 0 $queryButtonsTmp $queryInfoTmp activate-e-index
 
-    pack $w.top.lines -side left -pady 6 -padx 6 -fill y
+    button $w.top.lines.add -text "Add" \
+            -command [list query-add-line $queryNo]
+    button $w.top.lines.del -text "Remove" \
+            -command [list query-del-line $queryNo]
+
+    pack $w.top.lines.del -fill x -side bottom
+    pack $w.top.lines.add -fill x -pady 10 -side bottom
 
     # Indexes
 
-    listbox $w.top.index -yscrollcommand [list $w.top.scroll set]
-    scrollbar $w.top.scroll -orient vertical -border 1 \
-        -command [list $w.top.index yview]
+    frame $w.top.index -relief ridge -border 2
+    pack $w.top.index -pady 6 -padx 6 -side right -fill y
 
-    pack $w.top.index -side left -fill both -expand yes -padx 2 -pady 2
-    pack $w.top.scroll -side right -fill y -padx 2 -pady 2
+    listbox $w.top.index.list -yscrollcommand [list $w.top.index.scroll set]
+    scrollbar $w.top.index.scroll -orient vertical -border 1 \
+        -command [list $w.top.index.list yview]
+    bind $w.top.index.list <2> [list query-edit-index $queryNo]
 
-    $w.top.index select from 0
-    $w.top.index select to 0
+    pack $w.top.index.list -side left -fill both -expand yes -padx 2 -pady 2
+    pack $w.top.index.scroll -side right -fill y -padx 2 -pady 2
+
+    $w.top.index.list select from 0
+    $w.top.index.list select to 0
 
     foreach x $queryInfoTmp {
-        $w.top.index insert end [lindex $x 0]
+        $w.top.index.list insert end [lindex $x 0]
     }
     # Ok-cancel
     bottom-buttons $w [list \
             {Ok} [list query-setup-action $queryNo] \
-            {Add line} [list query-add-line $queryNo] \
-            {Delete line} [list query-del-line $queryNo] \
             {Add index} [list query-add-index $queryNo] \
             {Edit index} [list query-edit-index $queryNo] \
             {Delete index} [list query-delete-index $queryNo] \
@@ -2446,16 +2479,15 @@ cascade-target-list
 menubutton .top.service -text "Service" -underline 0 -menu .top.service.m
 menu .top.service.m
 .top.service.m add command -label "Database" -command {database-select}
-.top.service.m add cascade -label "Query type" -menu .top.service.m.querytype
-menu .top.service.m.querytype
-.top.service.m.querytype add radiobutton -label "RPN"
-.top.service.m.querytype add radiobutton -label "CCL"
 .top.service.m add cascade -label "Present" -menu .top.service.m.present
 menu .top.service.m.present
-.top.service.m.present add command -label "More" \
+.top.service.m.present add command -label "10 More" \
         -command [list present-more 10]
 .top.service.m.present add command -label "All" \
         -command [list present-more {}]
+.top.service.m add command -label "Search" -command {search-request}
+.top.service.m add command -label "Scan" -command {scan-request}
+
 .top.service configure -state disabled
 
 menubutton .top.rset -text "Set" -menu .top.rset.m
@@ -2467,6 +2499,7 @@ menubutton .top.options -text "Options" -underline 0 -menu .top.options.m
 menu .top.options.m
 .top.options.m add cascade -label "Query" -menu .top.options.m.query
 .top.options.m add cascade -label "Format" -menu .top.options.m.formats
+.top.options.m add cascade -label "Wrap" -menu .top.options.m.wrap
 
 menu .top.options.m.query
 .top.options.m.query add cascade -label "Select" \
@@ -2490,6 +2523,14 @@ foreach f $displayFormats {
             -command [list set-display-format $i] -variable displayFormat
     incr i
 }
+
+menu .top.options.m.wrap
+.top.options.m.wrap add radiobutton -label "Character" \
+        -value char -variable textWrap -command {set-wrap char}
+.top.options.m.wrap add radiobutton -label "Word" \
+        -value word -variable textWrap -command {set-wrap word}
+.top.options.m.wrap add radiobutton -label "None" \
+        -value none -variable textWrap -command {set-wrap none}
 
 menubutton .top.help -text "Help" -menu .top.help.m
 menu .top.help.m
@@ -2515,7 +2556,7 @@ pack .mid.search .mid.scan .mid.present .mid.clear -side left \
         -fill y -padx 5 -pady 3
 
 text .data.record -height 2 -width 20 -wrap none \
-        -yscrollcommand [list .data.scroll set]
+        -yscrollcommand [list .data.scroll set] -wrap $textWrap
 scrollbar .data.scroll -command [list .data.record yview]
 pack .data.scroll -side right -fill y
 pack .data.record -expand yes -fill both

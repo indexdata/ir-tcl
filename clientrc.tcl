@@ -1,5 +1,4 @@
 # Setup file
-set hotTargets {   ztest {AT&T server} RLG {A new server} dranet LOC Penn DANBIB Aleph CARL OCLC IREG Innovative CNIDR CLSI AULS Nsrtest                                                          }
 set {profile(CNIDR)} {CNIDR Kudzu.cnidr.org 5556 {} 16384 8192 tcpip {Book ERIC} 1 {} {} z39v2 1}
 set {profile(Penn)} {{Penn State's Library} 128.118.88.200 210 {} 16384 8192 tcpip CATALOG 1 {} {} z39v2 2}
 set {profile(A new server)} {{A completely new server} dtbsun.dtv.dk 9999 {} 16384 8192 tcpip dummy {} {} {} z39v2 20}
