@@ -1,13 +1,13 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.6 1995-06-01 16:36:56 adam Exp $
+  $Id: ir-tcl.sgml,v 1.7 1995-06-19 08:09:35 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference
 <author>Index Data, <tt/info@index.ping.dk/
-<date>$Revision: 1.6 $
+<date>$Revision: 1.7 $
 <abstract>
 This document describes IrTcl &mdash an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
@@ -219,9 +219,9 @@ The settings that affect the <tt/connect/ action are:
 
 <descrip>
 <tag><tt>comstack </tt><tt>mosi|tcpip</tt></tag>
- Comstack type
-<tag><tt>protocol </tt><tt>Z3950|SR</tt></tag>
- ANSI/NISO Z39.50 or ISO SR
+ Comstack type.
+<tag><tt>protocol </tt><tt>Z39|SR</tt></tag>
+ Protocol type - ANSI/NISO Z39.50 or ISO SR.
 <tag><tt>callback </tt><em>list</em></tag>
  Tcl script called when the connection is established
 <tag><tt>failback </tt><em>list</em></tag>
@@ -240,24 +240,39 @@ The init related settings are:
 
 <descrip>
 <tag><tt>preferredMessageSize </tt><em>integer</em></tag>
- Preferred-message-size
+ Preferred-message-size. Default value is 30000.
 <tag><tt>maximumRecordSize </tt><em>integer</em></tag>
- Maximum-record-size
-<tag><tt>idAuthentication </tt><em>string</em></tag>
- Id-authentication
+ Maximum-record-size. Default value is 30000.
+<tag><tt>idAuthentication </tt><em>string</em> ...</tag>
+ Id-authentication. There are three forms. If any empty is
+ given, the Id-authentication is not used.  If one non-empty string
+ is given, the 'open' authentication is used. If three strings are 
+ specified, the version 'id-pass' authentication (version 3 only) 
+ is used in which case the first string is groupId; the second string 
+ is userId and the third string is password.
 <tag><tt>implementationName </tt><em>string</em></tag>
- Implementation-name of origin system
-<tag><tt>implementationId </tt><em>string</em></tag>
- Implementation-id of origin system
+ Implementation-name of origin system. 
+<tag><tt>implementationId</tt></tag>
+ Implementation-id of origin system. This setting is read-only.
 <tag><tt>options </tt><em>list</em></tag>
- Options to be negotiated in init. The list contains the options that
-are set.
+ Options to be negotiated in the init service. The list contains 
+ the options that are set. These are <tt>search</tt>, <tt>present</tt>,
+ <tt>delSet</tt>, <tt>resourceReport</tt>, <tt>triggerResourceCtrl</tt>,
+ <tt>resourceCtrl</tt>, <tt>accessCtrl</tt>, <tt>scan</tt>, <tt>sort</tt>,
+ <tt>extendedServices</tt>, <tt>level-1Segmentation</tt>, 
+ <tt>level-2Segmentation</tt>, <tt>concurrentOperations</tt> and
+ <tt>namedResultSets</tt>. Currently the default options are:
+ <tt>search</tt>, <tt>present</tt>, <tt>scan</tt> and 
+ <tt>namedResultSets</tt>. The options setting is set to its default
+ value when an ir object is created and when a disconnect is performed.
 <tag><tt>protocolVersion </tt><em>integer</em></tag>
- Protocol version: 2, 3, etc.
+ Protocol version: 2, 3, etc. 
 <tag><tt>initResponse </tt><em>list</em></tag>
- Init-response Tcl script
+ Init-response Tcl script. Note: not implemented - use <tt>callback</tt>
+ instead.
 <tag><tt>callback </tt><em>list</em></tag>
- General response Tcl script. Only used if initResponse is not specified
+ General response Tcl script. Only used if <tt>initResponse</tt>
+ is not specified.
 </descrip>
 
 The init-response handler should inspect some of the settings shown
@@ -265,17 +280,18 @@ below:
 
 <descrip>
 <tag><tt>initResult </tt><em>boolean</em></tag>
- Init response status
+ Init response status. True if init operation was successful; 
+ false otherwise.
 <tag><tt>preferredMessageSize </tt><em>integer</em></tag>
- Preferred-message-size
+ Preferred-message-size.
 <tag><tt>maximumRecordSize </tt><em>integer</em></tag>
- Maximum-record-size
+ Maximum-record-size.
 <tag><tt>targetImplementationName </tt><em>string</em></tag>
- Implementation-name of target system
+ Implementation-name of target system.
 <tag><tt>targetImplementationId </tt><em>string</em></tag>
- Implementation-id of target system
+ Implementation-id of target system.
 <tag><tt>targetImplementationVersion </tt><em>string</em></tag>
- Implementation-version of target system
+ Implementation-version of target system.
 <tag><tt>options </tt><em>list</em></tag>
  Options negotiated after init. The list contains the options that are set.
 <tag><tt>protocolVersion </tt><em>integer</em></tag>
@@ -296,8 +312,8 @@ protocol-type and a hostname.
 The list for the two targets: ISO/SR target DANBIB and TCP/Z39.50 
 target Data Research, will be defined as:
 <tscreen><verb>
-set targetList { {danbib mosi sr 0103/find2.denet.dk:4500}
-                 {drs tcpip z39 dranet.dra.com} }
+set targetList { {danbib mosi SR 0103/find2.denet.dk:4500}
+                 {drs tcpip Z39 dranet.dra.com} }
 </verb></tscreen>
 
 The Tcl code below defines, connect and initialize the
@@ -315,7 +331,7 @@ targets in <tt/targetList/:
 }
 
 proc connect-response {assoc} {
-    $assoc initResponse [list init-response $assoc]
+    $assoc callback [list init-response $assoc]
     $assoc init
 }
 
@@ -442,27 +458,28 @@ The settings that affect the search are listed below:
 
 <descrip>
 <tag><tt>databaseNames </tt><em>list</em></tag>
- database-names 
+ database-names.
 <tag><tt>smallSetUpperBound </tt><em>integer</em></tag>
- small set upper bound 
+ small set upper bound. Default 0.
 <tag><tt>largeSetLowerBound </tt><em>integer</em></tag>
- large set lower bound 
+ large set lower bound. Default 2.
 <tag><tt>mediumSetPresentNumber </tt><em>integer</em></tag>
- medium set present number 
+ medium set present number. Default 0.
 <tag><tt>replaceIndicator </tt><em>boolean</em></tag>
- replace-indicator 
+ replace-indicator.
 <tag><tt>setName </tt><em>string</em></tag>
- name of result set 
+ name of result set.
 <tag><tt>queryType rpn|ccl</tt></tag>
  query type-1 or query type-2 
 <tag><tt>preferredRecordSyntax </tt><em>string</em></tag>
  preferred record syntax &mdash UNIMARC, USMARC, etc. 
 <tag><tt>smallSetElementSetNames </tt><em>string</em></tag>
- small-set-element-set names 
+ small-set-element-set names. Not implemented yet.
 <tag><tt>mediumSetElementSetNames </tt><em>string</em></tag>
- medium-set-element-set names 
+ medium-set-element-set names. Not implemented yet.
 <tag><tt>searchResponse </tt><em>list</em></tag>
- Search-response Tcl script
+ Search-response Tcl script. Not implemented yet. Use <tt>callback</tt>
+ instead.
 <tag><tt>callback </tt><em>list</em></tag>
  General response Tcl script. Only used if searchResponse is not specified 
 </descrip>
@@ -475,13 +492,14 @@ should read some of the settings shown below:
 
 <descrip>
 <tag><tt>searchStatus </tt><em>boolean</em></tag>
- search-status 
+ search-status. True if search operation was successful; false
+ otherwise.
 <tag><tt>responseStatus </tt><em>list</em></tag>
- response status information 
+ response status information.
 <tag><tt>resultCount </tt><em>integer</em></tag>
  result-count
 <tag><tt>numberOfRecordsReturned </tt><em>integer</em></tag>
- number of records retrieved 
+ number of records returned.
 </descrip>
 
 The <tt/responseStatus/ signals one of three conditions which
@@ -515,7 +533,7 @@ proc init-response {assoc} {
     ir-set ${assoc}.1 $assoc
     $assoc.1 queryType rpn
     $assoc.1 databaseNames base-a base-b
-    $assoc.1 searchResponse [list search-response $assoc ${assoc}.1]
+    $assoc.1 callback [list search-response $assoc ${assoc}.1]
     $assoc.1 search "@attr 1=4 @and @attr 5=1 tech beta"
 }
 </verb></tscreen>
@@ -587,17 +605,18 @@ action are:
 <tag><tt>elementSetElementSetNames </tt><em>string</em></tag>
  element-set names 
 <tag><tt>presentResponse </tt><em>list</em></tag>
- Present-response Tcl script 
+ Present-response Tcl script. Not implemented yet. Use <tt>callback</tt>
+ instead.
 <tag><tt>callback </tt><em>list</em></tag>
  General response Tcl script. Only used if presentResponse is not specified 
 </descrip>
 
 The present-response handler should inspect the settings
-shown in table ref{tab:irpresentresponse}. 
+shown in table below.
 Note that <tt/responseStatus/ and <tt/numberOfRecordsReturned/
 settings were also used in the search-response case.
 
-As in the search-response case, records returned from the
+As in the search response case, records returned from the
 target are stored in the result set object.
 
 <descrip>
@@ -670,7 +689,7 @@ search-response handler as argument <tt/rset/.
                 set msg [lindex $diag 1]
                 set addinfo [lindex $diag 2]
                 puts "$i: NSD $code: $msg: $addinfo"
-            } else if {$itype == "DB"} {
+            } elseif {$itype == "DB"} {
                 set rtype [$rset recordType $i]
                 puts "$i: type is $rtype"
             }
@@ -823,7 +842,82 @@ record.
 <sect>Scan
 
 <p>
-<em/To be written/
+To perform scan, a scan object must be created by the <tt>ir-scan</tt>
+command. This command has two arguments - name of the scan object and
+name of the ir object. Basically, the scan object, provides one <tt>scan</tt>
+action which sends a scan request to the target. The <tt>action</tt>
+is followed by a string describing starting point of the term list. The
+format used is a simple subset of the query used in search requests. Only
+<tt>@attr</tt> specifications and simple terms are allowed.
+The settings that affect the scan are:
+
+<descrip>
+<tag><tt>stepSize </tt><em>integer</em></tag>
+ Step size. Default is 0.
+<tag><tt>numberOfTermsRequested </tt><em>integer</em></tag>
+ Number of terms requested. Default is 20.
+<tag><tt>preferredPositionInResponse </tt><em>integer</em></tag>
+ Preferred position in response. Default is 1.
+<tag><tt>databaseNames </tt><em>list</em></tag>
+ Database names. Note that this setting is not (yet) supported for
+ the scan object. You must set this for the ir object instead.
+<tag><tt>callback </tt><em>list</em></tag>
+ General response Tcl script. This setting is not (yet) supported for
+ the scan object. You must set this for the ir object instead.
+</descrip>
+
+The scan object normally holds one or more scan line entries upon
+successful completion. The table below summarizes the settings
+that should be used in a response handler.
+
+<descrip>
+<tag><tt>scanStatus</tt></tag>
+ Scan status. An integer between 0 and 6.
+<tag><tt>numberOfTermsReturned </tt><em>integer</em></tag>
+ Number of terms returned. 
+<tag><tt>positionOfTerm</tt></tag>
+ An integer describing the position of term.
+<tag><tt>scanLine </tt> <em>integer</em></tag>
+ This function returns information about a given scan line at a given
+ index specified by the integer. The first scan line is numbered zero;
+ the second 1 and so on. A list is returned by the <tt>scanLine</tt>
+ setting. The first element is <tt>T</tt> if the scan entry
+ is a normal term and <tt>SD</tt> if the scan entry is a surrogate 
+ diagnostic. In the first case (normal) the scan term is second element 
+ in the list and the number of occurences is the third element.
+ In the other case (surrogate diagnostic), the second element
+ is the diagnostic code, the third a text representation of the error
+ code and the fourth element is additional information.
+</descrip>
+
+<bf/Example/
+
+We will scan for the terms after <tt>science</tt> in the Title index.
+We will assume that an ir object called <tt>z-assoc</tt> has already
+been created.
+
+<tscreen><verb>
+   z-assoc callback {scan-response}
+   ir-scan z-scan z-assoc
+   z-scan scan "@attr 1=4 science"
+  
+   proc scan-response {} {
+       set status [z-scan status]
+       if {$status == 0} {
+           set no [z-scan numberOfTermsReturned]
+           for {set i 0} {$i < $no} {incr i} {
+               set line [z-scan scanLine $i]
+               set type [lindex $line 0]
+               if {$type == "T"} {
+                   puts [lindex $line 1]
+               } elseif {$type == "SD"} {
+                   puts [lindex $line 1]
+               }
+           }
+       }
+   }
+</verb></tscreen>
+<bf/End of examle/
 
 <sect>License
 
