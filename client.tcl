@@ -1,11 +1,19 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.1  1995-03-09 16:15:07  adam
+# Revision 1.2  1995-03-10 18:00:15  adam
+# Actual presentation in line-by-line format. RPN query support.
+#
+# Revision 1.1  1995/03/09  16:15:07  adam
 # First presentRequest attempts. Hot-target list.
 #
 #
 set hotTargets {}
 set hotInfo {}
+set busy 0
+
+wm minsize . 360 200
+wm maxsize . 800 800
+
 if {[file readable "~/.tk-c"]} {
     source "~/.tk-c"
 }
@@ -14,8 +22,30 @@ proc show-target {target} {
     .bot.target configure -text "$target"
 }
 
-proc show-status {status} {
+proc show-busy {v1 v2} {
+    global busy
+    if {$busy != 0} {
+        .bot.status configure -fg $v1
+        after 200 [list show-busy $v2 $v1]
+    }
+}
+        
+proc show-status {status b} {
+    global busy
+    global statusbg
     .bot.status configure -text "$status"
+    .bot.status configure -fg black
+    if {$b != 0} {
+        if {$busy == 0} {
+            set busy $b   
+            show-busy red blue
+        }
+        #        . config -cursor {watch black white}
+    } else {
+        #        . config -cursor {top_left_arrow black white}
+        puts "Normal"
+    }
+    set busy $b
 }
 
 proc show-message {msg} {
@@ -82,54 +112,79 @@ proc open-target {target} {
 }
 
 proc init-request {} {
-    global set-no
+    global SetNo
 
     z39 callback {init-response}
     z39 init
-    show-status {Initializing}
-    set set-no 0
+    show-status {Initializing} 1
+    set SetNo 0
 }
 
 proc init-response {} {
-    show-status {Ready}
+    show-status {Ready} 0
     pack .mid.searchlabel .mid.searchentry -side left
     bind .mid.searchentry <Return> search-request
     focus .mid.searchentry
 }
 
 proc search-request {} {
-    global set-no
+    global SetNo
 
-    incr set-no
-    ir-set z39.${set-no}
+    incr SetNo
+    ir-set z39.$SetNo
 
     z39 callback {search-response}
-    z39.${set-no} search [.mid.searchentry get]
-    show-status {Search}
+    z39.$SetNo search [.mid.searchentry get]
+    show-status {Search} 1
 }
 
 proc search-response {} {
-    global set-no
+    global SetNo
+    global setOffset
+    global setMax
 
-    show-status {Ready}
-    show-message "[z39.${set-no} resultCount] hits"
+    .data.list delete 0 end
+    show-status {Ready} 0
+    show-message "[z39.$SetNo resultCount] hits"
+    set setMax [z39.$SetNo resultCount]
+    puts $setMax
+    if {$setMax > 16} {
+        set setMax 16
+    }
     z39 callback {present-response}
-    z39.${set-no} present
-    show-status {Retrieve}
+    set setOffset 1
+    z39.$SetNo present 1 $setMax
+    show-status {Retrieve} 1
 }
 
 proc present-response {} {
-    show-status {Finished}
+    global SetNo
+    global setOffset
+    global setMax
+
+    puts "In present-response"
+    set no [z39.$SetNo numberOfRecordsReturned]
+    puts "Returned $no records, setOffset $setOffset"
+    for {set i 0} {$i < $no} {incr i} {
+        set o [expr $i + $setOffset]
+        set title [lindex [z39.$SetNo getRecord $o 245 a] 0]
+        set year  [lindex [z39.$SetNo getRecord $o 260 c] 0]
+        .data.list insert end "$title - $year"
+    }
+    set setOffset [expr $setOffset + $no]
+    if { $setOffset <= $setMax} {
+        z39.$SetNo present $setOffset [expr $setMax - $setOffset + 1]
+    } else {
+        show-status {Finished} 0
+    }
 }
-    
+
 proc bind-fields {list returnAction escapeAction} {
-    set i 0
     set max [expr [llength $list]-1]
-    while {$i < $max} {
+    for {set i 0} {$i < $max} {incr i} {
         bind [lindex $list $i] <Return> $returnAction
         bind [lindex $list $i] <Escape> $escapeAction
         bind [lindex $list $i] <Tab> [list focus [lindex $list [expr $i+1]]]
-        incr i
     }
     bind [lindex $list $i] <Return> $returnAction
     bind [lindex $list $i] <Escape> $escapeAction
@@ -193,7 +248,7 @@ proc close-target {} {
     pack forget .mid.searchlabel .mid.searchentry
     z39 disconnect
     show-target {None}
-    show-status {Not connected}
+    show-status {Not connected} 0
     show-message {}
 }
 
@@ -319,7 +374,7 @@ proc database-select {} {
             -command {protocol-setup-action}
     pack $w.bot.left.ok -expand yes -padx 3 -pady 3
     button $w.bot.cancel -width 6 -text {Cancel} \
-            -command "destroy $w"
+            -command "destroy .database-select"
     pack $w.bot.cancel -side left -expand yes    
 
 # Grab ...
@@ -375,10 +430,12 @@ pack .top.help -side right
 label .mid.searchlabel -text {Search:}
 entry .mid.searchentry -width 50 -relief sunken
 
-listbox .data.list -geometry 50x10
+listbox .data.list -yscrollcommand {.data.scroll set}
+#-geometry 50x10
 scrollbar .data.scroll -orient vertical -border 1
 pack .data.list -side left -fill both -expand yes
 pack .data.scroll -side right -fill y
+.data.scroll config -command {.data.list yview}
 
 message .bot.target -text "None" -aspect 1000 -relief sunken -border 1
 label .bot.status -text "Not connected" -width 12 -relief \
@@ -387,8 +444,13 @@ label .bot.message -text "" -width 20 -relief \
     sunken -anchor w -border 1
 pack .bot.target .bot.status .bot.message -anchor nw -side left -padx 2 -pady 2
 
+for {set i 0} {$i < 30} {incr i} {
+    .data.list insert end "Record $i"
+}
+
+bind .data.list <Double-Button-1> {set indx [.data.list nearest %y]
+puts "y=%y index $indx" }
+
 ir z39
 z39 comstack tcpip
 set csRadioType [z39 comstack]
-wm minsize . 360 200
-wm maxsize . 800 800
