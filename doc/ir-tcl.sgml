@@ -1,13 +1,13 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.13 1995-11-28 17:36:06 adam Exp $
+  $Id: ir-tcl.sgml,v 1.14 1996-01-10 09:18:59 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference
 <author>Index Data, <tt/info@index.ping.dk/
-<date>$Revision: 1.13 $
+<date>$Revision: 1.14 $
 <abstract>
 This document describes IrTcl &mdash; an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
@@ -311,7 +311,7 @@ proc connect-response {} {
 }
 
 proc init-response {} {
-    z.1 callback {search-response}
+    z callback {search-response}
     z.1 search science
 }
 
@@ -319,7 +319,7 @@ proc search-response {} {
     set hits [z.1 resultCount]
     puts "$hits hits"
     if {$hits > 0} {
-        z.1 callback {present-response}
+        z callback {present-response}
         z.1 present 1 5
     }
 }
@@ -360,14 +360,35 @@ immediately followed by a hostname. A number of settings affect the
 <tag><tt>protocol </tt><tt>Z39|SR</tt></tag>
  Protocol type - ANSI/NISO Z39.50 or ISO SR.
 <tag><tt>callback </tt><em>list</em></tag>
- Tcl script called when the connection is established
+ Tcl script called when the connection is established.
 <tag><tt>failback </tt><em>list</em></tag>
  Fatal error Tcl script. Called on protocol errors or if target
- closes connection
+ closes connection.
 </descrip>
 
 If the connect is unsuccessful either the connect action itself
 will return an error code or the failback handler is invoked.
+
+In general, the <tt>failback</tt> handler is invoked when serious
+unrecoverable errors occur when communicating with the target. 
+In this case the <sf/IrTcl/ system shuts down the connection.
+The <tt>failback</tt> handler might inspect the <tt>failInfo</tt>
+setting to determine the cause of the failure; it returns
+two elements. The first is an error integer; the second is an 
+english representation of the error. The error codes and
+the corresponding messages are:
+
+<descrip>
+<tag><tt>0</tt></tag>ok
+<tag><tt>1</tt></tag>connect failed
+<tag><tt>2</tt></tag>connection closed
+<tag><tt>3</tt></tag>connection closed
+<tag><tt>4</tt></tag>failed to decode incoming APDU
+<tag><tt>5</tt></tag>unknown APDU
+</descrip>
+
+Note: in case 3 the connection was closed during read a read operation
+whereas in case 4 it was closed during a write operation.
 
 <sect1>Init
 
@@ -408,9 +429,11 @@ The init related settings are:
  action is performed.
 <tag><tt>protocolVersion </tt><em>integer</em></tag>
  Protocol version: 2, 3, etc. Default is 2.
+<tag><tt>referenceId </tt><em>string</em></tag>
+ Reference-id of init operation. If <em>string</em> is empty no 
+ reference-id is used.
 <tag><tt>initResponse </tt><em>list</em></tag>
- Init-response Tcl script. Note: not implemented - use <tt>callback</tt>
- instead.
+ Init-response Tcl script.
 <tag><tt>callback </tt><em>list</em></tag>
  General response Tcl script. Only used if <tt>initResponse</tt>
  is not specified.
@@ -420,25 +443,27 @@ The init-response handler should inspect some of the settings shown
 below:
 
 <descrip>
-<tag><tt>initResult </tt><em>boolean</em></tag>
+<tag><tt>initResult </tt>returns <em>boolean</em></tag>
  Init response status. True if init operation was successful; 
  false otherwise.
-<tag><tt>preferredMessageSize </tt><em>integer</em></tag>
- Preferred-message-size.
-<tag><tt>maximumRecordSize </tt><em>integer</em></tag>
- Maximum-record-size.
-<tag><tt>targetImplementationName </tt><em>string</em></tag>
+<tag><tt>preferredMessageSize </tt>returns <em>integer</em></tag>
+ Preferred-message-size after negotiation.
+<tag><tt>maximumRecordSize </tt>returns <em>integer</em></tag>
+ Maximum-record-size after negotiation.
+<tag><tt>targetImplementationName </tt>returns <em>string</em></tag>
  Implementation-name of target system.
-<tag><tt>targetImplementationId </tt><em>string</em></tag>
+<tag><tt>targetImplementationId </tt>returns <em>string</em></tag>
  Implementation-id of target system.
-<tag><tt>targetImplementationVersion </tt><em>string</em></tag>
+<tag><tt>targetImplementationVersion </tt>returns <em>string</em></tag>
  Implementation-version of target system.
-<tag><tt>options </tt><em>list</em></tag>
- Options negotiated in init. The list contains the options that are set.
-<tag><tt>protocolVersion </tt><em>integer</em></tag>
- Protocol version: 2, 3, etc.
-<tag><tt>userInformationField </tt><em>string</em></tag>
+<tag><tt>options </tt>returns <em>list</em></tag>
+ Options after negotiation. The list contains the options that are set.
+<tag><tt>protocolVersion </tt>returns <em>integer</em></tag>
+ Protocol version: 2, 3, etc after negotiation.
+<tag><tt>userInformationField </tt>returns <em>string</em></tag>
  User information field.
+<tag><tt>referenceId </tt>returns <em>string</em></tag>
+ Reference-id of init response.
 </descrip>
 
 <bf/Example/
@@ -600,30 +625,37 @@ The settings that affect the search are listed below:
 
 <descrip>
 <tag><tt>databaseNames </tt><em>list</em></tag>
- database-names.
+ Database-names.
 <tag><tt>smallSetUpperBound </tt><em>integer</em></tag>
- small set upper bound. Default 0.
+ Small set upper bound. Default 0.
 <tag><tt>largeSetLowerBound </tt><em>integer</em></tag>
- large set lower bound. Default 2.
+ Large set lower bound. Default 2.
 <tag><tt>mediumSetPresentNumber </tt><em>integer</em></tag>
- medium set present number. Default 0.
+ Medium set present number. Default 0.
 <tag><tt>replaceIndicator </tt><em>boolean</em></tag>
- replace-indicator.
+ Replace-indicator. Default true (1).
 <tag><tt>setName </tt><em>string</em></tag>
- name of result set.
+ Name of result set.
 <tag><tt>queryType rpn|ccl</tt></tag>
- query type-1 or query type-2 
+ Query type-1 or query type-2. Default rpn (type-1).
 <tag><tt>preferredRecordSyntax </tt><em>string</em></tag>
- preferred record syntax &mdash; UNIMARC, USMARC, etc. 
+ Preferred record syntax &mdash; UNIMARC, USMARC, etc. 
 <tag><tt>smallSetElementSetNames </tt><em>string</em></tag>
- small-set-element-set names. Not implemented yet.
+ small-set-element-set names. If <em>string</em> is empty
+ the element set is not set. Default is empty (not set).
 <tag><tt>mediumSetElementSetNames </tt><em>string</em></tag>
- medium-set-element-set names. Not implemented yet.
+ medium-set-element-set names. If <em>string</em> is empty
+ the element set is not set. Default is empty (not set).
+<tag><tt>nextResultSetPosition </tt>returns <em>integer</em></tag>
+ Next result set position.
+<tag><tt>referenceId </tt><em>string</em></tag>
+ Reference-id. If <em>string</em> is empty no reference-id is used.
 <tag><tt>searchResponse </tt><em>list</em></tag>
- Search-response Tcl script. Not implemented yet. Use <tt>callback</tt>
- instead.
+ Search-response Tcl script.
 <tag><tt>callback </tt><em>list</em></tag>
- General response Tcl script. Only used if searchResponse is not specified 
+ General response Tcl script. Only used if searchResponse is not specified.
+ This setting is valid only for the <tt/ir/ object &mdash; not the
+ <tt/ir-set/ object.
 </descrip>
 
 Setting the <tt/databaseNames/ is mandatory. All other settings
@@ -633,15 +665,17 @@ the <tt/searchResponse/ setting,
 should read some of the settings shown below:
 
 <descrip>
-<tag><tt>searchStatus </tt><em>boolean</em></tag>
- search-status. True if search operation was successful; false
+<tag><tt>searchStatus</tt> returns <em>boolean</em></tag>
+ Search-status. True if search operation was successful; false
  otherwise.
-<tag><tt>responseStatus </tt><em>list</em></tag>
- response status information.
-<tag><tt>resultCount </tt><em>integer</em></tag>
+<tag><tt>responseStatus </tt>returns <em>list</em></tag>
+ Response status information.
+<tag><tt>resultCount </tt>returns <em>integer</em></tag>
  result-count
-<tag><tt>numberOfRecordsReturned </tt><em>integer</em></tag>
- number of records returned.
+<tag><tt>numberOfRecordsReturned </tt>returns <em>integer</em></tag>
+ Number of records returned.
+<tag><tt>referenceId </tt>returns <em>string</em></tag>
+ Reference-id of search response.
 </descrip>
 
 The <tt/responseStatus/ signals one of three conditions which
@@ -675,7 +709,7 @@ proc init-response {assoc} {
     ir-set ${assoc}.1 $assoc
     $assoc.1 queryType rpn
     $assoc.1 databaseNames base-a base-b
-    $assoc.1 callback [list search-response $assoc ${assoc}.1]
+    $assoc callback [list search-response $assoc ${assoc}.1]
     $assoc.1 search "@attr 1=4 @and @attr 5=1 tech beta"
 }
 </verb></tscreen>
@@ -745,13 +779,17 @@ action are:
 <descrip>
 <tag><tt>preferredRecordSyntax </tt><em>string</em></tag>
  preferred record syntax &mdash; UNIMARC, USMARC, etc.
-<tag><tt>elementSetElementSetNames </tt><em>string</em></tag>
- element-set names 
+<tag><tt>elementSetNames </tt><em>string</em></tag>
+ Element-set names. If <em>string</em> is empty
+ the element set is not set. Default is empty (not set).
+<tag><tt>referenceId </tt><em>string</em></tag>
+ Reference-id. If <em>string</em> is empty no reference-id is used.
 <tag><tt>presentResponse </tt><em>list</em></tag>
- Present-response Tcl script. Not implemented yet. Use <tt>callback</tt>
- instead.
+ Present-response Tcl script. 
 <tag><tt>callback </tt><em>list</em></tag>
  General response Tcl script. Only used if presentResponse is not specified 
+ This setting is valid only for the <tt/ir/ object &mdash; not the
+ <tt/ir-set/ object.
 </descrip>
 
 The present-response handler should inspect the settings
@@ -763,14 +801,16 @@ As in the search response case, records returned from the
 target are stored in the result set object.
 
 <descrip>
-<tag><tt>presentStatus </tt><em>boolean</em></tag>
- present-status 
-<tag><tt>responseStatus </tt><em>list</em></tag>
- Response status information 
-<tag><tt>numberOfRecordsReturned </tt><em>integer</em></tag>
- number of records returned 
-<tag><tt>nextResultSetPosition </tt><em>integer</em></tag>
- next result set position
+<tag><tt>presentStatus </tt>returns <em>boolean</em></tag>
+ Present-status.
+<tag><tt>responseStatus </tt>returns <em>list</em></tag>
+ Response status information.
+<tag><tt>numberOfRecordsReturned </tt>returns <em>integer</em></tag>
+ Number of records returned.
+<tag><tt>nextResultSetPosition </tt>returns <em>integer</em></tag>
+ Next result set position.
+<tag><tt>referenceId </tt>returns <em>string</em></tag>
+ Reference-id of present response.
 </descrip>
 
 <sect1>Records
@@ -780,16 +820,29 @@ Search responses and present responses may result in
 one or more records stored in the ir set object if
 the <tt/responseStatus/ setting indicates database or
 surrogate diagnostics (<tt/DBOSD/). The individual
-records, indexed by an integer position, should be 
+records, indexed by an integer position offset, should then be 
 inspected.
 
-The action <tt/type/ followed by an integer returns information 
+If element set names have been specified either in the
+search requests (<tt>smallSetElementSetNames</tt> /
+<tt>mediumSetElementSetNames</tt>) or present requests 
+(<tt>elementSetNames</tt>) the individual records in the
+ir set object are assigned appropriate element set ids. 
+In this mode records at a given position are treated different as
+long as they have difference element set ids.
+To inspect records with a particular element set id in subsequent
+operations use the <tt>recordElements</tt> setting followed by the id.
+If you have more than one record at a given position and you do not
+use <tt>recordElements</tt> the record selected at the given position
+is undefined.
+
+The action <tt>type</tt> followed by an integer returns information 
 about a given position in an ir set. There are three possiblities:
 
 <descrip>
 <tag><tt/SD/</tag> The item is a surrogate diagnostic record.
-<tag><tt/DB/</tag> The item is a database record.
 <tag><em/empty/</tag> There is no record at the specified position.
+<tag><tt/DB/</tag> The item is a database record.
 </descrip>
 
 To handle the first case, surrogate diagnostic record, the
@@ -797,7 +850,11 @@ To handle the first case, surrogate diagnostic record, the
 items: error code (integer), text representation in plain english
 (string), and additional information (string, possibly empty).
 
-In the second case, database record, the <tt/recordType/ action should
+In the second case, no record, note that there still might
+be a record at the position but with an id that differs from that
+specified by <tt>recordElements</tt>.
+
+In the third case, database record, the <tt/recordType/ action should
 be used. It returns the record type at the given position.
 Some record types are:
 
@@ -993,7 +1050,7 @@ a SUTRS record use the <tt>getSutrs</tt> followed by an index.
 
 <p>
 To perform scan, a scan object must be created by the <tt>ir-scan</tt>
-command. This command has two arguments - name of the scan object and
+command. This command has two arguments &mdash; name of the scan object and
 name of the ir object. Basically, the scan object, provides one <tt>scan</tt>
 action which sends a scan request to the target. The <tt>action</tt>
 is followed by a string describing starting point of the term list. The
@@ -1011,9 +1068,15 @@ The settings that affect the scan are:
 <tag><tt>databaseNames </tt><em>list</em></tag>
  Database names. Note that this setting is not (yet) supported for
  the scan object. You must set this for the ir object instead.
+<tag><tt>referenceId </tt><em>string</em></tag>
+ Reference-id. If <em>string</em> is empty no reference-id is used.
+<tag><tt>scanResponse </tt><em>list</em></tag>
+ Scan-response Tcl script. 
 <tag><tt>callback </tt><em>list</em></tag>
- General response Tcl script. This setting is not (yet) supported for
- the scan object. You must set this for the ir object instead.
+ General response Tcl script. Only used if <tt>scanResponse</tt>
+ is not specified.
+ This setting is valid only for the <tt/ir/ object &mdash; not the
+ <tt/ir-set/ object.
 </descrip>
 
 The scan object normally holds one or more scan line entries upon
@@ -1021,13 +1084,13 @@ successful completion. The table below summarizes the settings
 that should be used in a response handler.
 
 <descrip>
-<tag><tt>scanStatus</tt></tag>
+<tag><tt>scanStatus </tt>returns <em>integer</em></tag>
  Scan status. An integer between 0 and 6.
-<tag><tt>numberOfTermsReturned </tt><em>integer</em></tag>
+<tag><tt>numberOfTermsReturned </tt>returns <em>integer</em></tag>
  Number of terms returned. 
-<tag><tt>positionOfTerm</tt></tag>
+<tag><tt>positionOfTerm </tt>returns <em>integer</em></tag>
  An integer describing the position of term.
-<tag><tt>scanLine </tt> <em>integer</em></tag>
+<tag><tt>scanLine </tt>returns <em>list</em></tag>
  This function returns information about a given scan line (entry) at a given
  index specified by the integer. The first scan line is numbered zero;
  the second 1 and so on. A list is returned by the <tt>scanLine</tt>
@@ -1038,6 +1101,8 @@ that should be used in a response handler.
  In the other case (surrogate diagnostic), the second element
  is the diagnostic code, the third a text representation of the error
  code and the fourth element is additional information.
+<tag><tt>referenceId </tt>returns <em>string</em></tag>
+ Reference-id of scan response.
 </descrip>
 
 <bf/Example/
