@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.38  1995-06-01 16:36:47  adam
+ * Revision 1.39  1995-06-08 10:26:32  adam
+ * Bug fix in ir_strdup.
+ *
+ * Revision 1.38  1995/06/01  16:36:47  adam
  * About buttons. Minor bug fixes.
  *
  * Revision 1.37  1995/06/01  07:31:20  adam
@@ -343,6 +346,11 @@ int ir_named_bits (struct ir_named_entry *tab, Odr_bitmask *ob,
  */
 int ir_strdup (Tcl_Interp *interp, char** p, const char *s)
 {
+    if (!s)
+    {
+        *p = NULL;
+        return TCL_OK;
+    }
     *p = malloc (strlen(s)+1);
     if (!*p)
     {
