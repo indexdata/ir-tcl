@@ -1,5 +1,3 @@
-## $Id: yaz.m4,v 1.2 2004-09-11 20:58:20 adam Exp $
-## 
 # Use this m4 function for autoconf if you use YAZ in your own
 # configure script.
 
