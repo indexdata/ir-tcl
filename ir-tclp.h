@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.26  1996-02-21 10:16:20  adam
+ * Revision 1.27  1996-02-23 13:41:41  adam
+ * Work on public access to simple ir class system.
+ *
+ * Revision 1.26  1996/02/21  10:16:20  adam
  * Simplified select handling. Only one function ir_tcl_select_set has
  * to be externally defined.
  *
@@ -128,6 +131,17 @@
 #include <diagbib1.h>
 
 #include "ir-tcl.h"
+
+typedef struct {
+    char *name;
+    int (*method) (void *obj, Tcl_Interp *interp, int argc, char **argv);
+    char *desc;
+} IrTcl_Method;
+
+typedef struct {
+    void *obj;
+    IrTcl_Method *tab;
+} IrTcl_Methods;
 
 typedef struct {
     char      **databaseNames;
@@ -341,10 +355,24 @@ void ir_tcl_read_grs (Z_GenericRecord *r, IrTcl_GRS_Record **grs_record);
 int ir_tcl_get_grs (Tcl_Interp *interp, IrTcl_GRS_Record *grs_record, 
                      int argc, char **argv);
 
+int ir_tcl_method (Tcl_Interp *interp, int argc, char **argv,
+                   IrTcl_Methods *tab);
+
+typedef struct {
+    const char *name;
+    int (*ir_init)   (ClientData clientData, Tcl_Interp *interp,
+                      int argc, char **argv, ClientData *subData);
+    int (*ir_method) (ClientData clientData, Tcl_Interp *interp,
+                      int argc, char **argv);
+    void (*ir_delete)(ClientData clientData);
+} IrTcl_Class;
+
+extern IrTcl_Class ir_obj_class;
+
 void ir_select_add (int fd, void *obj);
 void ir_select_add_write (int fd, void *obj);
 void ir_select_remove (int fd, void *obj);
-void ir_selcet_remove_write (int fd, void *obj);
+void ir_select_remove_write (int fd, void *obj);
 
 #define IR_TCL_FAIL_CONNECT      1
 #define IR_TCL_FAIL_READ         2

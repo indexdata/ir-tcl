@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.78  1996-02-21 10:16:08  adam
+ * Revision 1.79  1996-02-23 13:41:38  adam
+ * Work on public access to simple ir class system.
+ *
+ * Revision 1.78  1996/02/21  10:16:08  adam
  * Simplified select handling. Only one function ir_tcl_select_set has
  * to be externally defined.
  *
@@ -289,17 +292,6 @@
 
 #include "ir-tclp.h"
 
-typedef struct {
-    int type;
-    char *name;
-    int (*method) (void *obj, Tcl_Interp *interp, int argc, char **argv);
-} IrTcl_Method;
-
-typedef struct {
-    void *obj;
-    IrTcl_Method *tab;
-} IrTcl_Methods;
-
 static void ir_deleteDiags (IrTcl_Diagnostic **dst_list, int *dst_num);
 static int do_disconnect (void *obj, Tcl_Interp *interp, 
                           int argc, char **argv);
@@ -464,9 +456,9 @@ static int get_set_int (int *val, Tcl_Interp *interp, int argc, char **argv)
 }
 
 /*
- * ir_method: Search for method in table and invoke method handler
+ * ir_tcl_method: Search for method in table and invoke method handler
  */
-int ir_method (Tcl_Interp *interp, int argc, char **argv, IrTcl_Methods *tab)
+int ir_tcl_method (Tcl_Interp *interp, int argc, char **argv, IrTcl_Methods *tab)
 {
     IrTcl_Methods *tab_i = tab;
     IrTcl_Method *t;
@@ -484,34 +476,14 @@ int ir_method (Tcl_Interp *interp, int argc, char **argv, IrTcl_Methods *tab)
 
     if (argc <= 0)
         return TCL_OK;
+#if 0
     Tcl_AppendResult (interp, "Bad method: ", argv[1], 
                       ". Possible methods:", NULL);
     for (tab_i = tab; tab_i->tab; tab_i++)
         for (t = tab_i->tab; t->name; t++)
             Tcl_AppendResult (interp, " ", t->name, NULL);
+#endif
     return TCL_ERROR;
-}
-
-/*
- * ir_method_r: Get status for all readable elements
- */
-int ir_method_r (void *obj, Tcl_Interp *interp, int argc, char **argv,
-                 IrTcl_Method *tab)
-{
-    char *argv_n[3];
-    int argc_n;
-
-    argv_n[0] = argv[0];
-    argc_n = 2;
-    for (; tab->name; tab++)
-        if (tab->type)
-        {
-            argv_n[1] = tab->name;
-            Tcl_AppendResult (interp, "{", NULL);
-            (*tab->method)(obj, interp, argc_n, argv_n);
-            Tcl_AppendResult (interp, "} ", NULL);
-        }
-    return TCL_OK;
 }
 
 /*
@@ -1675,50 +1647,50 @@ static int do_mediumSetElementSetNames (void *obj, Tcl_Interp *interp,
 }
 
 static IrTcl_Method ir_method_tab[] = {
-{ 1, "comstack",                    do_comstack },
-{ 1, "protocol",                    do_protocol },
-{ 0, "failback",                    do_failback },
-{ 0, "failInfo",                    do_failInfo },
-{ 0, "apduInfo",                    do_apduInfo },
-{ 0, "logLevel",                    do_logLevel },
+{ "comstack",                    do_comstack, NULL },
+{ "protocol",                    do_protocol, NULL },
+{ "failback",                    do_failback, NULL },
+{ "failInfo",                    do_failInfo, NULL },
+{ "apduInfo",                    do_apduInfo, NULL },
+{ "logLevel",                    do_logLevel, NULL },
 
-{ 0, "eventType",                   do_eventType },
-{ 1, "connect",                     do_connect },
-{ 0, "protocolVersion",             do_protocolVersion },
-{ 1, "preferredMessageSize",        do_preferredMessageSize },
-{ 1, "maximumRecordSize",           do_maximumRecordSize },
-{ 1, "implementationName",          do_implementationName },
-{ 1, "implementationId",            do_implementationId },
-{ 1, "implementationVersion",       do_implementationVersion },
-{ 0, "targetImplementationName",    do_targetImplementationName },
-{ 0, "targetImplementationId",      do_targetImplementationId },
-{ 0, "targetImplementationVersion", do_targetImplementationVersion },
-{ 0, "userInformationField",        do_userInformationField },
-{ 1, "idAuthentication",            do_idAuthentication },
-{ 0, "options",                     do_options },
-{ 0, "init",                        do_init_request },
-{ 0, "initResult",                  do_initResult },
-{ 0, "disconnect",                  do_disconnect },
-{ 0, "callback",                    do_callback },
-{ 0, "initResponse",                do_initResponse },
-{ 0, "triggerResourceControl",      do_triggerResourceControl },
-{ 0, "initResponse",                do_initResponse },
-{ 0, NULL, NULL}
+{ "eventType",                   do_eventType, NULL },
+{ "connect",                     do_connect, NULL },
+{ "protocolVersion",             do_protocolVersion, NULL },
+{ "preferredMessageSize",        do_preferredMessageSize, NULL },
+{ "maximumRecordSize",           do_maximumRecordSize, NULL },
+{ "implementationName",          do_implementationName, NULL },
+{ "implementationId",            do_implementationId, NULL },
+{ "implementationVersion",       do_implementationVersion, NULL },
+{ "targetImplementationName",    do_targetImplementationName, NULL },
+{ "targetImplementationId",      do_targetImplementationId, NULL },
+{ "targetImplementationVersion", do_targetImplementationVersion, NULL},
+{ "userInformationField",        do_userInformationField, NULL},
+{ "idAuthentication",            do_idAuthentication, NULL},
+{ "options",                     do_options, NULL},
+{ "init",                        do_init_request, NULL},
+{ "initResult",                  do_initResult, NULL},
+{ "disconnect",                  do_disconnect, NULL},
+{ "callback",                    do_callback, NULL},
+{ "initResponse",                do_initResponse, NULL},
+{ "triggerResourceControl",      do_triggerResourceControl, NULL},
+{ "initResponse",                do_initResponse, NULL},
+{ NULL, NULL}
 };
 
 static IrTcl_Method ir_set_c_method_tab[] = {
-{ 0, "databaseNames",               do_databaseNames},
-{ 0, "replaceIndicator",            do_replaceIndicator},
-{ 0, "queryType",                   do_queryType },
-{ 0, "preferredRecordSyntax",       do_preferredRecordSyntax },
-{ 0, "smallSetUpperBound",          do_smallSetUpperBound},
-{ 0, "largeSetLowerBound",          do_largeSetLowerBound},
-{ 0, "mediumSetPresentNumber",      do_mediumSetPresentNumber},
-{ 0, "referenceId",                 do_referenceId },
-{ 0, "elementSetNames",             do_elementSetNames },
-{ 0, "smallSetElementSetNames",     do_smallSetElementSetNames },
-{ 0, "mediumSetElementSetNames",    do_mediumSetElementSetNames },
-{ 0, NULL, NULL}
+{ "databaseNames",               do_databaseNames, NULL},
+{ "replaceIndicator",            do_replaceIndicator, NULL},
+{ "queryType",                   do_queryType, NULL},
+{ "preferredRecordSyntax",       do_preferredRecordSyntax, NULL},
+{ "smallSetUpperBound",          do_smallSetUpperBound, NULL},
+{ "largeSetLowerBound",          do_largeSetLowerBound, NULL},
+{ "mediumSetPresentNumber",      do_mediumSetPresentNumber, NULL},
+{ "referenceId",                 do_referenceId, NULL},
+{ "elementSetNames",             do_elementSetNames, NULL},
+{ "smallSetElementSetNames",     do_smallSetElementSetNames, NULL},
+{ "mediumSetElementSetNames",    do_mediumSetElementSetNames, NULL},
+{ NULL, NULL}
 };
 
 /* 
@@ -1731,7 +1703,7 @@ static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
     IrTcl_Obj *p = clientData;
 
     if (argc < 2)
-        return ir_method_r (clientData, interp, argc, argv, ir_method_tab);
+        return TCL_ERROR;
 
     tab[0].tab = ir_method_tab;
     tab[0].obj = p;
@@ -1739,7 +1711,7 @@ static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
     tab[1].obj = &p->set_inher;
     tab[2].tab = NULL;
 
-    return ir_method (interp, argc, argv, tab);
+    return ir_tcl_method (interp, argc, argv, tab);
 }
 
 /* 
@@ -1762,7 +1734,7 @@ static void ir_obj_delete (ClientData clientData)
     tab[1].obj = &obj->set_inher;
     tab[2].tab = NULL;
 
-    ir_method (NULL, -1, NULL, tab);
+    ir_tcl_method (NULL, -1, NULL, tab);
 
     ir_tcl_del_q (obj);
     odr_destroy (obj->odr_in);
@@ -1772,10 +1744,10 @@ static void ir_obj_delete (ClientData clientData)
 }
 
 /* 
- * ir_obj_mk: IR Object creation
+ * ir_obj_init: IR Object initialization
  */
-static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
-                      int argc, char **argv)
+int ir_obj_init (ClientData clientData, Tcl_Interp *interp,
+                 int argc, char **argv, ClientData *subData)
 {
     IrTcl_Methods tab[3];
     IrTcl_Obj *obj;
@@ -1816,12 +1788,39 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     tab[1].obj = &obj->set_inher;
     tab[2].tab = NULL;
 
-    if (ir_method (interp, 0, NULL, tab) == TCL_ERROR)
+    if (ir_tcl_method (interp, 0, NULL, tab) == TCL_ERROR)
+    {
+        Tcl_AppendResult (interp, "Failed to initialize ", argv[1], NULL);
         return TCL_ERROR;
-    Tcl_CreateCommand (interp, argv[1], ir_obj_method,
-                       (ClientData) obj, ir_obj_delete);
+    }
+    *subData = obj;
     return TCL_OK;
 }
+
+
+/* 
+ * ir_obj_mk: IR Object creation
+ */
+static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
+                      int argc, char **argv)
+{
+    ClientData subData;
+    int r = ir_obj_init (clientData, interp, argc, argv, &subData);
+    
+    if (r == TCL_ERROR)
+        return TCL_ERROR;
+    Tcl_CreateCommand (interp, argv[1], ir_obj_method,
+                       subData, ir_obj_delete);
+    return TCL_OK;
+}
+
+IrTcl_Class ir_obj_class = {
+    "ir",
+    ir_obj_init,
+    ir_obj_method,
+    ir_obj_delete
+};
+
 
 /* ------------------------------------------------------- */
 /*
@@ -2568,26 +2567,26 @@ static int do_loadFile (void *o, Tcl_Interp *interp,
 }
 
 static IrTcl_Method ir_set_method_tab[] = {
-    { 0, "search",                  do_search },
-    { 0, "searchResponse",          do_searchResponse },
-    { 0, "presentResponse",         do_presentResponse },
-    { 0, "searchStatus",            do_searchStatus },
-    { 0, "presentStatus",           do_presentStatus },
-    { 0, "nextResultSetPosition",   do_nextResultSetPosition },
-    { 0, "setName",                 do_setName },
-    { 0, "resultCount",             do_resultCount },
-    { 0, "numberOfRecordsReturned", do_numberOfRecordsReturned },
-    { 0, "present",                 do_present },
-    { 0, "type",                    do_type },
-    { 0, "getMarc",                 do_getMarc },
-    { 0, "getSutrs",                do_getSutrs },
-    { 0, "getGrs",                  do_getGrs },
-    { 0, "recordType",              do_recordType },
-    { 0, "recordElements",          do_recordElements },
-    { 0, "diag",                    do_diag },
-    { 0, "responseStatus",          do_responseStatus },
-    { 0, "loadFile",                do_loadFile },
-    { 0, NULL, NULL}
+    { "search",                  do_search, NULL},
+    { "searchResponse",          do_searchResponse, NULL},
+    { "presentResponse",         do_presentResponse, NULL},
+    { "searchStatus",            do_searchStatus, NULL},
+    { "presentStatus",           do_presentStatus, NULL},
+    { "nextResultSetPosition",   do_nextResultSetPosition, NULL},
+    { "setName",                 do_setName, NULL},
+    { "resultCount",             do_resultCount, NULL},
+    { "numberOfRecordsReturned", do_numberOfRecordsReturned, NULL},
+    { "present",                 do_present, NULL},
+    { "type",                    do_type, NULL},
+    { "getMarc",                 do_getMarc, NULL},
+    { "getSutrs",                do_getSutrs, NULL},
+    { "getGrs",                  do_getGrs, NULL},
+    { "recordType",              do_recordType, NULL},
+    { "recordElements",          do_recordElements, NULL},
+    { "diag",                    do_diag, NULL},
+    { "responseStatus",          do_responseStatus, NULL},
+    { "loadFile",                do_loadFile, NULL},
+    { NULL, NULL}
 };
 
 /* 
@@ -2610,7 +2609,7 @@ static int ir_set_obj_method (ClientData clientData, Tcl_Interp *interp,
     tabs[1].obj = &p->set_inher;
     tabs[2].tab = NULL;
 
-    return ir_method (interp, argc, argv, tabs);
+    return ir_tcl_method (interp, argc, argv, tabs);
 }
 
 /* 
@@ -2629,7 +2628,7 @@ static void ir_set_obj_delete (ClientData clientData)
     tabs[1].obj = &p->set_inher;
     tabs[2].tab = NULL;
 
-    ir_method (NULL, -1, NULL, tabs);
+    ir_tcl_method (NULL, -1, NULL, tabs);
 
     free (p);
 }
@@ -2717,7 +2716,7 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
     tabs[0].obj = obj;
     tabs[1].tab = NULL;
 
-    if (ir_method (interp, 0, NULL, tabs) == TCL_ERROR)
+    if (ir_tcl_method (interp, 0, NULL, tabs) == TCL_ERROR)
         return TCL_ERROR;
 
     Tcl_CreateCommand (interp, argv[1], ir_set_obj_method,
@@ -2977,16 +2976,16 @@ static int do_scanLine (void *obj, Tcl_Interp *interp, int argc, char **argv)
 }
 
 static IrTcl_Method ir_scan_method_tab[] = {
-    { 0, "scan",                    do_scan },
-    { 0, "scanResponse",            do_scanResponse },
-    { 0, "stepSize",                do_stepSize },
-    { 0, "numberOfTermsRequested",  do_numberOfTermsRequested },
-    { 0, "preferredPositionInResponse", do_preferredPositionInResponse },
-    { 0, "scanStatus",              do_scanStatus },
-    { 0, "numberOfEntriesReturned", do_numberOfEntriesReturned },
-    { 0, "positionOfTerm",          do_positionOfTerm },
-    { 0, "scanLine",                do_scanLine },
-    { 0, NULL, NULL}
+    { "scan",                    do_scan, NULL},
+    { "scanResponse",            do_scanResponse, NULL},
+    { "stepSize",                do_stepSize, NULL},
+    { "numberOfTermsRequested",  do_numberOfTermsRequested, NULL},
+    { "preferredPositionInResponse", do_preferredPositionInResponse, NULL},
+    { "scanStatus",              do_scanStatus, NULL},
+    { "numberOfEntriesReturned", do_numberOfEntriesReturned, NULL},
+    { "positionOfTerm",          do_positionOfTerm, NULL},
+    { "scanLine",                do_scanLine, NULL},
+    { NULL, NULL}
 };
 
 /* 
@@ -3006,7 +3005,7 @@ static int ir_scan_obj_method (ClientData clientData, Tcl_Interp *interp,
     tabs[0].obj = clientData;
     tabs[1].tab = NULL;
 
-    return ir_method (interp, argc, argv, tabs);
+    return ir_tcl_method (interp, argc, argv, tabs);
 }
 
 /* 
@@ -3021,7 +3020,7 @@ static void ir_scan_obj_delete (ClientData clientData)
     tabs[0].obj = obj;
     tabs[1].tab = NULL;
 
-    ir_method (NULL, -1, NULL, tabs);
+    ir_tcl_method (NULL, -1, NULL, tabs);
     free (obj);
 }
 
@@ -3052,7 +3051,7 @@ static int ir_scan_obj_mk (ClientData clientData, Tcl_Interp *interp,
     tabs[0].obj = obj;
     tabs[1].tab = NULL;
 
-    if (ir_method (interp, 0, NULL, tabs) == TCL_ERROR)
+    if (ir_tcl_method (interp, 0, NULL, tabs) == TCL_ERROR)
         return TCL_ERROR;
     Tcl_CreateCommand (interp, argv[1], ir_scan_obj_method,
                        (ClientData) obj, ir_scan_obj_delete);
