@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.76  1996-02-20 16:09:51  adam
+ * Revision 1.77  1996-02-20 17:52:58  adam
+ * Uses the YAZ oid system to name record syntax object identifiers.
+ *
+ * Revision 1.76  1996/02/20  16:09:51  adam
  * Bug fix: didn't set element set names stamp correctly on result
  * set records when element set names were set to the empty string.
  *
@@ -335,30 +338,6 @@ static IrTcl_RecordList *new_IR_record (IrTcl_SetObj *setobj,
     return rl;
 }
 
-static struct {
-    enum oid_value value;
-    const char *name;
-} IrTcl_recordSyntaxTab[] = { 
-{ VAL_UNIMARC,    "UNIMARC" },
-{ VAL_INTERMARC,  "INTERMARC" },
-{ VAL_CCF,        "CCF" },
-{ VAL_USMARC,     "USMARC" },
-{ VAL_UKMARC,     "UKMARC" },
-{ VAL_NORMARC,    "NORMARC" },
-{ VAL_LIBRISMARC, "LIBRISMARC" },
-{ VAL_DANMARC,    "DANMARC" },
-{ VAL_FINMARC,    "FINMARC" },
-{ VAL_MAB,        "MAB" },
-{ VAL_CANMARC,    "CANMARC" },
-{ VAL_SBN,        "SBN" },
-{ VAL_PICAMARC,   "PICAMARC" },
-{ VAL_AUSMARC,    "AUSMARC" },
-{ VAL_IBERMARC,   "IBERMARC" },
-{ VAL_SUTRS,      "SUTRS" },
-{ VAL_GRS1,       "GRS1" },
-{ 0, NULL }
-};
-
 /* 
  * IrTcl_eval
  */
@@ -380,13 +359,21 @@ int IrTcl_eval (Tcl_Interp *interp, const char *command)
 /*
  * IrTcl_getRecordSyntaxStr: Return record syntax name of object id
  */
-static const char *IrTcl_getRecordSyntaxStr (enum oid_value value)
+static char *IrTcl_getRecordSyntaxStr (enum oid_value value)
 {
-    int i;
-    for (i = 0; IrTcl_recordSyntaxTab[i].name; i++) 
-        if (IrTcl_recordSyntaxTab[i].value == value)
-            return IrTcl_recordSyntaxTab[i].name;
-    return "USMARC";
+    int *o;
+    struct oident ent, *entp;
+
+    ent.proto = PROTO_Z3950;
+    ent.oclass = CLASS_RECSYN;
+    ent.value = value;
+
+    o = oid_getoidbyent (&ent);
+    entp = oid_getentbyoid (o);
+    
+    if (!entp)
+        return "";
+    return entp->desc;
 }
 
 /*
@@ -394,11 +381,7 @@ static const char *IrTcl_getRecordSyntaxStr (enum oid_value value)
  */
 static enum oid_value IrTcl_getRecordSyntaxVal (const char *name)
 {
-    int i;
-    for (i = 0; IrTcl_recordSyntaxTab[i].name; i++) 
-        if (!strcmp (IrTcl_recordSyntaxTab[i].name, name))
-            return IrTcl_recordSyntaxTab[i].value;
-    return 0;
+    return oid_getvalbyname (name);
 }
 
 static IrTcl_RecordList *find_IR_record (IrTcl_SetObj *setobj, int no)
@@ -1576,6 +1559,11 @@ static int do_preferredRecordSyntax (void *obj, Tcl_Interp *interp,
         if (argv[2][0] && (p->preferredRecordSyntax = 
                            ir_tcl_malloc (sizeof(*p->preferredRecordSyntax))))
             *p->preferredRecordSyntax = IrTcl_getRecordSyntaxVal (argv[2]);
+    }
+    else if (argc == 2)
+    {
+        Tcl_AppendElement (interp, IrTcl_getRecordSyntaxStr
+                           (*p->preferredRecordSyntax));
     }
     return TCL_OK;
             
