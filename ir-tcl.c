@@ -4,7 +4,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.23  1995-04-10 10:50:27  adam
+ * Revision 1.24  1995-04-11 14:16:42  adam
+ * Further work on scan. Response works. Entries aren't saved yet.
+ *
+ * Revision 1.23  1995/04/10  10:50:27  adam
  * Result-set name defaults to suffix of ir-set name.
  * Started working on scan. Not finished at this point.
  *
@@ -143,11 +146,8 @@ typedef struct {
     CCL_bibset  bibset;
     oident      bib1;
 
-    int         stepSize;
-    int         numberOfTermsRequested;
-    int         preferredPositionInResponse;
-
-    struct IRSetObj_ *child;
+    struct IRSetObj_ *set_child;
+    struct IRScanObj_ *scan_child;
 } IRObj;
 
 typedef struct IRRecordList_ {
@@ -179,6 +179,20 @@ typedef struct IRSetObj_ {
     char       *addinfo;
     IRRecordList *record_list;
 } IRSetObj;
+
+typedef struct IRScanObj_ {
+    IRObj      *parent;
+    int         stepSize;
+    int         numberOfTermsRequested;
+    int         preferredPositionInResponse;
+
+    int         scanStatus;
+    int         numberOfEntriesReturned;
+    int         positionOfTerm;
+
+    int         entries_flag;
+    int         which;
+} IRScanObj;
 
 typedef struct {
     int type;
@@ -229,6 +243,23 @@ static IRRecordList *find_IR_record (IRSetObj *setobj, int no)
         if (no == rl->no)
             return rl;
     return NULL;
+}
+
+/*
+ * getsetint: Set/get integer value
+ */
+static int get_set_int (int *val, Tcl_Interp *interp, int argc, char **argv)
+{
+    char buf[20];
+    
+    if (argc == 3)
+    {
+        if (Tcl_GetInt (interp, argv[2], val)==TCL_ERROR)
+            return TCL_ERROR;
+    }
+    sprintf (buf, "%d", *val);
+    Tcl_AppendResult (interp, buf, NULL);
+    return TCL_OK;
 }
 
 /*
@@ -435,16 +466,8 @@ static int do_options (void *obj, Tcl_Interp *interp,
 static int do_preferredMessageSize (void *obj, Tcl_Interp *interp,
                                     int argc, char **argv)
 {
-    char buf[20];
-    if (argc == 3)
-    {
-        if (Tcl_GetInt (interp, argv[2], 
-                        &((IRObj *)obj)->preferredMessageSize)==TCL_ERROR)
-            return TCL_ERROR;
-    }
-    sprintf (buf, "%d", ((IRObj *)obj)->preferredMessageSize);
-    Tcl_AppendResult (interp, buf, NULL);
-    return TCL_OK;
+    IRObj *p = obj;
+    return get_set_int (&p->preferredMessageSize, interp, argc, argv);
 }
 
 /*
@@ -453,16 +476,8 @@ static int do_preferredMessageSize (void *obj, Tcl_Interp *interp,
 static int do_maximumRecordSize (void *obj, Tcl_Interp *interp,
                                     int argc, char **argv)
 {
-    char buf[20];
-    if (argc == 3)
-    {
-        if (Tcl_GetInt (interp, argv[2], 
-                        &((IRObj *)obj)->maximumRecordSize)==TCL_ERROR)
-            return TCL_ERROR;
-    }
-    sprintf (buf, "%d", ((IRObj *)obj)->maximumRecordSize);
-    Tcl_AppendResult (interp, buf, NULL);
-    return TCL_OK;
+    IRObj *p = obj;
+    return get_set_int (&p->maximumRecordSize, interp, argc, argv);
 }
 
 
@@ -755,50 +770,7 @@ static int do_replaceIndicator (void *obj, Tcl_Interp *interp,
                                 int argc, char **argv)
 {
     IRObj *p = obj;
-    char buf[20];
-
-    if (argc == 3)
-    {
-        if (Tcl_GetInt (interp, argv[2], 
-                        &p->replaceIndicator)==TCL_ERROR)
-            return TCL_ERROR;
-    }
-    sprintf (buf, "%d", p->replaceIndicator);
-    Tcl_AppendResult (interp, buf, NULL);
-    return TCL_OK;
-}
-
-/*
- * do_scan: Perform scan 
- */
-static int do_scan (void *obj, Tcl_Interp *interp, int argc, char **argv)
-{
-    Z_ScanRequest req;
-    Z_APDU apdu, *apdup = &apdu;
-    IRObj *p = obj;
-
-    if (!p->num_databaseNames)
-    {
-        interp->result = "no databaseNames";
-	return TCL_ERROR;
-    }
-    if (!p->cs_link)
-    {
-        interp->result = "not connected";
-	return TCL_ERROR;
-    }
-    apdu.which = Z_APDU_scanRequest;
-    apdu.u.scanRequest = &req;
-    req.referenceId = NULL;
-    req.num_databaseNames = p->num_databaseNames;
-    req.databaseNames = p->databaseNames;
-    req.attributeSet = oid_getoidbyent (&p->bib1);
-
-    req.stepSize = &p->stepSize;
-    req.numberOfTermsRequested = &p->numberOfTermsRequested;
-    req.preferredPositionInResponse = &p->preferredPositionInResponse;
-
-    return TCL_OK;
+    return get_set_int (&p->replaceIndicator, interp, argc, argv);
 }
 
 /* 
@@ -825,7 +797,6 @@ static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
     { 1, "databaseNames",           do_databaseNames},
     { 1, "replaceIndicator",        do_replaceIndicator},
     { 1, "query",                   do_query },
-    { 0, "scan",                    do_scan },
     { 0, NULL, NULL}
     };
     if (argc < 2)
@@ -884,12 +855,17 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     obj->largeSetLowerBound = 2;
     obj->mediumSetPresentNumber = 0;
     obj->replaceIndicator = 1;
+#if 0
     obj->databaseNames = NULL;
     obj->num_databaseNames = 0; 
-
-    obj->stepSize = 1;
-    obj->numberOfTermsRequested = 20;
-    obj->preferredPositionInResponse = 1;
+#else
+    obj->num_databaseNames = 1;
+    if (!(obj->databaseNames = ir_malloc (interp,
+                                          sizeof(*obj->databaseNames))))
+        return TCL_ERROR;
+    if (ir_strdup (interp, &obj->databaseNames[0], "Default") == TCL_ERROR)
+        return TCL_ERROR;
+#endif
 
     obj->hostname = NULL;
 
@@ -942,7 +918,7 @@ static int do_search (void *o, Tcl_Interp *interp,
     IRObj *p = obj->parent;
     int r;
 
-    p->child = o;
+    p->set_child = o;
     if (argc != 3)
     {
         interp->result = "wrong # args";
@@ -1020,7 +996,7 @@ static int do_search (void *o, Tcl_Interp *interp,
     p->sbuf = odr_getbuf (p->odr_out, &p->slen);
     if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
     {
-        interp->result = "cs_put failed in init";
+        interp->result = "cs_put failed in search";
         return TCL_ERROR;
     }
     else if (r == 1)
@@ -1043,8 +1019,7 @@ static int do_resultCount (void *o, Tcl_Interp *interp,
 {
     IRSetObj *obj = o;
 
-    sprintf (interp->result, "%d", obj->resultCount);
-    return TCL_OK;
+    return get_set_int (&obj->resultCount, interp, argc, argv);
 }
 
 /*
@@ -1055,8 +1030,7 @@ static int do_searchStatus (void *o, Tcl_Interp *interp,
 {
     IRSetObj *obj = o;
 
-    sprintf (interp->result, "%d", obj->searchStatus);
-    return TCL_OK;
+    return get_set_int (&obj->searchStatus, interp, argc, argv);
 }
 
 /*
@@ -1086,8 +1060,7 @@ static int do_numberOfRecordsReturned (void *o, Tcl_Interp *interp,
 {
     IRSetObj *obj = o;
 
-    sprintf (interp->result, "%d", obj->numberOfRecordsReturned);
-    return TCL_OK;
+    return get_set_int (&obj->numberOfRecordsReturned, interp, argc, argv);
 }
 
 static int get_marc_fields(Tcl_Interp *interp, Iso2709Rec rec,
@@ -1350,7 +1323,7 @@ static int do_present (void *o, Tcl_Interp *interp,
     p->sbuf = odr_getbuf (p->odr_out, &p->slen);
     if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
     {
-        interp->result = "cs_put failed in init";
+        interp->result = "cs_put failed in present";
         return TCL_ERROR;
     }
     else if (r == 1)
@@ -1406,7 +1379,6 @@ static int do_loadFile (void *o, Tcl_Interp *interp,
     fclose (inf);
     return TCL_OK;
 }
-
 
 /* 
  * ir_set_obj_method: IR Set Object methods
@@ -1476,6 +1448,215 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
 
 /* ------------------------------------------------------- */
 
+/*
+ * do_scan: Perform scan 
+ */
+static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
+{
+    Z_ScanRequest req;
+    Z_APDU apdu, *apdup = &apdu;
+    IRScanObj *obj = o;
+    IRObj *p = obj->parent;
+    int r;
+
+    p->scan_child = o;
+    if (argc != 3)
+    {
+        interp->result = "wrong # args";
+        return TCL_ERROR;
+    }
+    if (!p->num_databaseNames)
+    {
+        interp->result = "no databaseNames";
+	return TCL_ERROR;
+    }
+    if (!p->cs_link)
+    {
+        interp->result = "not connected";
+	return TCL_ERROR;
+    }
+    apdu.which = Z_APDU_scanRequest;
+    apdu.u.scanRequest = &req;
+    req.referenceId = NULL;
+    req.num_databaseNames = p->num_databaseNames;
+    req.databaseNames = p->databaseNames;
+    req.attributeSet = oid_getoidbyent (&p->bib1);
+
+    if (!(req.termListAndStartPoint =
+          ir_malloc (interp, sizeof(*req.termListAndStartPoint))))
+        return TCL_ERROR;
+    req.termListAndStartPoint->num_attributes = 0;
+    req.termListAndStartPoint->attributeList = NULL;
+    if (!(req.termListAndStartPoint->term = ir_malloc (interp,
+                                                       sizeof(Z_Term))))
+        return TCL_ERROR;
+    req.termListAndStartPoint->term->which = Z_Term_general;
+    if (!(req.termListAndStartPoint->term->u.general = 
+        ir_malloc (interp, sizeof(*req.termListAndStartPoint->
+                                  term->u.general))))
+        return TCL_ERROR;
+    if (ir_strdup (interp, &req.termListAndStartPoint->term->u.general->buf,
+                   argv[2]) == TCL_ERROR)
+        return TCL_ERROR;
+    req.termListAndStartPoint->term->u.general->len = 
+        req.termListAndStartPoint->term->u.general->size = strlen(argv[2]);
+    req.stepSize = &obj->stepSize;
+    req.numberOfTermsRequested = &obj->numberOfTermsRequested;
+    req.preferredPositionInResponse = &obj->preferredPositionInResponse;
+    printf ("stepSize=%d\n", *req.stepSize);
+    printf ("numberOfTermsRequested=%d\n", *req.numberOfTermsRequested);
+    printf ("preferredPositionInResponse=%d\n",
+            *req.preferredPositionInResponse);
+
+    if (!z_APDU (p->odr_out, &apdup, 0))
+    {
+        interp->result = odr_errlist [odr_geterror (p->odr_out)];
+        odr_reset (p->odr_out);
+        return TCL_ERROR;
+    } 
+    p->sbuf = odr_getbuf (p->odr_out, &p->slen);
+    if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
+    {
+        interp->result = "cs_put failed in scan";
+        return TCL_ERROR;
+    }
+    else if (r == 1)
+    {
+        ir_select_add_write (cs_fileno(p->cs_link), p);
+        printf("Sent part of scanRequest (%d bytes).\n", p->slen);
+    }
+    else
+    {
+        printf ("Whole scan request\n");
+    }
+    return TCL_OK;
+}
+
+/*
+ * do_stepSize: Set/get replace Step Size
+ */
+static int do_stepSize (void *obj, Tcl_Interp *interp,
+                        int argc, char **argv)
+{
+    IRScanObj *p = obj;
+    return get_set_int (&p->stepSize, interp, argc, argv);
+}
+
+/*
+ * do_numberOfTermsRequested: Set/get Number of Terms requested
+ */
+static int do_numberOfTermsRequested (void *obj, Tcl_Interp *interp,
+                                      int argc, char **argv)
+{
+    IRScanObj *p = obj;
+    return get_set_int (&p->numberOfTermsRequested, interp, argc, argv);
+}
+
+
+/*
+ * do_preferredPositionInResponse: Set/get preferred Position
+ */
+static int do_preferredPositionInResponse (void *obj, Tcl_Interp *interp,
+                                           int argc, char **argv)
+{
+    IRScanObj *p = obj;
+    return get_set_int (&p->preferredPositionInResponse, interp, argc, argv);
+}
+
+/*
+ * do_scanStatus: Get scan status
+ */
+static int do_scanStatus (void *obj, Tcl_Interp *interp,
+                          int argc, char **argv)
+{
+    IRScanObj *p = obj;
+    return get_set_int (&p->scanStatus, interp, argc, argv);
+}
+
+/*
+ * do_numberOfEntriesReturned: Get number of Entries returned
+ */
+static int do_numberOfEntriesReturned (void *obj, Tcl_Interp *interp,
+                                       int argc, char **argv)
+{
+    IRScanObj *p = obj;
+    return get_set_int (&p->numberOfEntriesReturned, interp, argc, argv);
+}
+
+/*
+ * do_positionOfTerm: Get position of Term
+ */
+static int do_positionOfTerm (void *obj, Tcl_Interp *interp,
+                              int argc, char **argv)
+{
+    IRScanObj *p = obj;
+    return get_set_int (&p->positionOfTerm, interp, argc, argv);
+}
+
+/* 
+ * ir_scan_obj_method: IR Scan Object methods
+ */
+static int ir_scan_obj_method (ClientData clientData, Tcl_Interp *interp,
+                               int argc, char **argv)
+{
+    static IRMethod tab[] = {
+    { 0, "scan",                    do_scan },
+    { 0, "stepSize",                do_stepSize },
+    { 0, "numberOfTermsRequested",  do_numberOfTermsRequested },
+    { 0, "preferredPositionInResponse", do_preferredPositionInResponse },
+    { 0, "scanStatus",              do_scanStatus },
+    { 0, "numberOfEntriesReturned", do_numberOfEntriesReturned },
+    { 0, "positionOfTerm",          do_positionOfTerm },
+    { 0, NULL, NULL}
+    };
+
+    if (argc < 2)
+    {
+        interp->result = "wrong # args";
+        return TCL_ERROR;
+    }
+    return ir_method (clientData, interp, argc, argv, tab);
+}
+
+/* 
+ * ir_scan_obj_delete: IR Scan Object disposal
+ */
+static void ir_scan_obj_delete (ClientData clientData)
+{
+    free ( (void*) clientData);
+}
+
+/* 
+ * ir_scan_obj_mk: IR Scan Object creation
+ */
+static int ir_scan_obj_mk (ClientData clientData, Tcl_Interp *interp,
+                           int argc, char **argv)
+{
+    Tcl_CmdInfo parent_info;
+    IRScanObj *obj;
+
+    if (argc != 2)
+    {
+        interp->result = "wrong # args";
+        return TCL_ERROR;
+    }
+    if (get_parent_info (interp, argv[1], &parent_info, NULL) == TCL_ERROR)
+        return TCL_ERROR;
+    if (!(obj = ir_malloc (interp, sizeof(*obj))))
+        return TCL_ERROR;
+
+    obj->stepSize = 0;
+    obj->numberOfTermsRequested = 20;
+    obj->preferredPositionInResponse = 1;
+
+    obj->parent = (IRObj *) parent_info.clientData;
+    Tcl_CreateCommand (interp, argv[1], ir_scan_obj_method,
+                       (ClientData) obj, ir_scan_obj_delete);
+    return TCL_OK;
+}
+
+/* ------------------------------------------------------- */
+
 static void ir_initResponse (void *obj, Z_InitResponse *initrs)
 {
     if (!*initrs->result)
@@ -1505,7 +1686,7 @@ static void ir_initResponse (void *obj, Z_InitResponse *initrs)
 static void ir_handleRecords (void *o, Z_Records *zrs)
 {
     IRObj *p = o;
-    IRSetObj *setobj = p->child;
+    IRSetObj *setobj = p->set_child;
 
     setobj->which = zrs->which;
     setobj->recordFlag = 1;
@@ -1574,7 +1755,7 @@ static void ir_handleRecords (void *o, Z_Records *zrs)
 static void ir_searchResponse (void *o, Z_SearchResponse *searchrs)
 {    
     IRObj *p = o;
-    IRSetObj *setobj = p->child;
+    IRSetObj *setobj = p->set_child;
     Z_Records *zrs = searchrs->records;
 
     if (setobj)
@@ -1596,7 +1777,7 @@ static void ir_searchResponse (void *o, Z_SearchResponse *searchrs)
 static void ir_presentResponse (void *o, Z_PresentResponse *presrs)
 {
     IRObj *p = o;
-    IRSetObj *setobj = p->child;
+    IRSetObj *setobj = p->set_child;
     Z_Records *zrs = presrs->records;
     
     printf ("Received presentResponse\n");
@@ -1607,6 +1788,38 @@ static void ir_presentResponse (void *o, Z_PresentResponse *presrs)
         setobj->recordFlag = 0;
         printf ("No records!\n");
     }
+}
+
+static void ir_scanResponse (void *o, Z_ScanResponse *scanrs)
+{
+    IRObj *p = o;
+    IRScanObj *scanobj = p->scan_child;
+    
+    printf ("Received scanResponse\n");
+
+    scanobj->scanStatus = *scanrs->scanStatus;
+    printf ("scanStatus=%d\n", scanobj->scanStatus);
+
+    if (scanrs->stepSize)
+        scanobj->stepSize = *scanrs->stepSize;
+    printf ("stepSize=%d\n", scanobj->stepSize);
+
+    scanobj->numberOfEntriesReturned = *scanrs->numberOfEntriesReturned;
+    printf ("numberOfEntriesReturned=%d\n", scanobj->numberOfEntriesReturned);
+
+    if (scanrs->positionOfTerm)
+        scanobj->positionOfTerm = *scanrs->positionOfTerm;
+    else
+        scanobj->positionOfTerm = -1;
+    printf ("positionOfTerm=%d\n", scanobj->positionOfTerm);
+    
+    if (scanrs->entries)
+    {
+        scanobj->entries_flag = 1;
+        scanobj->which = scanrs->entries->which;
+    }
+    else
+        scanobj->entries_flag = 0;
 }
 
 /*
@@ -1670,6 +1883,9 @@ void ir_select_read (ClientData clientData)
             break;
         case Z_APDU_presentResponse:
             ir_presentResponse (p, apdu->u.presentResponse);
+            break;
+        case Z_APDU_scanResponse:
+            ir_scanResponse (p, apdu->u.scanResponse);
             break;
         default:
             printf("Received unknown APDU type (%d).\n", 
@@ -1735,6 +1951,8 @@ int ir_tcl_init (Tcl_Interp *interp)
     Tcl_CreateCommand (interp, "ir", ir_obj_mk, (ClientData) NULL,
                        (Tcl_CmdDeleteProc *) NULL);
     Tcl_CreateCommand (interp, "ir-set", ir_set_obj_mk,
+    		       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
+    Tcl_CreateCommand (interp, "ir-scan", ir_scan_obj_mk,
     		       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
     return TCL_OK;
 }
