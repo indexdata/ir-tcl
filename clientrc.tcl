@@ -11,7 +11,6 @@ set {profile(OCLC)} {{OCLC First search engine} z3950.oclc.org 210 {} 16384 8192
 set {profile(CARL)} {{CARL systems} Z3950.carl.org 210 {} 16384 8192 tcpip {ACC AIC AUR BEM CUB DPL DNU EPL FRC LAW LCC MCC MIN MPL NJC NWC OCC PPC PUE RDR RGU SPL TCC TKU UNC WYO} 1 {} {} Z39 11}
 set {profile(CLSI)} {CLSI inet-gw.clsi.us.geac.com 210 {} 16384 8192 tcpip cl_default 1 {} {} Z39 13}
 set {profile(Innovative)} {{Innovatives server: demo.iii.com} demo.iii.com 210 {} 16384 8192 tcpip DEFAULT 1 {} {} Z39 12}
-set {profile(Europagate)} {{Europagate Z39/SR gateway} dagwood.ucd.ie 210 <<denmark>> 16384 8192 tcpip danbib 1 {} 1 Z39 24}
 set {profile(AULS)} {{Acadia university} auls.acadiau.ca 210 {} 16384 8192 tcpip AULS 1 {} {} Z39 14}
 set {profile(dranet)} {dranet dranet.dra.com 210 {} 16384 16384 tcpip drewdb 1 {} {} Z39 15}
 set queryTypes {Simple phrase}
