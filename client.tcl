@@ -4,7 +4,11 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.95  1996-07-26 09:15:08  adam
+# Revision 1.96  1996-08-09 15:30:18  adam
+# Procedure destroyGW modified to handle multiple calls - probably an
+# error introduced by tk4.1 patch level 1.
+#
+# Revision 1.95  1996/07/26  09:15:08  adam
 # IrTcl version 1.2 patch level 1.
 #
 # Revision 1.94  1996/07/25  15:55:34  adam
@@ -624,7 +628,7 @@ proc post-menu {wbutton wmenu} {
 # See also topLevelG.
 proc destroyGW {w} {
     global windowGeometry
-    set windowGeometry($w) [wm geometry $w]
+    catch {set windowGeometry($w) [wm geometry $w]}
 }    
 
 # Procedure topLevelG
