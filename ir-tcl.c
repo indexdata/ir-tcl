@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.99  1997-04-30 07:24:47  adam
+ * Revision 1.100  1997-05-01 15:04:05  adam
+ * Added ir-log command.
+ *
+ * Revision 1.99  1997/04/30 07:24:47  adam
  * Spell fix of an error message.
  *
  * Revision 1.98  1997/04/13 18:57:20  adam
@@ -3427,7 +3430,7 @@ static int ir_scan_obj_mk (ClientData clientData, Tcl_Interp *interp,
 /* ------------------------------------------------------- */
 
 /* 
- * ir_log_proc: set yaz log level
+ * ir_log_init_proc: set yaz log level
  */
 static int ir_log_init_proc (ClientData clientData, Tcl_Interp *interp,
                              int argc, char **argv)
@@ -3446,6 +3449,25 @@ static int ir_log_init_proc (ClientData clientData, Tcl_Interp *interp,
         log_init (log_mask_str (argv[1]), argv[2], argv[3]);
     return TCL_OK;
 }
+
+/* 
+ * ir_log_proc: log yaz message
+ */
+static int ir_log_proc (ClientData clientData, Tcl_Interp *interp,
+                        int argc, char **argv)
+{
+    int mask;
+    if (argc != 3)
+    {
+        Tcl_AppendResult (interp, wrongArgs, *argv,
+                          " level string\"", NULL);
+        return TCL_OK;
+    }
+    mask = log_mask_str_x (argv[1], 0);
+    logf (mask, "%s", argv[1], mask, argv[2]);
+    return TCL_OK;
+}
+
 
 /* ------------------------------------------------------- */
 static void ir_initResponse (void *obj, Z_InitResponse *initrs)
@@ -4108,6 +4130,8 @@ EXPORT (int,Irtcl_Init) (Tcl_Interp *interp)
     Tcl_CreateCommand (interp, "ir-scan", ir_scan_obj_mk,
                        (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
     Tcl_CreateCommand (interp, "ir-log-init", ir_log_init_proc,
+                       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
+    Tcl_CreateCommand (interp, "ir-log", ir_log_proc,
                        (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
     return TCL_OK;
 }
