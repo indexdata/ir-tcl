@@ -8,7 +8,7 @@ This is a very early alpha-release of IrTcl.
 
 In order to compile you need:
    
-  o  An ansi-C compiler such as GNU C
+  o  An ANSI-C compiler such as GNU C
   o  Tcl version 7.3
   o  YAZ version 0.2 beta or higher
 
@@ -38,6 +38,7 @@ Install/run:
                                 executed by ir-tk
      clientrc.tcl               Startup script - read by client.tcl - holds
                                 user/target definitions.
+     book[1-9]                  Logo - when busy.
 
   5) Type 'ir-tk' to run the Tk graphical client (client.tcl and 
      clientrc.tcl should be in current directory)

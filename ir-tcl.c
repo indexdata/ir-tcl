@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.35  1995-05-31 08:36:33  adam
+ * Revision 1.36  1995-05-31 13:09:59  adam
+ * Client searches/presents may be interrupted.
+ * New moving book-logo.
+ *
+ * Revision 1.35  1995/05/31  08:36:33  adam
  * Bug fix in client.tcl: didn't save options on clientrc.tcl.
  * New method: referenceId. More work on scan.
  *
@@ -1866,6 +1870,7 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
             == TCL_ERROR)
             return TCL_ERROR;
         
+        dst->replaceIndicator = src->replaceIndicator;
         dst->smallSetUpperBound = src->smallSetUpperBound;
         dst->largeSetLowerBound = src->largeSetLowerBound;
         dst->mediumSetPresentNumber = src->mediumSetPresentNumber;

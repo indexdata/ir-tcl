@@ -1,6 +1,10 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.24  1995-05-31 08:36:24  adam
+# Revision 1.25  1995-05-31 13:09:57  adam
+# Client searches/presents may be interrupted.
+# New moving book-logo.
+#
+# Revision 1.24  1995/05/31  08:36:24  adam
 # Bug fix in client.tcl: didn't save options on clientrc.tcl.
 # New method: referenceId. More work on scan.
 #
@@ -87,13 +91,15 @@ set profile(Default) {{} {} {210} {} 16384 8192 tcpip {} 1 {} {} z39v2}
 set hostid Default
 set settingsChanged 0
 set setNo 0
+set cancelFlag 0
+set searchEnable 0
 
 set queryTypes {Simple}
 set queryButtons { { {I 0} {I 1} {I 2} } }
 set queryInfo { { {Title {1=4}} {Author {1=1}} \
         {Subject {1=21}} {Any {1=1016}} } }
 
-wm minsize . 350 250
+wm minsize . 0 0
 
 if {[file readable "clientrc.tcl"]} {
     source "clientrc.tcl"
@@ -155,34 +161,64 @@ proc top-down-ok-cancelx {w buttonList g} {
     }
 }
 
+proc cancel-operation {} {
+    global cancelFlag
+
+    set cancelFlag 1
+    show-status Cancelled 0 {}
+}
+
 proc show-target {target} {
     .bot.target configure -text "$target"
 }
 
-proc show-busy {v1 v2} {
+proc show-logo {v1} {
     global busy
     if {$busy != 0} {
-        .bot.status configure -fg $v1
-        after 200 [list show-busy $v2 $v1]
+        incr v1 -1
+        if {$v1==0} {
+            set v1 9
+        }
+        .mid.logo configure -bitmap @book${v1}
+        after 140 [list show-logo $v1]
+        return
+    }
+    while {1} {
+        tkwait variable busy
+        if {$busy} {
+            show-logo 1
+            return
+        }
+        .mid.logo configure -bitmap @book1
     }
 }
         
-proc show-status {status b} {
+proc show-status {status b sb} {
     global busy
-    global statusbg
+    global searchEnable
+
     .bot.status configure -text "$status"
-    .bot.status configure -fg black
-    if {$b != 0} {
-        if {$busy == 0} {
-            set busy $b   
-            show-busy red blue
-        }
-        #        . config -cursor {watch black white}
+    if {$b == 1} {
+        if {$busy == 0} {set busy 1}
     } else {
-        #        . config -cursor {top_left_arrow black white}
-        puts "Normal"
+        set busy 0
     }
-    set busy $b
+    if {$sb == {}} {
+        return
+    }
+    if {$sb} {
+        .top.search configure -state normal
+        .mid.search configure -state normal
+        .mid.scan configure -state normal
+        .mid.present configure -state normal
+        set searchEnable 1
+    } else {
+        .top.search configure -state disabled
+        .mid.search configure -state disabled
+        .mid.scan configure -state disabled
+        .mid.present configure -state disabled
+        set searchEnable 0
+    }
 }
 
 proc show-message {msg} {
@@ -358,7 +394,7 @@ proc open-target {target base} {
     z39 failback [list fail-response $target]
     z39 callback [list connect-response $target]
     z39 connect [lindex $profile($target) 1]:[lindex $profile($target) 2]
-    show-status {Connecting} 1
+    show-status {Connecting} 1 0
     set hostid $target
     .top.target.m disable 0
     .top.target.m enable 1
@@ -366,17 +402,17 @@ proc open-target {target base} {
 
 proc close-target {} {
     global hostid
+    global cancelFlag
 
+    set cancelFlag 0
     set hostid Default
     z39 disconnect
     show-target {None}
-    show-status {Not connected} 0
+    show-status {Not connected} 0 0
     show-message {}
     .top.target.m disable 1
     .top.target.m enable 0
-    .top.search configure -state disabled
-    .mid.search configure -state disabled
-    .mid.scan configure -state disabled
+    .mid.logo configure -bitmap @book1
 }
 
 proc load-set-action {} {
@@ -390,13 +426,13 @@ proc load-set-action {} {
     if {$fname != ""} {
         init-title-lines
 
-        show-status {Loading} 1
+        show-status {Loading} 1 {}
         z39.$setNo loadFile $fname
 
         set no [z39.$setNo numberOfRecordsReturned]
         add-title-lines $setNo $no 1
     }
-    show-status {Ready} 0
+    show-status {Ready} 0 {}
 }
 
 proc load-set {} {
@@ -423,17 +459,26 @@ proc load-set {} {
 
 proc init-request {} {
     global setNo
-    
+    global cancelFlag
+
+    if {$cancelFlag} {
+        close-target
+        return
+    }
     z39 callback {init-response}
+    show-status {Initializing} 1 {}
     z39 init
-    show-status {Initializing} 1
 }
 
 proc init-response {} {
-    show-status {Ready} 0
-    .top.search configure -state normal
-    .mid.search configure -state normal
-    .mid.scan configure -state normal
+    global cancelFlag
+
+    if {$cancelFlag} {
+        close-target
+        return
+    }
+    show-status {Ready} 0 1
+    .mid.logo configure -bitmap @book1
     if {![z39 initResult]} {
         set u [z39 userInformationField]
         close-target
@@ -445,9 +490,15 @@ proc search-request {} {
     global setNo
     global profile
     global hostid
+    global busy
+    global cancelFlag
+    global searchEnable
 
     set target $hostid
 
+    if {$searchEnable == 0} {
+        return
+    }
     set query [index-query]
     if {$query==""} {
         return
@@ -470,7 +521,7 @@ proc search-request {} {
     }
     z39 callback {search-response}
     z39.$setNo search $query
-    show-status {Search} 1
+    show-status {Search} 1 0
 }
 
 proc scan-request {} {
@@ -505,7 +556,7 @@ proc scan-request {} {
     z39.scan numberOfTermsRequested 100
     z39.scan scan "@attr 1=4 0"
     
-    show-status {Scan} 1
+    show-status {Scan} 1 0
 }
 
 proc scan-response {} {
@@ -518,16 +569,23 @@ proc scan-response {} {
 
         $w.top.list insert end "$nostr $term"
     }
-    show-status {Ready} 0
+    show-status {Ready} 0 1
 }
 
 proc search-response {} {
     global setNo
     global setOffset
     global setMax
+    global cancelFlag
+    global busy
 
+    puts "In search-response"
     init-title-lines
-    show-status {Ready} 0
+    show-status {Ready} 0 1
+    if {$cancelFlag} {
+        set cancelFlag 0
+        return
+    }
     show-message "[z39.$setNo resultCount] hits"
     set setMax [z39.$setNo resultCount]
     puts $setMax
@@ -541,13 +599,13 @@ proc search-response {} {
         }
         return
     }
-    if {$setMax > 4} {
-        set setMax 4
+    if {$setMax > 10} {
+        set setMax 10
     }
     z39 callback {present-response}
     set setOffset 1
     z39.$setNo present $setOffset $setMax
-    show-status {Retrieve} 1
+    show-status {Retrieve} 1 0
 }
 
 proc present-more {number} {
@@ -572,7 +630,7 @@ proc present-more {number} {
     }
     z39 callback {present-response}
     z39.$setNo present $setOffset [expr $setMax - $setOffset + 1]
-    show-status {Retrieve} 1
+    show-status {Retrieve} 1 0
 }
 
 proc init-title-lines {} {
@@ -593,6 +651,7 @@ proc present-response {} {
     global setNo
     global setOffset
     global setMax
+    global cancelFlag
 
     puts "In present-response"
     set no [z39.$setNo numberOfRecordsReturned]
@@ -601,17 +660,22 @@ proc present-response {} {
     set setOffset [expr $setOffset + $no]
     set status [z39.$setNo responseStatus]
     if {[lindex $status 0] == "NSD"} {
-        show-status {Ready} 0
+        show-status {Ready} 0 1
         set code [lindex $status 1]
         set msg [lindex $status 2]
         set addinfo [lindex $status 3]
         tkerror "NSD$code: $msg: $addinfo"
         return
     }
+    if {$cancelFlag} {
+        show-status {Ready} 0 1
+        set cancelFlag 0
+        return
+    }
     if {$no > 0 && $setOffset <= $setMax} {
         z39.$setNo present $setOffset [expr $setMax - $setOffset + 1]
     } else {
-        show-status {Finished} 0
+        show-status {Finished} 0 1
     }
 }
 
@@ -1060,7 +1124,7 @@ proc exit-action {} {
             save-settings
         }
     }
-    destroy .
+    exit 0
 }
 
 proc listbuttonaction {w name h user i} {
@@ -1496,20 +1560,29 @@ cascade-query-list
 menubutton .top.help -text "Help" -menu .top.help.m
 menu .top.help.m
 
-.top.help.m add command -label "Help on help" -command {puts "Help on help"}
-.top.help.m add command -label "About" -command {puts "About"}
+.top.help.m add command -label "Help on help" \
+        -command {tkerror "Help on help not available. Sorry"}
+.top.help.m add command -label "About" \
+        -command {tkerror "About not available. Sorry"}
 
 pack .top.file .top.target .top.query .top.search -side left
 pack .top.help -side right
 
 index-lines .lines 1 $queryButtonsFind [lindex $queryInfo 0] activate-index
 
-button .mid.search -width 6 -text {Search} -command search-request \
+button .mid.search -width 7 -text {Search} -command search-request \
         -state disabled
-button .mid.scan -width 6 -text {Scan} -command scan-request \
+button .mid.scan -width 7 -text {Scan} -command scan-request \
         -state disabled
-button .mid.clear -width 6 -text {Clear} -command index-clear
-pack .mid.search .mid.scan .mid.clear -side left -padx 5 -pady 3
+button .mid.present -width 7 -text {Present} -command [list present-more 10] \
+        -state disabled
+
+button .mid.clear -width 7 -text {Clear} -command index-clear
+pack .mid.search .mid.scan .mid.present .mid.clear -side left \
+        -fill y -padx 5 -pady 3
+
+button .mid.logo  -bitmap @book1 -command cancel-operation
+pack .mid.logo -side right -pady 3
 
 listbox .data.list -yscrollcommand {.data.scroll set} -font fixed
 scrollbar .data.scroll -orient vertical -border 1
@@ -1531,3 +1604,6 @@ bind .data.list <Double-Button-1> {set indx [.data.list nearest %y]
 show-full-marc $indx}
 
 ir z39
+
+show-logo 1
+
