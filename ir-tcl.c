@@ -1,11 +1,14 @@
 /*
  * IR toolkit for tcl/tk
- * (c) Index Data 1995-1998
+ * (c) Index Data 1995-1999
  * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.111  1999-02-11 11:30:09  adam
+ * Revision 1.112  1999-03-22 06:51:34  adam
+ * Implemented sort.
+ *
+ * Revision 1.111  1999/02/11 11:30:09  adam
  * Updated for WIN32.
  *
  * Revision 1.110  1998/10/20 15:15:31  adam
@@ -489,6 +492,17 @@ static void delete_IR_record (IrTcl_RecordList *rl)
         break;
     }
     xfree (rl->elements);
+}
+
+static void purge_IR_records (IrTcl_SetObj *setobj)
+{
+    IrTcl_RecordList *rl;
+    while ((rl = setobj->record_list))
+    {
+        setobj->record_list = rl->next;
+        delete_IR_record (rl);
+        xfree (rl);
+    } 
 }
 
 static IrTcl_RecordList *new_IR_record (IrTcl_SetObj *setobj, 
@@ -2213,6 +2227,36 @@ static int do_presentResponse (void *o, Tcl_Interp *interp,
 }
 
 /*
+ * do_sortResponse: add sort response handler
+ */
+static int do_sortResponse (void *o, Tcl_Interp *interp,
+                               int argc, char **argv)
+{
+    IrTcl_SetObj *obj = o;
+
+    if (argc == 0)
+    {
+        obj->sortResponse = NULL;
+        return TCL_OK;
+    }
+    else if (argc == -1)
+        return ir_tcl_strdel (interp, &obj->sortResponse);
+    if (argc == 3)
+    {
+        xfree (obj->sortResponse);
+        if (argv[2][0])
+        {
+            if (ir_tcl_strdup (interp, &obj->sortResponse, argv[2])
+                == TCL_ERROR)
+                return TCL_ERROR;
+        }
+        else
+            obj->sortResponse = NULL;
+    }
+    return TCL_OK;
+}
+
+/*
  * do_resultCount: Get number of hits
  */
 static int do_resultCount (void *o, Tcl_Interp *interp,
@@ -2252,6 +2296,35 @@ static int do_presentStatus (void *o, Tcl_Interp *interp,
     if (argc <= 0)
         return TCL_OK;
     return ir_tcl_get_set_int (&obj->presentStatus, interp, argc, argv);
+}
+
+/*
+ * do_sortStatus: Get sort status (after sort response)
+ */
+static int do_sortStatus (void *o, Tcl_Interp *interp,
+			  int argc, char **argv)
+{
+    IrTcl_SetObj *obj = o;
+    char *res;
+
+    if (argc <= 0)
+    {
+	obj->sortStatus = Z_SortStatus_failure;
+        return TCL_OK;
+    }
+    switch (obj->sortStatus)
+    {
+    case Z_SortStatus_success:
+        res = "success"; break;
+    case Z_SortStatus_partial_1:
+        res = "partial"; break;
+    case Z_SortStatus_failure:
+        res = "failure"; break;
+    default:
+	res = "unknown"; break;
+    }
+    Tcl_AppendElement (interp, res);
+    return TCL_OK;
 }
 
 /*
@@ -2923,6 +2996,171 @@ static int do_saveFile (void *o, Tcl_Interp *interp,
 }
 
 
+/* ------------------------------------------------------- */
+/*
+ * do_sort: Do sort request
+ */
+static int do_sort (void *o, Tcl_Interp *interp, int argc, char **argv)
+{
+    Z_SortRequest *req;
+    Z_APDU *apdu;
+    IrTcl_SetObj *obj = o;
+    IrTcl_Obj *p;
+    char sort_string[64], sort_flags[64];
+    char *arg;
+    int off;
+    Z_SortKeySpecList *sksl;
+    int oid[OID_SIZE];
+    oident bib1;
+
+    if (argc <= 0)
+        return TCL_OK;
+
+    p = obj->parent;
+    assert (argc > 1);
+    if (argc != 3)
+    {
+	Tcl_AppendResult (interp, wrongArgs, *argv, " ", argv[1], "query\"",
+                          NULL);
+        return TCL_ERROR;
+    }
+    logf (LOG_DEBUG, "sort %s %s", *argv, argv[2]);
+    if (!p->cs_link)
+    {
+        Tcl_AppendResult (interp, "not connected", NULL);
+        return ir_tcl_error_exec (interp, argc, argv);
+    }
+    apdu = zget_APDU (p->odr_out, Z_APDU_sortRequest);
+    sksl = (Z_SortKeySpecList *) odr_malloc (p->odr_out, sizeof(*sksl));
+    req = apdu->u.sortRequest;
+
+    set_referenceId (p->odr_out, &req->referenceId,
+                     obj->set_inher.referenceId);
+
+#ifdef ASN_COMPILED
+    req->num_inputResultSetNames = 1;
+    req->inputResultSetNames = (Z_InternationalString **)
+        odr_malloc (out, sizeof(*req->inputResultSetNames));
+    req->inputResultSetNames[0] = obj->setName;
+#else
+    req->inputResultSetNames =
+        (Z_StringList *)odr_malloc (p->odr_out,
+				    sizeof(*req->inputResultSetNames));
+    req->inputResultSetNames->num_strings = 1;
+    req->inputResultSetNames->strings =
+        (char **)odr_malloc (p->odr_out,
+			     sizeof(*req->inputResultSetNames->strings));
+    req->inputResultSetNames->strings[0] = obj->setName;
+#endif
+
+    req->sortedResultSetName = (char *) obj->setName;
+
+
+    req->sortSequence = sksl;
+    sksl->num_specs = 0;
+    sksl->specs = (Z_SortKeySpec **)
+	odr_malloc (p->odr_out, sizeof(sksl->specs) * 20);
+    
+    bib1.proto = PROTO_Z3950;
+    bib1.oclass = CLASS_ATTSET;
+    bib1.value = VAL_BIB1;
+    arg = argv[2];
+    while ((sscanf (arg, "%63s %63s%n", sort_string, sort_flags, &off)) == 2 
+           && off > 1)
+    {
+        int i;
+        char *sort_string_sep;
+        Z_SortKeySpec *sks = (Z_SortKeySpec *)
+	    odr_malloc (p->odr_out, sizeof(*sks));
+        Z_SortKey *sk = (Z_SortKey *)
+	    odr_malloc (p->odr_out, sizeof(*sk));
+
+        arg += off;
+        sksl->specs[sksl->num_specs++] = sks;
+        sks->sortElement = (Z_SortElement *)
+	    odr_malloc (p->odr_out, sizeof(*sks->sortElement));
+        sks->sortElement->which = Z_SortElement_generic;
+        sks->sortElement->u.generic = sk;
+        
+        if ((sort_string_sep = strchr (sort_string, '=')))
+        {
+            Z_AttributeElement *el = (Z_AttributeElement *)
+		odr_malloc (p->odr_out, sizeof(*el));
+            sk->which = Z_SortKey_sortAttributes;
+            sk->u.sortAttributes =
+                (Z_SortAttributes *)
+		odr_malloc (p->odr_out, sizeof(*sk->u.sortAttributes));
+            sk->u.sortAttributes->id = oid_ent_to_oid(&bib1, oid);
+            sk->u.sortAttributes->list =
+                (Z_AttributeList *)
+		odr_malloc (p->odr_out, sizeof(*sk->u.sortAttributes->list));
+            sk->u.sortAttributes->list->num_attributes = 1;
+            sk->u.sortAttributes->list->attributes =
+                (Z_AttributeElement **)odr_malloc (p->odr_out,
+                            sizeof(*sk->u.sortAttributes->list->attributes));
+            sk->u.sortAttributes->list->attributes[0] = el;
+            el->attributeSet = 0;
+            el->attributeType = (int *)
+		odr_malloc (p->odr_out, sizeof(*el->attributeType));
+            *el->attributeType = atoi (sort_string);
+            el->which = Z_AttributeValue_numeric;
+            el->value.numeric = (int *)
+		odr_malloc (p->odr_out, sizeof(*el->value.numeric));
+            *el->value.numeric = atoi (sort_string_sep + 1);
+        }
+        else
+        {
+            sk->which = Z_SortKey_sortField;
+            sk->u.sortField = (char *)odr_malloc (p->odr_out, strlen(sort_string)+1);
+            strcpy (sk->u.sortField, sort_string);
+        }
+        sks->sortRelation = (int *)
+	    odr_malloc (p->odr_out, sizeof(*sks->sortRelation));
+        *sks->sortRelation = Z_SortRelation_ascending;
+        sks->caseSensitivity = (int *)
+	    odr_malloc (p->odr_out, sizeof(*sks->caseSensitivity));
+        *sks->caseSensitivity = Z_SortCase_caseSensitive;
+	
+#ifdef ASN_COMPILED
+        sks->which = Z_SortKeySpec_null;
+        sks->u.null = odr_nullval ();
+#else
+        sks->missingValueAction = NULL;
+#endif
+	
+        for (i = 0; sort_flags[i]; i++)
+        {
+            switch (sort_flags[i])
+            {
+            case 'a':
+            case 'A':
+            case '>':
+                *sks->sortRelation = Z_SortRelation_descending;
+                break;
+            case 'd':
+            case 'D':
+            case '<':
+                *sks->sortRelation = Z_SortRelation_ascending;
+                break;
+            case 'i':
+            case 'I':
+                *sks->caseSensitivity = Z_SortCase_caseInsensitive;
+                break;
+            case 'S':
+            case 's':
+                *sks->caseSensitivity = Z_SortCase_caseSensitive;
+                break;
+            }
+        }
+    }
+    if (!sksl->num_specs)
+    {
+        printf ("Missing sort specifications\n");
+        return -1;
+    }
+    return ir_tcl_send_APDU (interp, p, apdu, "sort", *argv);
+}
+
 static IrTcl_Method ir_set_method_tab[] = {
     { "search",                  do_search, NULL},
     { "searchResponse",          do_searchResponse, NULL},
@@ -2945,6 +3183,9 @@ static IrTcl_Method ir_set_method_tab[] = {
     { "responseStatus",          do_responseStatus, NULL},
     { "loadFile",                do_loadFile, NULL},
     { "saveFile",                do_saveFile, NULL},
+    { "sort",                    do_sort, NULL },
+    { "sortResponse",            do_sortResponse, NULL},
+    { "sortStatus",              do_sortStatus, NULL},
     { NULL, NULL}
 };
 
@@ -3921,6 +4162,40 @@ static void ir_scanResponse (void *o, Z_ScanResponse *scanrs,
     }
 }
 
+
+static void ir_sortResponse (void *o, Z_SortResponse *sortrs,
+                             IrTcl_SetObj *setobj)
+{
+    IrTcl_Obj *p = o;
+    
+    logf (LOG_DEBUG, "Received sortResponse");
+    
+    if (!setobj)
+	return;
+
+    purge_IR_records (setobj);
+
+    get_referenceId (&p->set_inher.referenceId, sortrs->referenceId);
+    
+    setobj->sortStatus = *sortrs->sortStatus;
+
+    ir_deleteDiags (&setobj->nonSurrogateDiagnosticList,
+                    &setobj->nonSurrogateDiagnosticNum);
+#ifdef ASN_COMPILED
+    if (sortrs->diagnostics)
+	ir_handleDiags (&setobj->nonSurrogateDiagnosticList,
+			&setobj->nonSurrogateDiagnosticNum,
+			sortrs->diagnostics,
+			sortrs->num_diagnostics);
+#else
+    if (sortrs->diagnostics)
+	ir_handleDiags (&setobj->nonSurrogateDiagnosticList,
+			&setobj->nonSurrogateDiagnosticNum,
+			sortrs->diagnostics->diagRecs,
+			sortrs->diagnostics->num_diagRecs);
+#endif
+}
+
 /*
  * ir_select_read: handle incoming packages
  */
@@ -4053,6 +4328,13 @@ static void ir_select_read (ClientData clientData)
                 apdu_call = ((IrTcl_ScanObj *) 
                              cmd_info.clientData)->scanResponse;
                 break;
+	    case Z_APDU_sortResponse:
+		p->eventType = "sort";
+                ir_sortResponse (p, apdu->u.sortResponse, 
+                                 (IrTcl_SetObj *) cmd_info.clientData);
+                apdu_call = ((IrTcl_SetObj *) 
+                             cmd_info.clientData)->sortResponse;
+                break;		
             default:
                 logf (LOG_WARN, "Received unknown APDU type (%d)",
                       apdu->which);

@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.39 1999-02-11 11:07:52 adam Exp $
+$Id: CHANGELOG,v 1.40 1999-03-22 06:51:34 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -124,5 +124,9 @@ $Id: CHANGELOG,v 1.39 1999-02-11 11:07:52 adam Exp $
 
 06/10/98 Added ir-version command.
 
-02/11/99 Release of ir-tcl-1.3
+03/19/99 Added support for Tk8.1/Tcl8.1.
+
+03/22/99 Added Z39.50 sort. The following methods have been implemented:
+         sort (sends sort PDU), sortResponse (specifies sort handle) and
+         sortStatus (returns sort status - after response).
 ------------------------------------------------------

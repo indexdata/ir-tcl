@@ -1,4 +1,4 @@
-# $Id: shell.tcl,v 1.5 1998-05-20 12:27:45 adam Exp $
+# $Id: shell.tcl,v 1.6 1999-03-22 06:51:34 adam Exp $
 #
 
 if {[catch {ir-log-init all irtcl shell.log}]} {
@@ -21,6 +21,7 @@ proc help {} {
     puts " base <base>"
     puts " format <format>"
     puts " find <query>"
+    puts " sort <attr> <flag>"
     puts " show <offset> <number>"
     puts ""
 }
@@ -82,6 +83,13 @@ proc find-response {z} {
     common-response $z 1
 }
 
+proc sort-response {z} {
+    global ok
+    set sstatus [$z sortStatus]
+    puts "Sort Status: $sstatus"
+    set ok 1
+}
+
 proc common-response {z from} {
     global ok pref
 
@@ -141,6 +149,16 @@ proc find {query} {
     z.1 preferredRecordSyntax $pref(format)
     z callback {find-response z.1}
     z.1 search $query
+    vwait ok
+    return {}
+}
+
+proc sort {query flags} {
+    global ok pref
+
+    set ok 0
+    z callback {sort-response z.1}
+    z.1 sort "$query $flags"
     vwait ok
     return {}
 }

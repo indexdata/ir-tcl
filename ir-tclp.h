@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.37  1998-04-02 14:31:08  adam
+ * Revision 1.38  1999-03-22 06:51:34  adam
+ * Implemented sort.
+ *
+ * Revision 1.37  1998/04/02 14:31:08  adam
  * This version works with compiled ASN.1 code.
  *
  * Revision 1.36  1997/11/19 11:22:09  adam
@@ -323,6 +326,7 @@ typedef struct IrTcl_SetObj_ {
     IrTcl_Obj  *parent;
     int         searchStatus;
     int         presentStatus;
+    int         sortStatus;
     int         resultCount;
     int         nextResultSetPosition;
     int         start;
@@ -335,6 +339,7 @@ typedef struct IrTcl_SetObj_ {
     int         nonSurrogateDiagnosticNum;
     char       *searchResponse;
     char       *presentResponse;
+    char       *sortResponse;
     IrTcl_Diagnostic *nonSurrogateDiagnosticList;
     IrTcl_RecordList *record_list;
     IrTcl_SetCObj set_inher;
