@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.109  1998-10-13 21:23:26  adam
+ * Revision 1.110  1998-10-20 15:15:31  adam
+ * Changed scan response handler.
+ *
+ * Revision 1.109  1998/10/13 21:23:26  adam
  * Fixed searchStatus method.
  *
  * Revision 1.108  1998/10/12 11:48:08  adam
@@ -3869,7 +3872,6 @@ static void ir_scanResponse (void *o, Z_ScanResponse *scanrs,
         Z_Entry **ze;
 
         scanobj->entries_flag = 1;
-#ifdef ASN_COMPILED
 	if (scanrs->entries)
 	{
             scanobj->num_entries = scanrs->entries->num_entries;
@@ -3877,15 +3879,6 @@ static void ir_scanResponse (void *o, Z_ScanResponse *scanrs,
 					      sizeof(*scanobj->entries));
 	    ze = scanrs->entries->entries;
 	}
-#else
-	if (scanrs->entries->which == Z_ListEntries_entries)
-	{
-            scanobj->num_entries = scanrs->entries->u.entries->num_entries;
-            scanobj->entries = ir_tcl_malloc (scanobj->num_entries * 
-					      sizeof(*scanobj->entries));
-	    ze = scanrs->entries->u.entries->entries;
-	}
-#endif
 	for (i=0; i<scanobj->num_entries; i++, ze++)
 	{
 	    scanobj->entries[i].which = (*ze)->which;
@@ -3917,21 +3910,11 @@ static void ir_scanResponse (void *o, Z_ScanResponse *scanrs,
 		break;
 	    }
 	}
-#ifdef ASN_COMPILED
 	if (scanrs->entries->nonsurrogateDiagnostics)
 	    ir_handleDiags (&scanobj->nonSurrogateDiagnosticList,
                             &scanobj->nonSurrogateDiagnosticNum,
                             scanrs->entries->nonsurrogateDiagnostics,
                             scanrs->entries->num_nonsurrogateDiagnostics);
-#else
-	if (scanrs->entries->which == Z_ListEntries_nonSurrogateDiagnostics)
-            ir_handleDiags (&scanobj->nonSurrogateDiagnosticList,
-                            &scanobj->nonSurrogateDiagnosticNum,
-                            scanrs->entries->u.nonSurrogateDiagnostics->
-                            diagRecs,
-                            scanrs->entries->u.nonSurrogateDiagnostics->
-                            num_diagRecs);
-#endif
     }
 }
 
