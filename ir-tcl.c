@@ -4,7 +4,12 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.15  1995-03-20 15:24:07  adam
+ * Revision 1.16  1995-03-21 08:26:06  adam
+ * New method, setName, to specify the result set name (other than Default).
+ * New method, responseStatus, which returns diagnostic info, if any, after
+ * present response / search response.
+ *
+ * Revision 1.15  1995/03/20  15:24:07  adam
  * Diagnostic records saved on searchResponse.
  *
  * Revision 1.14  1995/03/20  08:53:22  adam
@@ -67,43 +72,43 @@
 #define CS_BLOCK 0
 
 typedef struct {
-    COMSTACK cs_link;
+    COMSTACK    cs_link;
 
-    int preferredMessageSize;
-    int maximumRecordSize;
+    int         preferredMessageSize;
+    int         maximumRecordSize;
     Odr_bitmask options;
     Odr_bitmask protocolVersion;
-    char *idAuthentication;
-    char *implementationName;
-    char *implementationId;
+    char       *idAuthentication;
+    char       *implementationName;
+    char       *implementationId;
 
-    char *hostname;
+    char       *hostname;
    
-    char *buf_out;
-    int  len_out;
+    char       *buf_out;
+    int         len_out;
 
-    char *buf_in;
-    int  len_in;
+    char       *buf_in;
+    int         len_in;
 
-    char *sbuf;
-    int  slen;
+    char       *sbuf;
+    int         slen;
 
-    ODR odr_in;
-    ODR odr_out;
-    ODR odr_pr;
+    ODR         odr_in;
+    ODR         odr_out;
+    ODR         odr_pr;
 
     Tcl_Interp *interp;
-    char *callback;
+    char       *callback;
 
-    int smallSetUpperBound;
-    int largeSetLowerBound;
-    int mediumSetPresentNumber;
-    int replaceIndicator;
-    char **databaseNames;
-    int num_databaseNames;
-    char *query_method;
+    int         smallSetUpperBound;
+    int         largeSetLowerBound;
+    int         mediumSetPresentNumber;
+    int         replaceIndicator;
+    char      **databaseNames;
+    int         num_databaseNames;
+    char       *query_method;
 
-    CCL_bibset bibset;
+    CCL_bibset  bibset;
 
     struct IRSetObj_ *child;
 } IRObj;
@@ -124,23 +129,24 @@ typedef struct IRRecordList_ {
 } IRRecordList;
 
 typedef struct IRSetObj_ {
-    IRObj *parent;
-    int searchStatus;
-    int resultCount;
-    int start;
-    int number;
-    int numberOfRecordsReturned;
-    Z_Records *z_records;
-    int which;
-    int condition;
-    char *addinfo;
+    IRObj      *parent;
+    int         searchStatus;
+    int         resultCount;
+    int         start;
+    int         number;
+    int         numberOfRecordsReturned;
+    char       *setName;
+    int         recordFlag;
+    int         which;
+    int         condition;
+    char       *addinfo;
     IRRecordList *record_list;
 } IRSetObj;
 
 typedef struct {
     int type;
     char *name;
-    int (*method) (void * obj, Tcl_Interp *interp, int argc, char **argv);
+    int (*method) (void *obj, Tcl_Interp *interp, int argc, char **argv);
 } IRMethod;
 
 static int do_disconnect (void *obj,Tcl_Interp *interp, int argc, char **argv);
@@ -648,6 +654,26 @@ static int do_query (void *obj, Tcl_Interp *interp,
     return TCL_OK;
 }
 
+/*
+ * do_replaceIndicator: Set/get replace Set indicator
+ */
+static int do_replaceIndicator (void *obj, Tcl_Interp *interp,
+                                int argc, char **argv)
+{
+    IRObj *p = obj;
+    char buf[20];
+
+    if (argc == 3)
+    {
+        if (Tcl_GetInt (interp, argv[2], 
+                        &p->replaceIndicator)==TCL_ERROR)
+            return TCL_ERROR;
+    }
+    sprintf (buf, "%d", p->replaceIndicator);
+    Tcl_AppendResult (interp, buf, NULL);
+    return TCL_OK;
+}
+
 /* 
  * ir_obj_method: IR Object methods
  */
@@ -668,6 +694,7 @@ static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
     { 0, "disconnect",              do_disconnect },
     { 0, "callback",                do_callback },
     { 1, "databaseNames",           do_databaseNames},
+    { 1, "replaceIndicator",        do_replaceIndicator},
     { 1, "query",                   do_query },
     { 0, NULL, NULL}
     };
@@ -793,7 +820,7 @@ static int do_search (void *o, Tcl_Interp *interp,
     req.largeSetLowerBound = &p->largeSetLowerBound;
     req.mediumSetPresentNumber = &p->mediumSetPresentNumber;
     req.replaceIndicator = &p->replaceIndicator;
-    req.resultSetName = "Default";
+    req.resultSetName = obj->setName ? obj->setName : "Default";
     req.num_databaseNames = p->num_databaseNames;
     req.databaseNames = p->databaseNames;
     printf ("Search:");
@@ -883,6 +910,25 @@ static int do_searchStatus (void *o, Tcl_Interp *interp,
     IRSetObj *obj = o;
 
     sprintf (interp->result, "%d", obj->searchStatus);
+    return TCL_OK;
+}
+
+/*
+ * do_setName: Set result Set name
+ */
+static int do_setName (void *o, Tcl_Interp *interp,
+		       int argc, char **argv)
+{
+    IRSetObj *obj = o;
+
+    if (argc == 3)
+    {
+        free (obj->setName);
+        if (ir_strdup (interp, &obj->setName, argv[2])
+            == TCL_ERROR)
+            return TCL_ERROR;
+    }
+    Tcl_AppendElement (interp, obj->setName);
     return TCL_OK;
 }
 
@@ -1076,15 +1122,17 @@ static int do_recordMarc (void *o, Tcl_Interp *interp, int argc, char **argv)
 }
 
 /*
- * do_presentStatus: Return present status (after present response)
+ * do_responseStatus: Return response status (present or search)
  */
-static int do_presentStatus (void *o, Tcl_Interp *interp, 
+static int do_responseStatus (void *o, Tcl_Interp *interp, 
                              int argc, char **argv)
 {
     IRSetObj *obj = o;
     const char *cp;
     char buf[28];
 
+    if (!obj->recordFlag)
+        return TCL_OK;
     switch (obj->which)
     {
     case Z_Records_DBOSD:
@@ -1227,13 +1275,14 @@ static int ir_set_obj_method (ClientData clientData, Tcl_Interp *interp,
     static IRMethod tab[] = {
     { 0, "search",                  do_search },
     { 0, "searchStatus",            do_searchStatus },
+    { 0, "setName",                 do_setName },
     { 0, "resultCount",             do_resultCount },
     { 0, "numberOfRecordsReturned", do_numberOfRecordsReturned },
     { 0, "present",                 do_present },
     { 0, "recordType",              do_recordType },
     { 0, "recordMarc",              do_recordMarc },
     { 0, "recordDiag",              do_recordDiag },
-    { 0, "presentStatus",           do_presentStatus },
+    { 0, "responseStatus",          do_responseStatus },
     { 0, "loadFile",                do_loadFile },
     { 0, NULL, NULL}
     };
@@ -1272,7 +1321,7 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
         return TCL_ERROR;
     if (!(obj = ir_malloc (interp, sizeof(*obj))))
         return TCL_ERROR;
-    obj->z_records = NULL;
+    obj->setName = NULL;
     obj->record_list = NULL;
     obj->addinfo = NULL;
     obj->parent = (IRObj *) parent_info.clientData;
@@ -1314,6 +1363,8 @@ static void ir_handleRecords (void *o, Z_Records *zrs)
     IRObj *p = o;
     IRSetObj *setobj = p->child;
 
+    setobj->which = zrs->which;
+    setobj->recordFlag = 1;
     if (zrs->which == Z_Records_NSD)
     {
         const char *addinfo;
@@ -1325,7 +1376,7 @@ static void ir_handleRecords (void *o, Z_Records *zrs)
         addinfo = zrs->u.nonSurrogateDiagnostic->addinfo;
         if (addinfo && (setobj->addinfo = malloc (strlen(addinfo) + 1)))
             strcpy (setobj->addinfo, addinfo);
-        printf ("Diagnostic response. %s (%d), info %s\n",
+        printf ("Diagnostic response. %s (%d): %s\n",
                 diagbib1_str (setobj->condition),
                 setobj->condition,
                 setobj->addinfo ? setobj->addinfo : "");
@@ -1379,16 +1430,19 @@ static void ir_handleRecords (void *o, Z_Records *zrs)
 static void ir_searchResponse (void *o, Z_SearchResponse *searchrs)
 {    
     IRObj *p = o;
-    IRSetObj *obj = p->child;
+    IRSetObj *setobj = p->child;
+    Z_Records *zrs = searchrs->records;
 
-    if (obj)
+    if (setobj)
     {
-        obj->searchStatus = searchrs->searchStatus ? 1 : 0;
-        obj->resultCount = *searchrs->resultCount;
+        setobj->searchStatus = searchrs->searchStatus ? 1 : 0;
+        setobj->resultCount = *searchrs->resultCount;
         printf ("Search response %d, %d hits\n", 
-                 obj->searchStatus, obj->resultCount);
-        if (searchrs->records)
-            ir_handleRecords (o, searchrs->records);
+                 setobj->searchStatus, setobj->resultCount);
+        if (zrs)
+            ir_handleRecords (o, zrs);
+        else
+            setobj->recordFlag = 0;
     }
     else
         printf ("Search response, no object!\n");
@@ -1400,16 +1454,13 @@ static void ir_presentResponse (void *o, Z_PresentResponse *presrs)
     IRObj *p = o;
     IRSetObj *setobj = p->child;
     Z_Records *zrs = presrs->records;
-    setobj->z_records = presrs->records;
     
     printf ("Received presentResponse\n");
     if (zrs)
-    {
-        setobj->which = zrs->which;
         ir_handleRecords (o, zrs);
-    }
     else
     {
+        setobj->recordFlag = 0;
         printf ("No records!\n");
     }
 }
