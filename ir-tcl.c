@@ -3,7 +3,10 @@
  * (c) Index Data 1995
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.6  1995-03-12 19:31:55  adam
+ * Revision 1.7  1995-03-14 17:32:29  adam
+ * Presentation of full Marc record in popup window.
+ *
+ * Revision 1.6  1995/03/12  19:31:55  adam
  * Pattern matching implemented when retrieving MARC records. More
  * diagnostic functions.
  *
@@ -448,12 +451,12 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
     if (cs_type (p->cs_link) == tcpip_type)
     {
         cs_close (p->cs_link);
-        p->cs_link = cs_create (tcpip_type);
+        p->cs_link = cs_create (tcpip_type, 0);
     }
     else if (cs_type (p->cs_link) == mosi_type)
     {
         cs_close (p->cs_link);
-        p->cs_link = cs_create (mosi_type);
+        p->cs_link = cs_create (mosi_type, 0);
     }
     else
     {
@@ -473,9 +476,9 @@ static int do_comstack (void *obj, Tcl_Interp *interp,
     if (argc == 3)
     {
         if (!strcmp (argv[2], "tcpip"))
-            ((IRObj *)obj)->cs_link = cs_create (tcpip_type);
+            ((IRObj *)obj)->cs_link = cs_create (tcpip_type, 0);
         else if (!strcmp (argv[2], "mosi"))
-            ((IRObj *)obj)->cs_link = cs_create (mosi_type);
+            ((IRObj *)obj)->cs_link = cs_create (mosi_type, 0);
         else
         {
             interp->result = "wrong comstack type";
@@ -610,7 +613,7 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     }
     if (!(obj = ir_malloc (interp, sizeof(*obj))))
         return TCL_ERROR;
-    obj->cs_link = cs_create (tcpip_type);
+    obj->cs_link = cs_create (tcpip_type, 0);
 
     obj->maximumMessageSize = 32768;
     obj->preferredMessageSize = 4096;
@@ -823,23 +826,34 @@ static int get_marc_lines (Tcl_Interp *interp, Iso2709Rec rec,
 {
     struct iso2709_dir *dir;
     struct iso2709_field *field;
-
+    
     for (dir = rec->directory; dir; dir = dir->next)
     {
         if (argc > 4 && marc_cmp (dir->tag, argv[4]))
             continue;
-        if (argc > 5 && marc_cmp (dir->indicator, argv[5]))
-            continue;
-        Tcl_AppendResult (interp, "{", dir->tag, " ", dir->indicator, 
-                          " {", NULL);
+        if (!dir->indicator)
+            Tcl_AppendResult (interp, "{", dir->tag, " {} {", NULL);
+        else
+        {
+            if (argc > 5 && marc_cmp (dir->indicator, argv[5]))
+                continue;
+            Tcl_AppendResult (interp, "{", dir->tag, " {", dir->indicator, 
+                              "} {", NULL);
+        }
         for (field = dir->fields; field; field = field->next)
         {
-            if (argc > 6 && marc_cmp (field->identifier, argv[6]))
-                continue;
-            Tcl_AppendResult (interp, field->identifier, " ", NULL);
-            Tcl_AppendElement (interp, field->data);
+            if (!field->identifier)
+                Tcl_AppendResult (interp, "{{} ", NULL);
+            else
+            {
+                if (argc > 6 && marc_cmp (field->identifier, argv[6]))
+                    continue;
+                Tcl_AppendResult (interp, "{", field->identifier, " ", NULL);
+            }
+            Tcl_AppendResult (interp, "{", field->data, "}", NULL);
+            Tcl_AppendResult (interp, "} ", NULL);
         }
-        Tcl_AppendResult (interp, "} ", NULL);
+        Tcl_AppendResult (interp, "}} ", NULL);
     }
     return TCL_OK;
 }
@@ -1023,6 +1037,64 @@ static int do_present (void *o, Tcl_Interp *interp,
     return TCL_OK;
 }
 
+/*
+ * do_loadFile: Load result set from file
+ */
+
+static int do_loadFile (void *o, Tcl_Interp *interp,
+                        int argc, char **argv)
+{
+    IRSetObj *setobj = o;
+    FILE *inf;
+    int  no = 1;
+    const char *buf;
+
+    if (argc < 3)
+    {
+        interp->result = "wrong # args";
+        return TCL_ERROR;
+    }
+    inf = fopen (argv[2], "r");
+    if (!inf)
+    {
+        Tcl_AppendResult (interp, "Cannot open ", argv[2], NULL);
+        return TCL_ERROR;
+    }
+    while ((buf = iso2709_read (inf)))
+    {
+        IRRecordList *rl;
+        Iso2709Rec rec;
+
+        rec = iso2709_cvt (buf);
+        if (!rec)
+            break;
+        for (rl = setobj->record_list; rl; rl = rl->next)
+        {
+            if (no == rl->no)
+            {
+                if (rl->which == Z_NamePlusRecord_databaseRecord)
+                    iso2709_rm (rl->u.marc.rec);
+                break;
+            }
+        }
+        if (!rl)
+        {
+            rl = malloc (sizeof(*rl));
+            assert (rl);
+            rl->next = setobj->record_list;
+            rl->no = no;
+            setobj->record_list = rl;
+        }
+        rl->which = Z_NamePlusRecord_databaseRecord;
+        rl->u.marc.rec = rec;
+        no++;
+    }
+    setobj->numberOfRecordsReturned = no-1;
+    fclose (inf);
+    return TCL_OK;
+}
+
+
 /* 
  * ir_set_obj_method: IR Set Object methods
  */
@@ -1037,6 +1109,7 @@ static int ir_set_obj_method (ClientData clientData, Tcl_Interp *interp,
     { 0, "recordType",              do_recordType },
     { 0, "recordMarc",              do_recordMarc },
     { 0, "recordDiag",              do_recordDiag },
+    { 0, "loadFile",                do_loadFile },
     { 0, NULL, NULL}
     };
 
@@ -1160,7 +1233,7 @@ static void ir_presentResponse (void *o, Z_PresentResponse *presrs)
                 {
                     if (no == rl->no)
                     {
-                        if (rl->which != Z_NamePlusRecord_surrogateDiagnostic)
+                        if (rl->which == Z_NamePlusRecord_databaseRecord)
                             iso2709_rm (rl->u.marc.rec);
                         break;
                     }

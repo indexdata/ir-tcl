@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.3  1995-03-12 19:31:52  adam
+# Revision 1.4  1995-03-14 17:32:29  adam
+# Presentation of full Marc record in popup window.
+#
+# Revision 1.3  1995/03/12  19:31:52  adam
 # Pattern matching implemented when retrieving MARC records. More
 # diagnostic functions.
 #
@@ -16,10 +19,32 @@ set hotInfo {}
 set busy 0
 
 wm minsize . 360 200
-wm maxsize . 800 800
 
 if {[file readable "~/.tk-c"]} {
     source "~/.tk-c"
+}
+
+proc top-down-window {w} {
+    frame $w.top -relief raised -border 1
+    frame $w.bot -relief raised -border 1
+    
+    pack  $w.top $w.bot -side top -fill both -expand yes
+}
+
+proc top-down-ok-cancel {w ok-action} {
+    frame $w.bot.left -relief sunken -border 1
+    pack $w.bot.left -side left -expand yes -padx 5 -pady 5
+    button $w.bot.left.ok -width 6 -text {Ok} \
+            -command ${ok-action}
+    pack $w.bot.left.ok -expand yes -padx 3 -pady 3
+    button $w.bot.cancel -width 6 -text {Cancel} \
+            -command "destroy $w"
+    pack $w.bot.cancel -side left -expand yes    
+    
+    # Grab ...
+    grab $w
+    
+    tkwait window $w
 }
 
 proc show-target {target} {
@@ -54,6 +79,90 @@ proc show-status {status b} {
 
 proc show-message {msg} {
     .bot.message configure -text "$msg"
+}
+
+proc insertWithTags {w text args} {
+    set start [$w index insert]
+    $w insert insert $text
+    foreach tag [$w tag names $start] {
+        $w tag remove $tag $start insert
+    }
+    foreach i $args {
+        $w tag add $i $start insert
+    }
+}
+
+proc show-full-marc {no} {
+    global setNo
+
+    set w .full-marc
+
+    if {[winfo exists $w]} {
+        $w.top.record delete 0.0 end
+        set new 0
+    } else {
+
+        toplevel $w
+
+        wm minsize $w 200 200
+        
+        frame $w.top -relief raised -border 1
+        frame $w.bot -relief raised -border 1
+
+        #        pack  $w.top $w.bot -side top -fill both -expand yes
+        pack  $w.top -side top -fill both -expand yes
+        pack  $w.bot -fill both
+
+        text $w.top.record -width 60 -height 10 \
+                -yscrollcommand "$w.top.s set"
+        scrollbar $w.top.s -command "$w.top.record yview"
+
+        set new 1
+    }
+    incr no
+    
+    set r [z39.$setNo recordMarc $no line * * *]
+
+    $w.top.record tag configure marc-tag -foreground blue
+    $w.top.record tag configure marc-data -foreground black
+    $w.top.record tag configure marc-id -foreground red
+
+    foreach line $r {
+        set tag [lindex $line 0]
+        set indicator [lindex $line 1]
+        set fields [lindex $line 2]
+
+        if {$indicator != ""} {
+            insertWithTags $w.top.record "$tag $indicator" marc-tag
+        } else {
+            insertWithTags $w.top.record "$tag    " marc-tag
+        }
+        foreach field $fields {
+            set id [lindex $field 0]
+            set data [lindex $field 1]
+            if {$id != ""} {
+                insertWithTags $w.top.record " $id " marc-id
+            }
+            set start [$w.top.record index insert]
+            insertWithTags $w.top.record $data {}
+        }
+        $w.top.record insert end "\n"
+    }
+    if {$new} {
+        bind $w <Return> {destroy .full-marc}
+        
+        pack $w.top.s -side right -fill y
+        pack $w.top.record -expand yes -fill both
+        
+        frame $w.bot.left -relief sunken -border 1
+        pack $w.bot.left -side left -expand yes -padx 5 -pady 5
+        button $w.bot.left.close -width 6 -text {Close} \
+                -command {destroy .full-marc}
+        pack $w.bot.left.close -expand yes -padx 3 -pady 3
+        button $w.bot.edit -width 6 -text {Edit} \
+                -command {destroy .full-marc}
+        pack $w.bot.edit -side left -expand yes
+    }
 }
 
 proc update-target-hotlist {target} {
@@ -115,13 +224,53 @@ proc open-target {target} {
     init-request
 }
 
-proc init-request {} {
-    global SetNo
+proc load-set-action {} {
+    global setNo
 
+    incr setNo
+    ir-set z39.$setNo
+
+    set fname [.load-set.top.filename.entry get]
+    destroy .load-set
+    if {$fname != ""} {
+        .data.list delete 0 end
+
+        show-status {Loading} 1
+        z39.$setNo loadFile $fname
+
+        set no [z39.$setNo numberOfRecordsReturned]
+        add-title-lines $no 1
+    }
+    show-status {Ready} 0
+}
+
+proc load-set {} {
+    set w .load-set
+
+    toplevel $w
+
+    place-force $w .
+
+    top-down-window $w
+
+    frame $w.top.filename
+    
+    pack $w.top.filename -side top -anchor e -pady 2
+    
+    entry-fields $w.top {filename} \
+            {{Filename:}} \
+            {load-set-action} {destroy .load-set}
+    
+    top-down-ok-cancel $w {load-set-action}
+}
+
+proc init-request {} {
+    global setNo
+    
     z39 callback {init-response}
     z39 init
     show-status {Initializing} 1
-    set SetNo 0
+    set setNo 0
 }
 
 proc init-response {} {
@@ -132,52 +281,58 @@ proc init-response {} {
 }
 
 proc search-request {} {
-    global SetNo
+    global setNo
 
-    incr SetNo
-    ir-set z39.$SetNo
+    incr setNo
+    ir-set z39.$setNo
 
     z39 callback {search-response}
-    z39.$SetNo search [.mid.searchentry get]
+    z39.$setNo search [.mid.searchentry get]
     show-status {Search} 1
 }
 
 proc search-response {} {
-    global SetNo
+    global setNo
     global setOffset
     global setMax
 
     .data.list delete 0 end
     show-status {Ready} 0
-    show-message "[z39.$SetNo resultCount] hits"
-    set setMax [z39.$SetNo resultCount]
+    show-message "[z39.$setNo resultCount] hits"
+    set setMax [z39.$setNo resultCount]
     puts $setMax
     if {$setMax > 16} {
         set setMax 16
     }
     z39 callback {present-response}
     set setOffset 1
-    z39.$SetNo present 1 $setMax
+    z39.$setNo present 1 $setMax
     show-status {Retrieve} 1
 }
 
+proc add-title-lines {no offset} {
+    global setNo
+
+    for {set i 0} {$i < $no} {incr i} {
+        set o [expr $i + $offset]
+        set title [lindex [z39.$setNo recordMarc $o field 245 * a] 0]
+        set year  [lindex [z39.$setNo recordMarc $o field 260 * c] 0]
+        .data.list insert end "$title - $year"
+    }
+}
+
 proc present-response {} {
-    global SetNo
+    global setNo
     global setOffset
     global setMax
 
     puts "In present-response"
-    set no [z39.$SetNo numberOfRecordsReturned]
+    set no [z39.$setNo numberOfRecordsReturned]
     puts "Returned $no records, setOffset $setOffset"
-    for {set i 0} {$i < $no} {incr i} {
-        set o [expr $i + $setOffset]
-        set title [lindex [z39.$SetNo getMARC $o field 245 a] 0]
-        set year  [lindex [z39.$SetNo getMARC $o field 260 c] 0]
-        .data.list insert end "$title - $year"
-    }
+    add-title-lines $no $setOffset
     set setOffset [expr $setOffset + $no]
     if { $setOffset <= $setMax} {
-        z39.$SetNo present $setOffset [expr $setMax - $setOffset + 1]
+        z39.$setNo present $setOffset [expr $setMax - $setOffset + 1]
     } else {
         show-status {Finished} 0
     }
@@ -218,11 +373,8 @@ proc open-target-dialog {} {
     toplevel $w
 
     place-force $w .
-    
-    frame $w.top -relief sunken -border 1
-    frame $w.bot -relief sunken -border 1
-    
-    pack  $w.top $w.bot -side top -fill both -expand yes
+
+    top-down-window $w
 
     frame $w.top.host
     frame $w.top.port
@@ -234,18 +386,7 @@ proc open-target-dialog {} {
             {{Hostname:} {Port number:}} \
             {open-target-action} {destroy .target-connect}
 
-    frame $w.bot.left -relief sunken -border 1
-    pack $w.bot.left -side left -expand yes -padx 5 -pady 5
-    button $w.bot.left.ok -width 6 -text {Ok} \
-            -command {open-target-action}
-    pack $w.bot.left.ok -expand yes -padx 3 -pady 3
-    button $w.bot.cancel -width 6 -text {Cancel} \
-            -command {destroy .target-connect}
-    pack $w.bot.cancel -side left -expand yes
-
-    grab $w
-
-    tkwait window $w
+    top-down-ok-cancel $w {open-target-action}
 }
 
 proc close-target {} {
@@ -279,44 +420,41 @@ proc protocol-setup {} {
 
     place-force $w .
 
-    frame $w.top -relief sunken -border 1
-    frame $w.bot -relief sunken -border 1
+    top-down-window $w
     
-    pack  $w.top $w.bot -side top -fill both -expand yes
-
     frame $w.top.description
     frame $w.top.idAuthentification
     frame $w.top.maximumMessageSize
     frame $w.top.preferredMessageSize
     frame $w.top.cs-type -relief ridge -border 2
     frame $w.top.query -relief ridge -border 2
-
-# Maximum/preferred/idAuth ...
+    
+    # Maximum/preferred/idAuth ...
     pack $w.top.description \
             $w.top.idAuthentification $w.top.maximumMessageSize \
             $w.top.preferredMessageSize -side top -anchor e -pady 2 
-
+    
     entry-fields $w.top {description idAuthentification maximumMessageSize \
             preferredMessageSize} \
             {{Description:} {Id Authentification:} {Maximum Message Size:}
-            {Preferred Message Size:}} \
+    {Preferred Message Size:}} \
             {protocol-setup-action} {destroy .protocol-setup}
-
-# Transport ...
+    
+    # Transport ...
     pack $w.top.cs-type -side left -pady 2 -padx 2
-
+    
     global csRadioType
-
+    
     label $w.top.cs-type.label -text "Transport" -anchor e
-        radiobutton $w.top.cs-type.tcpip -text "TCP/IP" \
+    radiobutton $w.top.cs-type.tcpip -text "TCP/IP" \
             -command {puts tcp/ip} -variable csRadioType -value tcpip
     radiobutton $w.top.cs-type.mosi -text "MOSI" \
             -command {puts mosi} -variable csRadioType -value mosi
-
+    
     pack $w.top.cs-type.label $w.top.cs-type.tcpip $w.top.cs-type.mosi \
-        -padx 4 -side top -fill x
-
-# Query ...
+            -padx 4 -side top -fill x
+    
+    # Query ...
     pack $w.top.query -side right -pady 2 -padx 2 -expand yes
 
     label $w.top.query.label -text "Query support" -anchor e
@@ -326,23 +464,9 @@ proc protocol-setup {} {
 
     pack $w.top.query.label -side top -anchor w
     pack $w.top.query.c1 $w.top.query.c2 $w.top.query.c3 \
-         -padx 4 -side left -fill x
-
-# Buttons ...
-    frame $w.bot.left -relief sunken -border 1
-    pack $w.bot.left -side left -expand yes -padx 5 -pady 5
-    button $w.bot.left.ok -width 6 -text {Ok} \
-            -command {protocol-setup-action}
-    pack $w.bot.left.ok -expand yes -padx 3 -pady 3
-    button $w.bot.cancel -width 6 -text {Cancel} \
-            -command "destroy $w"
-    pack $w.bot.cancel -side left -expand yes    
-
-# Grab ...
-    grab $w
-
-    tkwait window $w
-
+            -padx 4 -side left -fill x
+    
+    top-down-ok-cancel $w {protocol-setup-action}
 }
 
 proc database-select-action {} {
@@ -357,34 +481,17 @@ proc database-select {} {
 
     place-force $w .
 
-    frame $w.top -relief sunken -border 1
-    frame $w.bot -relief sunken -border 1
-
-    pack  $w.top $w.bot -side top -fill both -expand yes
+    top-down-window $w
 
     frame $w.top.database
 
-# Database select
     pack $w.top.database -side top -anchor e -pady 2
-
+    
     entry-fields $w.top {database} \
             {{Database:}} \
             {database-select-action} {destroy .database-select}
 
-# Buttons ...
-    frame $w.bot.left -relief sunken -border 1
-    pack $w.bot.left -side left -expand yes -padx 5 -pady 5
-    button $w.bot.left.ok -width 6 -text {Ok} \
-            -command {protocol-setup-action}
-    pack $w.bot.left.ok -expand yes -padx 3 -pady 3
-    button $w.bot.cancel -width 6 -text {Cancel} \
-            -command "destroy .database-select"
-    pack $w.bot.cancel -side left -expand yes    
-
-# Grab ...
-    grab $w
-
-    tkwait window $w
+    top-down-ok-cancel $w {database-select-action}
 }
 
 proc save-settings {} {
@@ -407,6 +514,8 @@ pack .bot      -fill x
 menubutton .top.file -text "File" -menu .top.file.m
 menu .top.file.m
 .top.file.m add command -label "Save settings" -command {save-settings}
+.top.file.m add command -label "Load Set" -command {load-set}
+.top.file.m add separator
 .top.file.m add command -label "Exit" -command {destroy .}
 
 menubutton .top.target -text "Target" -menu .top.target.m
@@ -448,13 +557,10 @@ label .bot.message -text "" -width 20 -relief \
     sunken -anchor w -border 1
 pack .bot.target .bot.status .bot.message -anchor nw -side left -padx 2 -pady 2
 
-for {set i 0} {$i < 30} {incr i} {
-    .data.list insert end "Record $i"
-}
-
 bind .data.list <Double-Button-1> {set indx [.data.list nearest %y]
-puts "y=%y index $indx" }
+show-full-marc $indx}
 
+set setNo 0
 ir z39
 z39 comstack tcpip
 set csRadioType [z39 comstack]
