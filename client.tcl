@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.81  1995-10-19 10:34:43  adam
+# Revision 1.82  1995-11-02 08:47:56  adam
+# Text widgets are flat now.
+#
+# Revision 1.81  1995/10/19  10:34:43  adam
 # More configurable client.
 #
 # Revision 1.80  1995/10/18  17:20:32  adam
@@ -663,7 +666,7 @@ proc popup-license {} {
 
     top-down-window $w
 
-    text $w.top.t -width 80 -height 10 -wrap word \
+    text $w.top.t -width 80 -height 10 -wrap word -relief flat -borderwidth 0 \
         -yscrollcommand [list $w.top.s set]
     scrollbar $w.top.s -command [list $w.top.t yview]
     
@@ -796,7 +799,7 @@ proc popup-marc {sno no b df} {
         pack  $w.top -side top -fill both -expand yes
         pack  $w.bot -fill both
 
-        text $w.top.record -width 60 -height 5 -wrap word \
+        text $w.top.record -width 60 -height 5 -wrap word -relief flat -borderwidth 0 \
                 -yscrollcommand [list $w.top.s set]
         scrollbar $w.top.s -command [list $w.top.record yview]
 
@@ -3290,7 +3293,7 @@ button .mid.clear -text Clear -command index-clear
 pack .mid.search .mid.scan .mid.present .mid.clear -side left \
         -fill y -pady 1
 
-text .data.record -height 2 -width 20 -wrap none \
+text .data.record -height 2 -width 20 -wrap none -borderwidth 0 -relief flat \
         -yscrollcommand [list .data.scroll set] -wrap $textWrap
 scrollbar .data.scroll -command [list .data.record yview]
 if {[tk4]} {
