@@ -5,7 +5,10 @@
  * Wais extension to IrTcl
  *
  * $Log: wais-tcl.c,v $
- * Revision 1.3  1996-03-08 16:46:44  adam
+ * Revision 1.4  1996-03-11 17:39:48  adam
+ * 40 documents are retrieved by default (maxDocs=40).
+ *
+ * Revision 1.3  1996/03/08  16:46:44  adam
  * Doesn't use documentID to determine positions in present-response.
  *
  * Revision 1.2  1996/03/07  12:43:44  adam
@@ -294,7 +297,7 @@ static void wais_handle_search_response (WaisSetTcl_Obj *p,
             for (i = 0; ddr->DocHeaders[i]; i++)
             {
                 WAISDocumentHeader *head = ddr->DocHeaders[i];
-
+                
                 logf (LOG_DEBUG, "%4d -->%.*s<--", i+1,
                       head->DocumentID->size, head->DocumentID->bytes);
                 wais_add_record_brief (p, i+1, head->DocumentID,
@@ -308,17 +311,9 @@ static void wais_handle_search_response (WaisSetTcl_Obj *p,
             int i;
             logf (LOG_DEBUG, "Adding text entries");
             for (i = 0; ddr->Text[i]; i++)
-            {
-                logf (LOG_DEBUG, " size=%d", ddr->Text[i]->DocumentID->size);
-#if 0
-                logf (LOG_DEBUG, "-->%.*s<--",
-                      ddr->Text[i]->DocumentID->size,
-                      ddr->Text[i]->DocumentID->bytes);
-#endif
                 wais_add_record_full (p,
                                       p->presentOffset + i,
                                       ddr->Text[i]->DocumentText);
-            }
         }
         freeWAISSearchResponse (ddr);
     }
@@ -956,7 +951,7 @@ static int do_maxDocs (void *o, Tcl_Interp *interp, int argc, char **argv)
 
     if (argc <= 0)
     {
-        obj->maxDocs = 100;
+        obj->maxDocs = 40;
         return TCL_OK;
     }
     return ir_tcl_get_set_int (&obj->maxDocs, interp, argc, argv);
