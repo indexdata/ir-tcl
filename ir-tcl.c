@@ -4,7 +4,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.14  1995-03-20 08:53:22  adam
+ * Revision 1.15  1995-03-20 15:24:07  adam
+ * Diagnostic records saved on searchResponse.
+ *
+ * Revision 1.14  1995/03/20  08:53:22  adam
  * Event loop in tclmain.c rewritten. New method searchStatus.
  *
  * Revision 1.13  1995/03/17  18:26:17  adam
@@ -60,6 +63,8 @@
 #include <tcl.h>
 
 #include "ir-tcl.h"
+
+#define CS_BLOCK 0
 
 typedef struct {
     COMSTACK cs_link;
@@ -531,12 +536,12 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
     if (cs_type (p->cs_link) == tcpip_type)
     {
         cs_close (p->cs_link);
-        p->cs_link = cs_create (tcpip_type, 0);
+        p->cs_link = cs_create (tcpip_type, CS_BLOCK);
     }
     else if (cs_type (p->cs_link) == mosi_type)
     {
         cs_close (p->cs_link);
-        p->cs_link = cs_create (mosi_type, 0);
+        p->cs_link = cs_create (mosi_type, CS_BLOCK);
     }
     else
     {
@@ -557,9 +562,9 @@ static int do_comstack (void *obj, Tcl_Interp *interp,
     {
         cs_close (((IRObj*) obj)->cs_link);
         if (!strcmp (argv[2], "tcpip"))
-            ((IRObj *)obj)->cs_link = cs_create (tcpip_type, 0);
+            ((IRObj *)obj)->cs_link = cs_create (tcpip_type, CS_BLOCK);
         else if (!strcmp (argv[2], "mosi"))
-            ((IRObj *)obj)->cs_link = cs_create (mosi_type, 0);
+            ((IRObj *)obj)->cs_link = cs_create (mosi_type, CS_BLOCK);
         else
         {
             interp->result = "wrong comstack type";
@@ -695,7 +700,7 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     }
     if (!(obj = ir_malloc (interp, sizeof(*obj))))
         return TCL_ERROR;
-    obj->cs_link = cs_create (tcpip_type, 0);
+    obj->cs_link = cs_create (tcpip_type, CS_BLOCK);
 
     obj->maximumRecordSize = 32768;
     obj->preferredMessageSize = 4096;
@@ -791,6 +796,11 @@ static int do_search (void *o, Tcl_Interp *interp,
     req.resultSetName = "Default";
     req.num_databaseNames = p->num_databaseNames;
     req.databaseNames = p->databaseNames;
+    printf ("Search:");
+    for (r=0; r<p->num_databaseNames; r++)
+    {
+        printf (" %s", p->databaseNames[r]);
+    }
     req.smallSetElementSetNames = 0;
     req.mediumSetElementSetNames = 0;
     req.preferredRecordSyntax = 0;
@@ -813,6 +823,7 @@ static int do_search (void *o, Tcl_Interp *interp,
         assert((RPNquery = ccl_rpn_query(rpn)));
         RPNquery->attributeSetId = bib1;
         query.u.type_1 = RPNquery;
+        printf ("- RPN\n");
     }
     else if (!strcmp (p->query_method, "ccl"))
     {
@@ -820,6 +831,7 @@ static int do_search (void *o, Tcl_Interp *interp,
         query.u.type_2 = &ccl_query;
         ccl_query.buf = argv[2];
         ccl_query.len = strlen (argv[2]);
+        printf ("- CCL\n");
     }
     else
     {
@@ -1271,22 +1283,6 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
 
 /* ------------------------------------------------------- */
 
-static void ir_searchResponse (void *o, Z_SearchResponse *searchrs)
-{    
-    IRObj *p = o;
-    IRSetObj *obj = p->child;
-
-    if (obj)
-    {
-        obj->searchStatus = searchrs->searchStatus ? 1 : 0;
-        obj->resultCount = *searchrs->resultCount;
-        printf ("Search response %d, %d hits\n", 
-                 obj->searchStatus, obj->resultCount);
-    }
-    else
-        printf ("Search response, no object!\n");
-}
-
 static void ir_initResponse (void *obj, Z_InitResponse *initrs)
 {
     if (!*initrs->result)
@@ -1313,6 +1309,92 @@ static void ir_initResponse (void *obj, Z_InitResponse *initrs)
 #endif
 }
 
+static void ir_handleRecords (void *o, Z_Records *zrs)
+{
+    IRObj *p = o;
+    IRSetObj *setobj = p->child;
+
+    if (zrs->which == Z_Records_NSD)
+    {
+        const char *addinfo;
+        
+        setobj->numberOfRecordsReturned = 0;
+        setobj->condition = *zrs->u.nonSurrogateDiagnostic->condition;
+        free (setobj->addinfo);
+        setobj->addinfo = NULL;
+        addinfo = zrs->u.nonSurrogateDiagnostic->addinfo;
+        if (addinfo && (setobj->addinfo = malloc (strlen(addinfo) + 1)))
+            strcpy (setobj->addinfo, addinfo);
+        printf ("Diagnostic response. %s (%d), info %s\n",
+                diagbib1_str (setobj->condition),
+                setobj->condition,
+                setobj->addinfo ? setobj->addinfo : "");
+    }
+    else
+    {
+        int offset;
+        IRRecordList *rl;
+        
+        setobj->numberOfRecordsReturned = 
+            zrs->u.databaseOrSurDiagnostics->num_records;
+        printf ("Got %d records\n", setobj->numberOfRecordsReturned);
+        for (offset = 0; offset<setobj->numberOfRecordsReturned; offset++)
+        {
+            rl = new_IR_record (setobj, setobj->start + offset,
+                                zrs->u.databaseOrSurDiagnostics->
+                                records[offset]->which);
+            if (rl->which == Z_NamePlusRecord_surrogateDiagnostic)
+            {
+                Z_DiagRec *diagrec;
+                
+                diagrec = zrs->u.databaseOrSurDiagnostics->
+                    records[offset]->u.surrogateDiagnostic;
+                
+                rl->u.diag.condition = *diagrec->condition;
+                if (diagrec->addinfo && (rl->u.diag.addinfo =
+                                         malloc (strlen (diagrec->addinfo)+1)))
+                    strcpy (rl->u.diag.addinfo, diagrec->addinfo);
+            }
+            else
+            {
+                Z_DatabaseRecord *zr; 
+                Odr_external *oe;
+                
+                zr = zrs->u.databaseOrSurDiagnostics->records[offset]
+                    ->u.databaseRecord;
+                oe = (Odr_external*) zr;
+                if (oe->which == ODR_EXTERNAL_octet
+                    && zr->u.octet_aligned->len)
+                {
+                    const char *buf = (char*) zr->u.octet_aligned->buf;
+                    rl->u.marc.rec = iso2709_cvt (buf);
+                }
+                else
+                    rl->u.marc.rec = NULL;
+            }
+        }
+    }
+}
+
+static void ir_searchResponse (void *o, Z_SearchResponse *searchrs)
+{    
+    IRObj *p = o;
+    IRSetObj *obj = p->child;
+
+    if (obj)
+    {
+        obj->searchStatus = searchrs->searchStatus ? 1 : 0;
+        obj->resultCount = *searchrs->resultCount;
+        printf ("Search response %d, %d hits\n", 
+                 obj->searchStatus, obj->resultCount);
+        if (searchrs->records)
+            ir_handleRecords (o, searchrs->records);
+    }
+    else
+        printf ("Search response, no object!\n");
+}
+
+
 static void ir_presentResponse (void *o, Z_PresentResponse *presrs)
 {
     IRObj *p = o;
@@ -1324,65 +1406,7 @@ static void ir_presentResponse (void *o, Z_PresentResponse *presrs)
     if (zrs)
     {
         setobj->which = zrs->which;
-        if (zrs->which == Z_Records_NSD)
-        {
-            const char *addinfo;
-
-            printf ("They are diagnostic!!!\n");
-
-            setobj->numberOfRecordsReturned = 0;
-            setobj->condition = *zrs->u.nonSurrogateDiagnostic->condition;
-            free (setobj->addinfo);
-            setobj->addinfo = NULL;
-            addinfo = zrs->u.nonSurrogateDiagnostic->addinfo;
-            if (addinfo && (setobj->addinfo = malloc (strlen(addinfo) + 1)))
-                strcpy (setobj->addinfo, addinfo);
-            return;
-        }
-        else
-        {
-            int offset;
-            IRRecordList *rl;
-            
-            setobj->numberOfRecordsReturned = 
-                zrs->u.databaseOrSurDiagnostics->num_records;
-            printf ("Got %d records\n", setobj->numberOfRecordsReturned);
-            for (offset = 0; offset<setobj->numberOfRecordsReturned; offset++)
-            {
-                rl = new_IR_record (setobj, setobj->start + offset,
-                                    zrs->u.databaseOrSurDiagnostics->
-                                    records[offset]->which);
-                if (rl->which == Z_NamePlusRecord_surrogateDiagnostic)
-                {
-                    Z_DiagRec *diagrec;
-
-                    diagrec = zrs->u.databaseOrSurDiagnostics->
-                              records[offset]->u.surrogateDiagnostic;
-
-                    rl->u.diag.condition = *diagrec->condition;
-                    if (diagrec->addinfo && (rl->u.diag.addinfo =
-                        malloc (strlen (diagrec->addinfo)+1)))
-                        strcpy (rl->u.diag.addinfo, diagrec->addinfo);
-                }
-                else
-                {
-                    Z_DatabaseRecord *zr; 
-                    Odr_external *oe;
-                    
-                    zr = zrs->u.databaseOrSurDiagnostics->records[offset]
-                        ->u.databaseRecord;
-                    oe = (Odr_external*) zr;
-                    if (oe->which == ODR_EXTERNAL_octet
-                        && zr->u.octet_aligned->len)
-                    {
-                        const char *buf = (char*) zr->u.octet_aligned->buf;
-                        rl->u.marc.rec = iso2709_cvt (buf);
-                    }
-                    else
-                        rl->u.marc.rec = NULL;
-                }
-            }
-        }
+        ir_handleRecords (o, zrs);
     }
     else
     {
@@ -1443,7 +1467,8 @@ void ir_select_write (ClientData clientData)
 {
     IRObj *p = clientData;
     int r;
-    
+
+    printf ("In write handler.....\n");
     if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
     {   
         printf ("select write fail\n");

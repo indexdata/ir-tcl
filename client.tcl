@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.9  1995-03-17 18:26:16  adam
+# Revision 1.10  1995-03-20 15:24:06  adam
+# Diagnostic records saved on searchResponse.
+#
+# Revision 1.9  1995/03/17  18:26:16  adam
 # Non-blocking i/o used now. Database names popup as cascade items.
 #
 # Revision 1.8  1995/03/17  15:45:00  adam
@@ -51,7 +54,7 @@ proc top-down-window {w} {
     pack  $w.top $w.bot -side top -fill both -expand yes
 }
 
-proc top-down-ok-cancel {w ok-action} {
+proc top-down-ok-cancel {w ok-action g} {
     frame $w.bot.left -relief sunken -border 1
     pack $w.bot.left -side left -expand yes -padx 5 -pady 5
     button $w.bot.left.ok -width 6 -text {Ok} \
@@ -60,11 +63,12 @@ proc top-down-ok-cancel {w ok-action} {
     button $w.bot.cancel -width 6 -text {Cancel} \
             -command "destroy $w"
     pack $w.bot.cancel -side left -expand yes    
-    
-    # Grab ...
-    grab $w
-    
-    tkwait window $w
+
+    if {$g} {
+        # Grab ...
+        grab $w
+        tkwait window $w
+    }
 }
 
 proc show-target {target} {
@@ -299,7 +303,7 @@ proc load-set {} {
             {{Filename:}} \
             {load-set-action} {destroy .load-set}
     
-    top-down-ok-cancel $w {load-set-action}
+    top-down-ok-cancel $w {load-set-action} 1
 }
 
 proc init-request {} {
@@ -342,8 +346,8 @@ proc search-response {} {
     if {$setMax == 0} {
         return
     }
-    if {$setMax > 20} {
-        set setMax 20
+    if {$setMax > 10} {
+        set setMax 10
     }
     z39 callback {present-response}
     set setOffset 1
@@ -373,7 +377,7 @@ proc present-response {} {
     puts "Returned $no records, setOffset $setOffset"
     add-title-lines $no $setOffset
     set setOffset [expr $setOffset + $no]
-    if { $setOffset <= $setMax} {
+    if {$no > 0 && $setOffset <= $setMax} {
         z39.$setNo present $setOffset [expr $setMax - $setOffset + 1]
     } else {
         show-status {Finished} 0
@@ -418,7 +422,7 @@ proc entry-fields {parent list tlist returnAction escapeAction} {
         set label ${parent}.${field}.label
         set entry ${parent}.${field}.entry
         label $label -text [lindex $tlist $i] -anchor e
-        entry $entry -width 28 -relief sunken
+        entry $entry -width 32 -relief sunken
         pack $label -side left
         pack $entry -side right
         lappend alist $entry
@@ -445,7 +449,7 @@ proc define-target-dialog {} {
             {{Target:}} \
             {define-target-action} {destroy .target-define}
     
-    top-down-ok-cancel $w {define-target-action}
+    top-down-ok-cancel $w {define-target-action} 1
 }
 
 proc close-target {} {
@@ -463,7 +467,9 @@ proc protocol-setup-action {target} {
     global csRadioType
     global settingsChanged
 
-    set w .protocol-setup.top
+    set w .setup-${target}.top
+
+    #set w .protocol-setup.top
     
     set b {}
     set settingsChanged 1
@@ -482,7 +488,7 @@ proc protocol-setup-action {target} {
 
     cascade-target-list
     puts $profile($target)
-    destroy .protocol-setup
+    destroy .setup-${target}
 }
 
 
@@ -498,18 +504,21 @@ proc place-force {window parent} {
 }
 
 
-proc add-database-action {} {
-    .protocol-setup.top.databases.list insert end \
+proc add-database-action {target} {
+    set w .setup-${target}
+    
+    ${w}.top.databases.list insert end \
             [.database-select.top.database.entry get]
     destroy .database-select
 }
 
-proc add-database {} {
+proc add-database {target} {
     set w .database-select
 
+    set oldFocus [focus]
     toplevel $w
 
-    place-force $w .protocol-setup
+    place-force $w .setup-${target}
 
     top-down-window $w
 
@@ -519,20 +528,23 @@ proc add-database {} {
     
     entry-fields $w.top {database} \
             {{Database to add:}} \
-            {add-database-action} {destroy .database-select}
+            [list add-database-action $target] {destroy .database-select}
 
-    top-down-ok-cancel $w {add-database-action}
+    top-down-ok-cancel $w [list add-database-action $target] 1
+    focus $oldFocus
 }
 
-proc delete-database {} {
+proc delete-database {target} {
+    set w .setup-${target}
+    
     foreach i [lsort -decreasing \
-            [.protocol-setup.top.databases.list curselection]] {
-        .protocol-setup.top.databases.list delete $i
+            [$w.top.databases.list curselection]] {
+        $w.top.databases.list delete $i
     }
 }
 
 proc protocol-setup {target} {
-    set w .protocol-setup
+    set w .setup-$target
 
     global profile
     global csRadioType
@@ -570,7 +582,7 @@ proc protocol-setup {target} {
             maximumRecordSize preferredMessageSize} \
             {{Description:} {Host:} {Port:} {Id Authentification:} \
             {Maximum Record Size:} {Preferred Message Size:}} \
-            [list protocol-setup-action $target] {destroy .protocol-setup}
+            [list protocol-setup-action $target] [list destroy $w]
     
     $w.top.description.entry insert 0 [lindex $profile($target) 0]
     $w.top.host.entry insert 0 [lindex $profile($target) 1]
@@ -583,8 +595,10 @@ proc protocol-setup {target} {
     pack $w.top.databases -side left -pady 6 -padx 6 -expand yes -fill x
 
     label $w.top.databases.label -text "Databases"
-    button $w.top.databases.add -text "Add" -command {add-database}
-    button $w.top.databases.delete -text "Delete" -command {delete-database}
+    button $w.top.databases.add -text "Add" \
+            -command "add-database $target"
+    button $w.top.databases.delete -text "Delete" \
+            -command "delete-database $target"
     listbox $w.top.databases.list -geometry 20x6 \
             -yscrollcommand "$w.top.databases.scroll set"
     scrollbar $w.top.databases.scroll -orient vertical -border 1
@@ -627,8 +641,12 @@ proc protocol-setup {target} {
     pack $w.top.query.label -side top 
     pack $w.top.query.c1 $w.top.query.c2 $w.top.query.c3 \
             -padx 4 -side top -fill x
-    
-    top-down-ok-cancel $w [list protocol-setup-action $target]
+
+    foreach sub [winfo children $w.top] {
+        puts $sub
+        bind $sub <Control-a> "add-database $target"
+    }
+    top-down-ok-cancel $w [list protocol-setup-action $target] 0
 }
 
 proc database-select-action {} {
@@ -677,7 +695,7 @@ proc database-select {} {
     foreach b [lindex $profile($hostid) 7] {
         $w.top.databases.list insert end $b
     }
-    top-down-ok-cancel $w {database-select-action}
+    top-down-ok-cancel $w {database-select-action} 1
 }
 
 proc cascade-target-list {} {
@@ -746,7 +764,7 @@ proc alert {ask} {
     pack $w.top.message -side left -pady 6 -padx 20 -expand yes -fill x
   
     set alertAnswer 0
-    top-down-ok-cancel $w {alert-action}
+    top-down-ok-cancel $w {alert-action} 1
     return $alertAnswer
 }
 
