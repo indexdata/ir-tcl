@@ -5,7 +5,12 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: tclmain.c,v $
- * Revision 1.14  1995-09-21 13:11:53  adam
+ * Revision 1.15  1996-01-10 09:18:45  adam
+ * PDU specific callbacks implemented: initRespnse, searchResponse,
+ *  presentResponse and scanResponse.
+ * Bug fix in the command line shell (tclmain.c) - discovered on OSF/1.
+ *
+ * Revision 1.14  1995/09/21  13:11:53  adam
  * Support of dynamic loading.
  * Test script uses load command if necessary.
  *
@@ -199,18 +204,18 @@ void tcl_mainloop (Tcl_Interp *interp, int interactive)
         {
             if (FD_ISSET (i, &fdset_tcl_r))
             {
-                assert (callback_table[i].r_handle);
-                (*callback_table[i].r_handle) (callback_table[i].obj);
+                if (callback_table[i].r_handle)
+                    (*callback_table[i].r_handle) (callback_table[i].obj);
             }
             if (FD_ISSET (i, &fdset_tcl_w))
             {
-                assert (callback_table[i].w_handle);
-                (*callback_table[i].w_handle) (callback_table[i].obj);
+                if (callback_table[i].w_handle)
+                    (*callback_table[i].w_handle) (callback_table[i].obj);
             }
             if (FD_ISSET (i, &fdset_tcl_x))
             {
-                assert (callback_table[i].x_handle);
-                (*callback_table[i].x_handle) (callback_table[i].obj);
+                if (callback_table[i].x_handle)
+                    (*callback_table[i].x_handle) (callback_table[i].obj);
             }
         }
         if (interactive && FD_ISSET(0, &fdset_tcl_r))

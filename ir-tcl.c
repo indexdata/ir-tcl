@@ -5,7 +5,12 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.69  1996-01-04 16:12:12  adam
+ * Revision 1.70  1996-01-10 09:18:34  adam
+ * PDU specific callbacks implemented: initRespnse, searchResponse,
+ *  presentResponse and scanResponse.
+ * Bug fix in the command line shell (tclmain.c) - discovered on OSF/1.
+ *
+ * Revision 1.69  1996/01/04  16:12:12  adam
  * Setting PDUType renamed to eventType.
  *
  * Revision 1.68  1996/01/04  11:05:22  adam
@@ -604,7 +609,7 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
     req->implementationVersion = p->implementationVersion;
     req->userInformationField = 0;
 
-    return ir_tcl_send_APDU (interp, p, apdu, "init", argv[0]);
+    return ir_tcl_send_APDU (interp, p, apdu, "init", *argv);
 }
 
 /*
@@ -1181,6 +1186,34 @@ static int do_failback (void *obj, Tcl_Interp *interp,
 }
 
 /*
+ * do_initResponse: add init response handler
+ */
+static int do_initResponse (void *obj, Tcl_Interp *interp,
+                            int argc, char **argv)
+{
+    IrTcl_Obj *p = obj;
+
+    if (argc == 0)
+    {
+        p->initResponse = NULL;
+        return TCL_OK;
+    }
+    else if (argc == -1)
+        return ir_tcl_strdel (interp, &p->initResponse);
+    if (argc == 3)
+    {
+        free (p->initResponse);
+        if (argv[2][0])
+        {
+            if (ir_tcl_strdup (interp, &p->initResponse, argv[2]) == TCL_ERROR)
+                return TCL_ERROR;
+        }
+        else
+            p->initResponse = NULL;
+    }
+    return TCL_OK;
+}
+/*
  * do_protocol: Set/get protocol method on IR object
  */
 static int do_protocol (void *o, Tcl_Interp *interp, int argc, char **argv)
@@ -1552,7 +1585,9 @@ static IrTcl_Method ir_method_tab[] = {
 { 0, "initResult",                  do_initResult },
 { 0, "disconnect",                  do_disconnect },
 { 0, "callback",                    do_callback },
+{ 0, "initResponse",                do_initResponse },
 { 0, "triggerResourceControl",      do_triggerResourceControl },
+{ 0, "initResponse",                do_initResponse },
 { 0, NULL, NULL}
 };
 
@@ -1821,7 +1856,67 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
         interp->result = "unknown query method";
         return TCL_ERROR;
     }
-    return ir_tcl_send_APDU (interp, p, apdu, "search", argv[0]);
+    return ir_tcl_send_APDU (interp, p, apdu, "search", *argv);
+}
+
+/*
+ * do_searchResponse: add search response handler
+ */
+static int do_searchResponse (void *o, Tcl_Interp *interp,
+                              int argc, char **argv)
+{
+    IrTcl_SetObj *obj = o;
+
+    if (argc == 0)
+    {
+        obj->searchResponse = NULL;
+        return TCL_OK;
+    }
+    else if (argc == -1)
+        return ir_tcl_strdel (interp, &obj->searchResponse);
+    if (argc == 3)
+    {
+        free (obj->searchResponse);
+        if (argv[2][0])
+        {
+            if (ir_tcl_strdup (interp, &obj->searchResponse, argv[2])
+                == TCL_ERROR)
+                return TCL_ERROR;
+        }
+        else
+            obj->searchResponse = NULL;
+    }
+    return TCL_OK;
+}
+
+/*
+ * do_presentResponse: add present response handler
+ */
+static int do_presentResponse (void *o, Tcl_Interp *interp,
+                               int argc, char **argv)
+{
+    IrTcl_SetObj *obj = o;
+
+    if (argc == 0)
+    {
+        obj->presentResponse = NULL;
+        return TCL_OK;
+    }
+    else if (argc == -1)
+        return ir_tcl_strdel (interp, &obj->presentResponse);
+    if (argc == 3)
+    {
+        free (obj->presentResponse);
+        if (argv[2][0])
+        {
+            if (ir_tcl_strdup (interp, &obj->presentResponse, argv[2])
+                == TCL_ERROR)
+                return TCL_ERROR;
+        }
+        else
+            obj->presentResponse = NULL;
+    }
+    return TCL_OK;
 }
 
 /*
@@ -2310,7 +2405,7 @@ static int do_present (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     else
         req->recordComposition = NULL;
-    return ir_tcl_send_APDU (interp, p, apdu, "present", argv[0]);
+    return ir_tcl_send_APDU (interp, p, apdu, "present", *argv);
 }
 
 /*
@@ -2356,6 +2451,8 @@ static int do_loadFile (void *o, Tcl_Interp *interp,
 
 static IrTcl_Method ir_set_method_tab[] = {
     { 0, "search",                  do_search },
+    { 0, "searchResponse",          do_searchResponse },
+    { 0, "presentResponse",         do_presentResponse },
     { 0, "searchStatus",            do_searchStatus },
     { 0, "presentStatus",           do_presentStatus },
     { 0, "nextResultSetPosition",   do_nextResultSetPosition },
@@ -2584,7 +2681,37 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     logf (LOG_DEBUG, "preferredPositionInResponse=%d",
           *req->preferredPositionInResponse);
     
-    return ir_tcl_send_APDU (interp, p, apdu, "scan", argv[0]);
+    return ir_tcl_send_APDU (interp, p, apdu, "scan", *argv);
+}
+
+/*
+ * do_scanResponse: add scan response handler
+ */
+static int do_scanResponse (void *o, Tcl_Interp *interp,
+                            int argc, char **argv)
+{
+    IrTcl_ScanObj *obj = o;
+
+    if (argc == 0)
+    {
+        obj->scanResponse = NULL;
+        return TCL_OK;
+    }
+    else if (argc == -1)
+        return ir_tcl_strdel (interp, &obj->scanResponse);
+    if (argc == 3)
+    {
+        free (obj->scanResponse);
+        if (argv[2][0])
+        {
+            if (ir_tcl_strdup (interp, &obj->scanResponse, argv[2])
+                == TCL_ERROR)
+                return TCL_ERROR;
+        }
+        else
+            obj->scanResponse = NULL;
+    }
+    return TCL_OK;
 }
 
 /*
@@ -2733,6 +2860,7 @@ static int do_scanLine (void *obj, Tcl_Interp *interp, int argc, char **argv)
 
 static IrTcl_Method ir_scan_method_tab[] = {
     { 0, "scan",                    do_scan },
+    { 0, "scanResponse",            do_scanResponse },
     { 0, "stepSize",                do_stepSize },
     { 0, "numberOfTermsRequested",  do_numberOfTermsRequested },
     { 0, "preferredPositionInResponse", do_preferredPositionInResponse },
@@ -3157,6 +3285,7 @@ void ir_select_read (ClientData clientData)
     IrTcl_Request *rq;
     char *object_name;
     Tcl_CmdInfo cmd_info;
+    const char *apdu_call;
 
     if (p->state == IR_TCL_R_Connecting)
     {
@@ -3235,6 +3364,7 @@ void ir_select_read (ClientData clientData)
         }
         object_name = rq->object_name;
         logf (LOG_DEBUG, "getCommandInfo (%s)", object_name);
+        apdu_call = NULL;
         if (Tcl_GetCommandInfo (p->interp, object_name, &cmd_info))
         {
             switch(apdu->which)
@@ -3242,21 +3372,28 @@ void ir_select_read (ClientData clientData)
             case Z_APDU_initResponse:
                 p->eventType = "init";
                 ir_initResponse (p, apdu->u.initResponse);
+		apdu_call = p->initResponse;
                 break;
             case Z_APDU_searchResponse:
                 p->eventType = "search";
                 ir_searchResponse (p, apdu->u.searchResponse,
                                    (IrTcl_SetObj *) cmd_info.clientData);
+                apdu_call = ((IrTcl_SetObj *) 
+                             cmd_info.clientData)->searchResponse;
                 break;
             case Z_APDU_presentResponse:
                 p->eventType = "present";
                 ir_presentResponse (p, apdu->u.presentResponse,
                                     (IrTcl_SetObj *) cmd_info.clientData);
+                apdu_call = ((IrTcl_SetObj *) 
+                             cmd_info.clientData)->presentResponse;
                 break;
             case Z_APDU_scanResponse:
                 p->eventType = "scan";
                 ir_scanResponse (p, apdu->u.scanResponse, 
                                  (IrTcl_ScanObj *) cmd_info.clientData);
+                apdu_call = ((IrTcl_ScanObj *) 
+                             cmd_info.clientData)->scanResponse;
                 break;
             default:
                 logf (LOG_WARN, "Received unknown APDU type (%d)",
@@ -3272,8 +3409,10 @@ void ir_select_read (ClientData clientData)
         }
         p->request_queue = rq->next;
         p->state = IR_TCL_R_Idle;
-        
-        if (rq->callback)
+       
+        if (apdu_call)
+            IrTcl_eval (p->interp, apdu_call);
+        else if (rq->callback)
             IrTcl_eval (p->interp, rq->callback);
         free (rq->buf_out);
         free (rq->callback);

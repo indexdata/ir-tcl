@@ -5,7 +5,12 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.21  1996-01-04 16:12:14  adam
+ * Revision 1.22  1996-01-10 09:18:44  adam
+ * PDU specific callbacks implemented: initRespnse, searchResponse,
+ *  presentResponse and scanResponse.
+ * Bug fix in the command line shell (tclmain.c) - discovered on OSF/1.
+ *
+ * Revision 1.21  1996/01/04  16:12:14  adam
  * Setting PDUType renamed to eventType.
  *
  * Revision 1.20  1996/01/04  11:05:23  adam
@@ -168,6 +173,7 @@ typedef struct {
     Tcl_Interp *interp;
     char       *callback;
     char       *failback;
+    char       *initResponse;
 
 #if CCL2RPN
     CCL_bibset  bibset;
@@ -253,6 +259,8 @@ typedef struct IrTcl_SetObj_ {
     int         recordFlag;
     int         which;
     int         nonSurrogateDiagnosticNum;
+    char       *searchResponse;
+    char       *presentResponse;
     IrTcl_Diagnostic *nonSurrogateDiagnosticList;
     IrTcl_RecordList *record_list;
     IrTcl_SetCObj set_inher;
@@ -288,6 +296,7 @@ typedef struct IrTcl_ScanObj_ {
     int         num_entries;
     int         num_diagRecs;
 
+    char        *scanResponse;
     IrTcl_ScanEntry *entries;
     IrTcl_Diagnostic  *nonSurrogateDiagnosticList;
     int         nonSurrogateDiagnosticNum;
