@@ -4,7 +4,12 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.18  1995-03-21 15:50:12  adam
+ * Revision 1.19  1995-03-28 12:45:23  adam
+ * New ir method failback: called on disconnect/protocol error.
+ * New ir set/get method: protocol: SR / Z3950.
+ * Simple popup and disconnect when failback is invoked.
+ *
+ * Revision 1.18  1995/03/21  15:50:12  adam
  * Minor changes.
  *
  * Revision 1.17  1995/03/21  13:41:03  adam
@@ -82,6 +87,7 @@
 
 typedef struct {
     char       *cs_type;
+    char       *protocol_type;
     int         connectFlag;
     COMSTACK    cs_link;
 
@@ -111,6 +117,7 @@ typedef struct {
 
     Tcl_Interp *interp;
     char       *callback;
+    char       *failback;
 
     int         smallSetUpperBound;
     int         largeSetLowerBound;
@@ -496,6 +503,7 @@ static int do_connect (void *obj, Tcl_Interp *interp,
     void *addr;
     IRObj *p = obj;
     int r;
+    int protocol_type = CS_Z3950;
 
     if (argc == 3)
     {
@@ -504,9 +512,18 @@ static int do_connect (void *obj, Tcl_Interp *interp,
             interp->result = "already connected";
             return TCL_ERROR;
         }
+        if (!strcmp (p->protocol_type, "Z3950"))
+            protocol_type = CS_Z3950;
+        else if (!strcmp (p->protocol_type, "SR"))
+            protocol_type = CS_SR;
+        else
+        {
+            interp->result = "bad protocol type";
+            return TCL_ERROR;
+        }
         if (!strcmp (p->cs_type, "tcpip"))
         {
-            p->cs_link = cs_create (tcpip_type, CS_BLOCK);
+            p->cs_link = cs_create (tcpip_type, CS_BLOCK, protocol_type);
             addr = tcpip_strtoaddr (argv[2]);
             if (!addr)
             {
@@ -518,7 +535,7 @@ static int do_connect (void *obj, Tcl_Interp *interp,
 #if MOSI
         else if (!strcmp (p->cs_type, "mosi"))
         {
-            p->cs_link = cs_create (mosi_type, CS_BLOCK);
+            p->cs_link = cs_create (mosi_type, CS_BLOCK, protocol_type);
             addr = mosi_strtoaddr (argv[2]);
             if (!addr)
             {
@@ -530,7 +547,7 @@ static int do_connect (void *obj, Tcl_Interp *interp,
 #endif
         else 
         {
-            interp->result = "unknown cs type";
+            interp->result = "unknown comstack type";
             return TCL_ERROR;
         }
         if (ir_strdup (interp, &p->hostname, argv[2]) == TCL_ERROR)
@@ -597,6 +614,24 @@ static int do_comstack (void *o, Tcl_Interp *interp,
 }
 
 /*
+ * do_protocol: Set/get protocol method on IR object
+ */
+static int do_protocol (void *o, Tcl_Interp *interp,
+		        int argc, char **argv)
+{
+    IRObj *obj = o;
+
+    if (argc == 3)
+    {
+        free (obj->protocol_type);
+        if (ir_strdup (interp, &obj->protocol_type, argv[2]) == TCL_ERROR)
+            return TCL_ERROR;
+    }
+    Tcl_AppendElement (interp, obj->protocol_type);
+    return TCL_OK;
+}
+
+/*
  * do_callback: add callback
  */
 static int do_callback (void *obj, Tcl_Interp *interp,
@@ -608,6 +643,24 @@ static int do_callback (void *obj, Tcl_Interp *interp,
     {
         free (p->callback);
         if (ir_strdup (interp, &p->callback, argv[2]) == TCL_ERROR)
+            return TCL_ERROR;
+        p->interp = interp;
+    }
+    return TCL_OK;
+}
+
+/*
+ * do_failback: add error handle callback
+ */
+static int do_failback (void *obj, Tcl_Interp *interp,
+                          int argc, char **argv)
+{
+    IRObj *p = obj;
+
+    if (argc == 3)
+    {
+        free (p->failback);
+        if (ir_strdup (interp, &p->failback, argv[2]) == TCL_ERROR)
             return TCL_ERROR;
         p->interp = interp;
     }
@@ -693,6 +746,7 @@ static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
 {
     static IRMethod tab[] = {
     { 1, "comstack",                do_comstack },
+    { 1, "protocol",                do_protocol },
     { 1, "connect",                 do_connect },
     { 0, "protocolVersion",         do_protocolVersion },
     { 0, "options",                 do_options },
@@ -704,6 +758,7 @@ static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
     { 0, "init",                    do_init_request },
     { 0, "disconnect",              do_disconnect },
     { 0, "callback",                do_callback },
+    { 0, "failback",                do_failback },
     { 1, "databaseNames",           do_databaseNames},
     { 1, "replaceIndicator",        do_replaceIndicator},
     { 1, "query",                   do_query },
@@ -739,6 +794,8 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     if (!(obj = ir_malloc (interp, sizeof(*obj))))
         return TCL_ERROR;
     if (ir_strdup (interp, &obj->cs_type, "tcpip") == TCL_ERROR)
+        return TCL_ERROR;
+    if (ir_strdup (interp, &obj->protocol_type, "Z3950") == TCL_ERROR)
         return TCL_ERROR;
     obj->cs_link = NULL;
 
@@ -793,6 +850,7 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     obj->buf_in = NULL;
 
     obj->callback = NULL;
+    obj->failback = NULL;
     Tcl_CreateCommand (interp, argv[1], ir_obj_method,
                        (ClientData) obj, ir_obj_delete);
     return TCL_OK;
@@ -870,7 +928,7 @@ static int do_search (void *o, Tcl_Interp *interp,
     {
         query.which = Z_Query_type_2;
         query.u.type_2 = &ccl_query;
-        ccl_query.buf = argv[2];
+        ccl_query.buf = (unsigned char *) argv[2];
         ccl_query.len = strlen (argv[2]);
         printf ("- CCL\n");
     }
@@ -1498,6 +1556,8 @@ void ir_select_read (ClientData clientData)
         if (r < 0)
         {
             printf ("cs_rcvconnect error\n");
+            if (p->failback)
+                Tcl_Eval (p->interp, p->failback);
             return;
         }
         if (p->callback)
@@ -1510,6 +1570,8 @@ void ir_select_read (ClientData clientData)
         {
             printf ("cs_get failed\n");
             ir_select_remove (cs_fileno (p->cs_link), p);
+            if (p->failback)
+                Tcl_Eval (p->interp, p->failback);
             return;
         }        
         if (r == 1)
@@ -1519,6 +1581,8 @@ void ir_select_read (ClientData clientData)
         if (!z_APDU (p->odr_in, &apdu, 0))
         {
             printf ("%s\n", odr_errlist [odr_geterror (p->odr_in)]);
+            if (p->failback)
+                Tcl_Eval (p->interp, p->failback);
             return;
         }
         switch(apdu->which)
@@ -1535,6 +1599,8 @@ void ir_select_read (ClientData clientData)
         default:
             printf("Received unknown APDU type (%d).\n", 
                    apdu->which);
+            if (p->failback)
+                Tcl_Eval (p->interp, p->failback);
         }
         if (p->callback)
 	    Tcl_Eval (p->interp, p->callback);
@@ -1560,6 +1626,8 @@ void ir_select_write (ClientData clientData)
         {
             printf ("cs_rcvconnect error\n");
             ir_select_remove_write (cs_fileno (p->cs_link), p);
+            if (p->failback)
+                Tcl_Eval (p->interp, p->failback);
             return;
         }
         ir_select_remove_write (cs_fileno (p->cs_link), p);
@@ -1571,6 +1639,8 @@ void ir_select_write (ClientData clientData)
     {   
         printf ("select write fail\n");
         cs_close (p->cs_link);
+        if (p->failback)
+            Tcl_Eval (p->interp, p->failback);
     }
     else if (r == 0)            /* remove select bit */
     {

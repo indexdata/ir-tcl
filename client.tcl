@@ -1,6 +1,11 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.14  1995-03-22 16:07:55  adam
+# Revision 1.15  1995-03-28 12:45:22  adam
+# New ir method failback: called on disconnect/protocol error.
+# New ir set/get method: protocol: SR / Z3950.
+# Simple popup and disconnect when failback is invoked.
+#
+# Revision 1.14  1995/03/22  16:07:55  adam
 # Minor changes.
 #
 # Revision 1.13  1995/03/21  17:27:26  adam
@@ -253,6 +258,11 @@ proc define-target-action {} {
     destroy .target-define
 }
 
+proc fail-response {target} {
+    close-target
+    tkerror "Target connection closed or protocol error"
+}
+
 proc connect-response {target} {
     puts "connect-response"
     show-target $target
@@ -263,9 +273,6 @@ proc open-target {target base} {
     global profile
     global hostid
 
-    set hostid $target
-    .top.target.m disable 0
-    .top.target.m enable 1
     z39 disconnect
     z39 comstack [lindex $profile($target) 6]
     # z39 idAuthentication [lindex $profile($target) 3]
@@ -280,9 +287,25 @@ proc open-target {target base} {
     } else {
         z39 databaseNames $base
     }
-    show-status {Connecting} 1
+    z39 failback [list fail-response $target]
     z39 callback [list connect-response $target]
     z39 connect [lindex $profile($target) 1]:[lindex $profile($target) 2]
+    show-status {Connecting} 1
+    set hostid $target
+    .top.target.m disable 0
+    .top.target.m enable 1
+}
+
+proc close-target {} {
+    global hostid
+
+    set hostid Default
+    z39 disconnect
+    show-target {None}
+    show-status {Not connected} 0
+    show-message {}
+    .top.target.m disable 1
+    .top.target.m enable 0
 }
 
 proc load-set-action {} {
@@ -501,17 +524,6 @@ proc define-target-dialog {} {
             {define-target-action} {destroy .target-define}
     
     top-down-ok-cancel $w {define-target-action} 1
-}
-
-proc close-target {} {
-    # pack forget .mid.searchlabel .mid.searchentry
-    #.mid.searchentry -state disabled
-    z39 disconnect
-    show-target {None}
-    show-status {Not connected} 0
-    show-message {}
-    .top.target.m disable 1
-    .top.target.m enable 0
 }
 
 proc protocol-setup-action {target} {
@@ -736,10 +748,6 @@ proc database-select {} {
     place-force $w .
 
     top-down-window $w
-
-    if {$hostid == ""} {
-        set hostid Default
-    }
 
     frame $w.top.databases -relief ridge -border 2
 
