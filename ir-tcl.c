@@ -4,7 +4,10 @@
  * See the file LICENSE for details.
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.126  2003-11-29 17:24:09  adam
+ * Revision 1.127  2004-05-10 08:38:45  adam
+ * Do not use obsolete YAZ defines
+ *
+ * Revision 1.126  2003/11/29 17:24:09  adam
  * Added getXml method (Franck Falcoz)
  *
  * Revision 1.125  2003/04/29 10:51:23  adam
@@ -1582,7 +1585,7 @@ static int do_triggerResourceControl (void *obj, Tcl_Interp *interp,
     }
     apdu = zget_APDU (p->odr_out, Z_APDU_triggerResourceControlRequest);
     req = apdu->u.triggerResourceControlRequest;
-    *req->requestedAction = Z_TriggerResourceCtrl_cancel;
+    *req->requestedAction = Z_TriggerResourceControlRequest_cancel;
     req->resultSetWanted = &is_false; 
     
     return ir_tcl_send_APDU (interp, p, apdu, "triggerResourceControl",
@@ -2436,16 +2439,16 @@ static int do_sortStatus (void *o, Tcl_Interp *interp,
 
     if (argc <= 0)
     {
-	obj->sortStatus = Z_SortStatus_failure;
+	obj->sortStatus = Z_SortResponse_failure;
         return TCL_OK;
     }
     switch (obj->sortStatus)
     {
-    case Z_SortStatus_success:
+    case Z_SortResponse_success:
         res = "success"; break;
-    case Z_SortStatus_partial_1:
+    case Z_SortResponse_partial_1:
         res = "partial"; break;
-    case Z_SortStatus_failure:
+    case Z_SortResponse_failure:
         res = "failure"; break;
     default:
 	res = "unknown"; break;
@@ -3282,10 +3285,10 @@ static int do_sort (void *o, Tcl_Interp *interp, int argc, char **argv)
         }
         sks->sortRelation = (int *)
 	    odr_malloc (p->odr_out, sizeof(*sks->sortRelation));
-        *sks->sortRelation = Z_SortRelation_ascending;
+        *sks->sortRelation = Z_SortKeySpec_ascending;
         sks->caseSensitivity = (int *)
 	    odr_malloc (p->odr_out, sizeof(*sks->caseSensitivity));
-        *sks->caseSensitivity = Z_SortCase_caseSensitive;
+        *sks->caseSensitivity = Z_SortKeySpec_caseSensitive;
 	
 #ifdef ASN_COMPILED
         sks->which = Z_SortKeySpec_null;
@@ -3301,20 +3304,20 @@ static int do_sort (void *o, Tcl_Interp *interp, int argc, char **argv)
             case 'a':
             case 'A':
             case '>':
-                *sks->sortRelation = Z_SortRelation_descending;
+                *sks->sortRelation = Z_SortKeySpec_descending;
                 break;
             case 'd':
             case 'D':
             case '<':
-                *sks->sortRelation = Z_SortRelation_ascending;
+                *sks->sortRelation = Z_SortKeySpec_ascending;
                 break;
             case 'i':
             case 'I':
-                *sks->caseSensitivity = Z_SortCase_caseInsensitive;
+                *sks->caseSensitivity = Z_SortKeySpec_caseInsensitive;
                 break;
             case 'S':
             case 's':
-                *sks->caseSensitivity = Z_SortCase_caseSensitive;
+                *sks->caseSensitivity = Z_SortKeySpec_caseSensitive;
                 break;
             }
         }
@@ -4299,7 +4302,7 @@ static void ir_searchResponse (void *o, Z_SearchResponse *searchrs,
     if (searchrs->presentStatus)
         setobj->presentStatus = *searchrs->presentStatus;
     else
-        setobj->presentStatus = Z_RES_NONE;
+        setobj->presentStatus = Z_SearchResponse_none;
     if (searchrs->nextResultSetPosition)
         setobj->nextResultSetPosition = *searchrs->nextResultSetPosition;
 
