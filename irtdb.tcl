@@ -278,7 +278,7 @@ set {profile(Data Research Associates,smallSetUpperBound)} 0
 set {profile(Data Research Associates,targetInfoName)} {}
 set {profile(Data Research Associates,timeDefine)} 944954622
 set {profile(Data Research Associates,timeLastExplain)} {}
-set {profile(Data Research Associates,timeLastInit)} 955717347
+set {profile(Data Research Associates,timeLastInit)} 983197460
 set {profile(Data Research Associates,welcomeMessage)} {}
 set {profile(Data Research Associates,windowNumber)} 5
 set profile(Default,authentication) {}
@@ -306,7 +306,7 @@ set profile(Default,timeDefine) {}
 set profile(Default,timeLastExplain) {}
 set profile(Default,timeLastInit) {}
 set profile(Default,welcomeMessage) {}
-set profile(Default,windowNumber) 20
+set profile(Default,windowNumber) 21
 set {profile(Emory Library Catalog,authentication)} {}
 set {profile(Emory Library Catalog,comstack)} tcpip
 set {profile(Emory Library Catalog,databases)} unicorn
@@ -335,6 +335,34 @@ set {profile(Emory Library Catalog,timeLastExplain)} {}
 set {profile(Emory Library Catalog,timeLastInit)} 971250665
 set {profile(Emory Library Catalog,welcomeMessage)} {}
 set {profile(Emory Library Catalog,windowNumber)} 9
+set profile(LOC,authentication) {}
+set profile(LOC,comstack) tcpip
+set profile(LOC,databases) voyager
+set profile(LOC,description) {}
+set profile(LOC,host) z3950.loc.gov
+set profile(LOC,idAuthentication) {}
+set profile(LOC,largeSetLowerBound) 2
+set profile(LOC,maxResultSets) {}
+set profile(LOC,maxResultSize) {}
+set profile(LOC,maxTerms) {}
+set profile(LOC,maximumRecordSize) 50000
+set profile(LOC,mediumSetPresentNumber) 0
+set profile(LOC,multipleDatabases) 0
+set profile(LOC,namedResultSets) 1
+set profile(LOC,port) 7090
+set profile(LOC,preferredMessageSize) 30000
+set profile(LOC,presentChunk) 4
+set profile(LOC,protocol) Z39
+set profile(LOC,queryCCL) 0
+set profile(LOC,queryRPN) 1
+set profile(LOC,recentNews) {}
+set profile(LOC,smallSetUpperBound) 0
+set profile(LOC,targetInfoName) {}
+set profile(LOC,timeDefine) 983197488
+set profile(LOC,timeLastExplain) {}
+set profile(LOC,timeLastInit) 983197499
+set profile(LOC,welcomeMessage) {}
+set profile(LOC,windowNumber) 20
 set {profile(OCLC First Search,authentication)} {}
 set {profile(OCLC First Search,comstack)} tcpip
 set {profile(OCLC First Search,databases)} {INSPEC HumanitiesIndex LibraryLiterature LegalPeriodicals MarcWorldCat Medline NewYorkTimes}

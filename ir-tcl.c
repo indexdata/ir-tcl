@@ -1,10 +1,13 @@
 /*
  * IR toolkit for tcl/tk
- * (c) Index Data 1995-2000
+ * (c) Index Data 1995-2001
  * See the file LICENSE for details.
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.116  2001-02-09 11:58:04  adam
+ * Revision 1.117  2001-03-26 11:39:34  adam
+ * Fixed bug in ir_deleteDiags - crash when receiving multiple diags.
+ *
+ * Revision 1.116  2001/02/09 11:58:04  adam
  * Updated for Tcl8.1 and higher where internal encoding is UTF-8.
  *
  * Revision 1.115  2000/09/13 12:18:49  adam
@@ -3863,7 +3866,7 @@ static void ir_deleteDiags (IrTcl_Diagnostic **dst_list, int *dst_num)
 {
     int i;
     for (i = 0; i<*dst_num; i++)
-        xfree (dst_list[i]->addinfo);
+        xfree ((*dst_list)[i].addinfo);
     xfree (*dst_list);
     *dst_list = NULL;
     *dst_num = 0;
