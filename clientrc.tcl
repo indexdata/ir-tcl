@@ -20,4 +20,4 @@ set {profile(AULS)} {{Acadia university} auls.acadiau.ca 210 {} 16384 8192 tcpip
 set {profile(dranet)} {dranet dranet.dra.com 210 {} 16384 16384 tcpip drewdb 1 {} {} z39v2 15}
 set queryTypes {Simple}
 set queryButtons { { {I 0} {I 1} {I 2} } }
-set queryInfo { { {Title {1=4}} {Author {1=1}}  {Subject {1=21}} {Any {1=1016}} } }
+set queryInfo { { {Title {1=4}} {Author {1=1}} {Subject {1=21}} {Any {1=1016}} } }
