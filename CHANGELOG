@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.38 1998-06-10 13:00:44 adam Exp $
+$Id: CHANGELOG,v 1.39 1999-02-11 11:07:52 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -123,3 +123,6 @@ $Id: CHANGELOG,v 1.38 1998-06-10 13:00:44 adam Exp $
 05/20/98 Updated Explain record support.
 
 06/10/98 Added ir-version command.
+
+02/11/99 Release of ir-tcl-1.3
+------------------------------------------------------
