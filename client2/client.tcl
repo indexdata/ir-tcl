@@ -3109,78 +3109,39 @@ proc index-lines {w realOp buttonInfo queryInfo handle} {
     }
 }
 
-# Procedure search-fields {w buttondefs}
-#  w           search fields entry frame
-#  buttondefs  button definitions
-# Makes search entry fields and listbuttons. 
-# Note: This procedure is not used elsewhere. The index-lines
-#       procedure is used instead.
-proc search-fields {w buttondefs} {
-    set i 0
-    foreach buttondef $buttondefs {
-        frame $w.$i -background white
-        
-        listbutton $w.$i.l 0 $buttondef
-        entry $w.$i.e -width 32 -relief sunken
-        
-        pack $w.$i.l -side left
-        pack $w.$i.e -side left -fill x -expand yes
-        pack $w.$i -side top -fill x -padx 2 -pady 2
-
-        bind $w.$i.e <Left> [list left-cursor $w.$i.e]
-        bind $w.$i.e <Right> [list right-cursor $w.$i.e]
-
-        incr i
-    }
-    set j 0
-    incr i -1
-    while {$j < $i} {
-        set k [expr $j+1]
-        bind $w.$j.e <Tab> "focus $w.$k.e \n
-        $w.$k configure -background red \n
-        $w.$j configure -background white"
-        set j $k
-    }
-    bind $w.$i.e <Tab> "focus $w.0.e \n
-        $w.0 configure -background red \n
-        $w.$i configure -background white"
-    focus $w.0.e
-    $w.0 configure -background red
-}
-
 #Procedure configureOptionsSyntax {target base}
 #target		target name
 #base 		database name
 #Changes the Options|Syntax menu acording to the information obtained via explain.
 proc configureOptionsSyntax {target base} {
-	global profile syntaxList recordSyntax syntax
+	global profile syntaxList recordSyntax 
 	set activate 0
 	set i -1
+	set w .top.options.m.syntax
 	if {[info exists profile($target,RecordSyntaxes,$base)]} {
 		foreach syntax $syntaxList {
 			incr i
 			if {$syntax == "sep"} {continue}
-			.top.options.m.syntax entryconfigure $i -variable 0
 			if {[lsearch $profile($target,RecordSyntaxes,$base) $syntax] != -1} {
-				configure-enable-e .top.options.m.syntax $i
+				configure-enable-e $w $i
 				if {$activate == 0} {
-					.top.options.m.syntax invoke $i
+					$w invoke $i
 					set recordSyntax $syntax
 #					.debug-window.top.t insert end $recordSyntax\n
 #					.debug-window.top.t insert end $syntax
 					set activate 1
 				}
 			} else {
-				configure-disable-e .top.options.m.syntax $i
+				configure-disable-e $w $i
 			}
 		}
 	} else {
 		foreach syntax $syntaxList {
 			incr i
 			if {$syntax == "sep"} {continue}
-			configure-enable-e .top.options.m.syntax $i
+			configure-enable-e $w $i
 		}
-		.top.options.m.syntax invoke 0
+		$w invoke 0
 	}
 }
 
@@ -3295,7 +3256,7 @@ irmenu .top.options.m.wrap
 
 # Init: Definition of the Options|Syntax menu.
 proc initOptionsSyntax {} {
-	global syntaxList 
+	global syntaxList recordSyntax
 	set w .top.options.m.syntax
 	irmenu $w
 	foreach syntax $syntaxList {

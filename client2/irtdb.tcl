@@ -23,7 +23,7 @@ set profile(BIBSYS,smallSetUpperBound) 0
 set profile(BIBSYS,targetInfoName) {}
 set profile(BIBSYS,timeDefine) 878567355
 set profile(BIBSYS,timeLastExplain) {}
-set profile(BIBSYS,timeLastInit) 907773417
+set profile(BIBSYS,timeLastInit) 908185845
 set profile(BIBSYS,welcomeMessage) {}
 set profile(BIBSYS,windowNumber) 3
 set profile(Bagel:210,AttributeDetails,gils,Bib1Use) {1012 1019 1007 62 1005 4}
@@ -55,8 +55,8 @@ set profile(Bagel:210,recentNews) {}
 set profile(Bagel:210,smallSetUpperBound) 0
 set profile(Bagel:210,targetInfoName) Zebra
 set profile(Bagel:210,timeDefine) {}
-set profile(Bagel:210,timeLastExplain) 908180779
-set profile(Bagel:210,timeLastInit) 908180779
+set profile(Bagel:210,timeLastExplain) 908184800
+set profile(Bagel:210,timeLastInit) 908184800
 set profile(Bagel:210,welcomeMessage) {}
 set profile(Bagel:210,windowNumber) 1
 set {profile(Bell Laboratories Library Network,authentication)} {}
