@@ -4,7 +4,10 @@
  * See the file LICENSE for details.
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.127  2004-05-10 08:38:45  adam
+ * Revision 1.128  2005-03-10 13:54:56  adam
+ * Remove CCL support for scan
+ *
+ * Revision 1.127  2004/05/10 08:38:45  adam
  * Do not use obsolete YAZ defines
  *
  * Revision 1.126  2003/11/29 17:24:09  adam
@@ -3588,8 +3591,6 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     req->num_databaseNames = p->set_inher.num_databaseNames;
     req->databaseNames = p->set_inher.databaseNames;
 
-#if 1 
-/* !CCL2RPN */
     if (!(req->termListAndStartPoint =
           p_query_scan (p->odr_out, p->protocol_type,
                         &req->attributeSet, start_term)))
@@ -3598,25 +3599,6 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
 	code = ir_tcl_error_exec (interp, argc, argv);
 	goto out;
     }
-#else
-    rpn = ccl_find_str(p->bibset, start_term, &r, &pos);
-    if (r)
-    {
-        Tcl_AppendResult (interp, "ccl syntax error ", ccl_err_msg(r), NULL);
-        code = ir_tcl_error_exec (interp, argc, argv);
-	goto out;
-    }
-    bib1.proto = p->protocol_type;
-    bib1.oclass = CLASS_ATTSET;
-    bib1.value = VAL_BIB1;
-
-    req->attributeSet = oid_getoidbyent (&bib1);
-    if (!(req->termListAndStartPoint = ccl_scan_query (p->odr_out, rpn)))
-    {
-        code = TCL_ERROR;
-	goto out;
-    }
-#endif
     req->stepSize = &obj->stepSize;
     req->numberOfTermsRequested = &obj->numberOfTermsRequested;
     req->preferredPositionInResponse = &obj->preferredPositionInResponse;
