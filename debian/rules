@@ -90,7 +90,7 @@ binary-indep: build install
 binary-arch: build install
 	dh_testdir
 	dh_testroot
-	dh_movefiles -p ir-tcl usr/lib/ir-tcl usr/bin
+	dh_movefiles -p ir-tcl usr/lib/irtcl usr/bin
 
 	cp CHANGELOG changelog
 	cp LICENSE debian/copyright
