@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.32  1995-05-29 08:44:16  adam
+ * Revision 1.33  1995-05-29 09:15:11  quinn
+ * Changed CS_SR to PROTO_SR, etc.
+ *
+ * Revision 1.32  1995/05/29  08:44:16  adam
  * Work on delete of objects.
  *
  * Revision 1.31  1995/05/26  11:44:10  adam
@@ -759,7 +762,7 @@ static int do_connect (void *obj, Tcl_Interp *interp,
     void *addr;
     IRObj *p = obj;
     int r;
-    int protocol_type = CS_Z3950;
+    int protocol_type = PROTO_Z3950;
 
     if (argc <= 0)
         return TCL_OK;
@@ -771,9 +774,9 @@ static int do_connect (void *obj, Tcl_Interp *interp,
             return TCL_ERROR;
         }
         if (!strcmp (p->protocol_type, "Z3950"))
-            protocol_type = CS_Z3950;
+            protocol_type = PROTO_Z3950;
         else if (!strcmp (p->protocol_type, "SR"))
-            protocol_type = CS_SR;
+            protocol_type = PROTO_SR;
         else
         {
             interp->result = "bad protocol type";
