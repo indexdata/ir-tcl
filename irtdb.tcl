@@ -84,7 +84,7 @@ set profile(AGCI,timeDefine) 944954173
 set profile(AGCI,timeLastExplain) {}
 set profile(AGCI,timeLastInit) {}
 set profile(AGCI,welcomeMessage) {}
-set profile(AGCI,windowNumber) 13
+set profile(AGCI,windowNumber) 14
 set profile(BIBSYS,authentication) {}
 set profile(BIBSYS,comstack) tcpip
 set profile(BIBSYS,databases) {BIBSYS PERI}
@@ -140,7 +140,7 @@ set {profile(Bell Laboratories Library Network,timeDefine)} {}
 set {profile(Bell Laboratories Library Network,timeLastExplain)} {}
 set {profile(Bell Laboratories Library Network,timeLastInit)} 944953393
 set {profile(Bell Laboratories Library Network,welcomeMessage)} {}
-set {profile(Bell Laboratories Library Network,windowNumber)} 14
+set {profile(Bell Laboratories Library Network,windowNumber)} 15
 set {profile(Bibliotheque Nationale du Quebec,authentication)} {}
 set {profile(Bibliotheque Nationale du Quebec,comstack)} tcpip
 set {profile(Bibliotheque Nationale du Quebec,databases)} IRIS
@@ -168,7 +168,7 @@ set {profile(Bibliotheque Nationale du Quebec,timeDefine)} 944954227
 set {profile(Bibliotheque Nationale du Quebec,timeLastExplain)} {}
 set {profile(Bibliotheque Nationale du Quebec,timeLastInit)} 944955787
 set {profile(Bibliotheque Nationale du Quebec,welcomeMessage)} {}
-set {profile(Bibliotheque Nationale du Quebec,windowNumber)} 8
+set {profile(Bibliotheque Nationale du Quebec,windowNumber)} 9
 set {profile(Colorado Alliance of Research Libraries,authentication)} {}
 set {profile(Colorado Alliance of Research Libraries,comstack)} tcpip
 set {profile(Colorado Alliance of Research Libraries,databases)} {AIM ARA BEM CDE CSP DPL EST LAM LUT MCC MIN NEL NEU NJC OTE PPC PUE RGU RRC STR TKO TRI WYO}
@@ -196,7 +196,7 @@ set {profile(Colorado Alliance of Research Libraries,timeDefine)} 944954480
 set {profile(Colorado Alliance of Research Libraries,timeLastExplain)} {}
 set {profile(Colorado Alliance of Research Libraries,timeLastInit)} {}
 set {profile(Colorado Alliance of Research Libraries,welcomeMessage)} {}
-set {profile(Colorado Alliance of Research Libraries,windowNumber)} 12
+set {profile(Colorado Alliance of Research Libraries,windowNumber)} 13
 set {profile(DTV Alis,authentication)} {}
 set {profile(DTV Alis,comstack)} tcpip
 set {profile(DTV Alis,databases)} DTV01
@@ -252,7 +252,7 @@ set {profile(DanBib V2,timeDefine)} 944954541
 set {profile(DanBib V2,timeLastExplain)} {}
 set {profile(DanBib V2,timeLastInit)} 971251341
 set {profile(DanBib V2,welcomeMessage)} {}
-set {profile(DanBib V2,windowNumber)} 11
+set {profile(DanBib V2,windowNumber)} 12
 set {profile(Data Research Associates,authentication)} {}
 set {profile(Data Research Associates,comstack)} tcpip
 set {profile(Data Research Associates,databases)} DREWDB
@@ -306,7 +306,7 @@ set profile(Default,timeDefine) {}
 set profile(Default,timeLastExplain) {}
 set profile(Default,timeLastInit) {}
 set profile(Default,welcomeMessage) {}
-set profile(Default,windowNumber) 21
+set profile(Default,windowNumber) 22
 set {profile(Emory Library Catalog,authentication)} {}
 set {profile(Emory Library Catalog,comstack)} tcpip
 set {profile(Emory Library Catalog,databases)} unicorn
@@ -334,7 +334,7 @@ set {profile(Emory Library Catalog,timeDefine)} 944954832
 set {profile(Emory Library Catalog,timeLastExplain)} {}
 set {profile(Emory Library Catalog,timeLastInit)} 971250665
 set {profile(Emory Library Catalog,welcomeMessage)} {}
-set {profile(Emory Library Catalog,windowNumber)} 9
+set {profile(Emory Library Catalog,windowNumber)} 10
 set profile(LOC,authentication) {}
 set profile(LOC,comstack) tcpip
 set profile(LOC,databases) voyager
@@ -362,7 +362,7 @@ set profile(LOC,timeDefine) 983197488
 set profile(LOC,timeLastExplain) {}
 set profile(LOC,timeLastInit) 983197499
 set profile(LOC,welcomeMessage) {}
-set profile(LOC,windowNumber) 20
+set profile(LOC,windowNumber) 7
 set {profile(OCLC First Search,authentication)} {}
 set {profile(OCLC First Search,comstack)} tcpip
 set {profile(OCLC First Search,databases)} {INSPEC HumanitiesIndex LibraryLiterature LegalPeriodicals MarcWorldCat Medline NewYorkTimes}
@@ -390,7 +390,7 @@ set {profile(OCLC First Search,timeDefine)} 944955039
 set {profile(OCLC First Search,timeLastExplain)} {}
 set {profile(OCLC First Search,timeLastInit)} {}
 set {profile(OCLC First Search,welcomeMessage)} {}
-set {profile(OCLC First Search,windowNumber)} 10
+set {profile(OCLC First Search,windowNumber)} 11
 set {profile(Royal Library of Denmark,authentication)} {}
 set {profile(Royal Library of Denmark,comstack)} tcpip
 set {profile(Royal Library of Denmark,databases)} {BGF01 BHS01 DJM01 DRA01 GRB01 KAB01 KBB01 KBH01 KBK01 KDM01 KLG01 KUI01 KVF01 NIA01 SAB01}
@@ -446,7 +446,7 @@ set {profile(University of Arkansas,timeDefine)} 944956252
 set {profile(University of Arkansas,timeLastExplain)} {}
 set {profile(University of Arkansas,timeLastInit)} 971251409
 set {profile(University of Arkansas,welcomeMessage)} {}
-set {profile(University of Arkansas,windowNumber)} 15
+set {profile(University of Arkansas,windowNumber)} 16
 set {profile(University of British Columbia,authentication)} {}
 set {profile(University of British Columbia,comstack)} tcpip
 set {profile(University of British Columbia,databases)} MARION
@@ -474,7 +474,7 @@ set {profile(University of British Columbia,timeDefine)} 944955536
 set {profile(University of British Columbia,timeLastExplain)} {}
 set {profile(University of British Columbia,timeLastInit)} 944955627
 set {profile(University of British Columbia,welcomeMessage)} {}
-set {profile(University of British Columbia,windowNumber)} 19
+set {profile(University of British Columbia,windowNumber)} 20
 set {profile(University of California MELVYL,authentication)} {}
 set {profile(University of California MELVYL,comstack)} tcpip
 set {profile(University of California MELVYL,databases)} PE
@@ -502,7 +502,7 @@ set {profile(University of California MELVYL,timeDefine)} 944955670
 set {profile(University of California MELVYL,timeLastExplain)} {}
 set {profile(University of California MELVYL,timeLastInit)} 944955675
 set {profile(University of California MELVYL,welcomeMessage)} {}
-set {profile(University of California MELVYL,windowNumber)} 17
+set {profile(University of California MELVYL,windowNumber)} 18
 set {profile(University of Illinois,authentication)} {}
 set {profile(University of Illinois,comstack)} tcpip
 set {profile(University of Illinois,databases)} {UICOPAC2 UICOPAC1}
@@ -530,10 +530,10 @@ set {profile(University of Illinois,timeDefine)} 944955869
 set {profile(University of Illinois,timeLastExplain)} {}
 set {profile(University of Illinois,timeLastInit)} 944956081
 set {profile(University of Illinois,welcomeMessage)} {}
-set {profile(University of Illinois,windowNumber)} 7
+set {profile(University of Illinois,windowNumber)} 8
 set profile(indexdata,authentication) {}
 set profile(indexdata,comstack) tcpip
-set profile(indexdata,databases) {dranet.dra.com IR-Explain-1 gils marc}
+set profile(indexdata,databases) {dranet.dra.com IR-Explain-1 gils marc zoom}
 set profile(indexdata,description) {}
 set profile(indexdata,host) bagel.indexdata.dk
 set profile(indexdata,idAuthentication) {}
@@ -555,10 +555,38 @@ set profile(indexdata,recentNews) {}
 set profile(indexdata,smallSetUpperBound) 0
 set profile(indexdata,targetInfoName) Zebra
 set profile(indexdata,timeDefine) 944954185
-set profile(indexdata,timeLastExplain) 971253620
+set profile(indexdata,timeLastExplain) 1007339347
 set profile(indexdata,timeLastInit) 971253620
 set profile(indexdata,welcomeMessage) {}
-set profile(indexdata,windowNumber) 18
+set profile(indexdata,windowNumber) 19
+set profile(localhost,authentication) {}
+set profile(localhost,comstack) tcpip
+set profile(localhost,databases) Default
+set profile(localhost,description) {}
+set profile(localhost,host) localhost
+set profile(localhost,idAuthentication) {}
+set profile(localhost,largeSetLowerBound) 2
+set profile(localhost,maxResultSets) {}
+set profile(localhost,maxResultSize) {}
+set profile(localhost,maxTerms) {}
+set profile(localhost,maximumRecordSize) 50000
+set profile(localhost,mediumSetPresentNumber) 0
+set profile(localhost,multipleDatabases) 0
+set profile(localhost,namedResultSets) 1
+set profile(localhost,port) 9999
+set profile(localhost,preferredMessageSize) 30000
+set profile(localhost,presentChunk) 4
+set profile(localhost,protocol) Z39
+set profile(localhost,queryCCL) 0
+set profile(localhost,queryRPN) 1
+set profile(localhost,recentNews) {}
+set profile(localhost,smallSetUpperBound) 0
+set profile(localhost,targetInfoName) {}
+set profile(localhost,timeDefine) 1007339366
+set profile(localhost,timeLastExplain) {}
+set profile(localhost,timeLastInit) 1007339370
+set profile(localhost,welcomeMessage) {}
+set profile(localhost,windowNumber) 21
 set queryTypes Simple
 set queryButtons {{ {I 0} {I 1} {I 2} }}
 set queryInfo {{{Title {1=4}} {Author {1=1003}}  {Subject {1=21}} {Any {1=1016}} {Abstract {1=62}}}}

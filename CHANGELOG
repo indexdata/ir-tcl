@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.46 2001-03-27 16:27:21 adam Exp $
+$Id: CHANGELOG,v 1.47 2001-12-03 00:31:06 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -144,3 +144,9 @@ $Id: CHANGELOG,v 1.46 2001-03-27 16:27:21 adam Exp $
 03/27/01 Fixed bug in do_responseStatus. Thanks to Rustam T. Usmanov
           <rustam@unilib.neva.ru>
 
+12/03/01 Configure deals with Tcl layout for Debian GNU/Linux.
+
+12/03/01 Changed Implemenation strings for IrTcl.
+
+XX/XX/01 Release of ir-tcl-1.4
+------------------------------------------------------

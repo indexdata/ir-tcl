@@ -4,7 +4,10 @@
  * See the file LICENSE for details.
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.118  2001-03-27 16:27:21  adam
+ * Revision 1.119  2001-12-03 00:31:06  adam
+ * Towards 1.4. Configure updates.
+ *
+ * Revision 1.118  2001/03/27 16:27:21  adam
  * Fixed bug in do_responseStatus.
  *
  * Revision 1.117  2001/03/26 11:39:34  adam
@@ -1038,7 +1041,7 @@ static int do_implementationName (void *obj, Tcl_Interp *interp,
 
     if (argc == 0)
         return ir_tcl_strdup (interp, &p->implementationName,
-                          "Index Data/IrTcl on YAZ");
+                          "IrTcl/YAZ");
     else if (argc == -1)
         return ir_tcl_strdel (interp, &p->implementationName);
     if (argc == 3)
@@ -1061,7 +1064,7 @@ static int do_implementationId (void *obj, Tcl_Interp *interp,
     IrTcl_Obj *p = obj;
 
     if (argc == 0)
-        return ir_tcl_strdup (interp, &p->implementationId, "YAZ (id=81)");
+        return ir_tcl_strdup (interp, &p->implementationId, "81");
     else if (argc == -1)
         return ir_tcl_strdel (interp, &p->implementationId);
     Tcl_AppendResult (interp, p->implementationId, (char*) NULL);
@@ -1078,10 +1081,10 @@ static int do_implementationVersion (void *obj, Tcl_Interp *interp,
 
     if (argc == 0)
         return ir_tcl_strdup (interp, &p->implementationVersion, 
-                          "YAZ: " YAZ_VERSION
 #ifdef IR_TCL_VERSION
-                          " / Irtcl: " IR_TCL_VERSION
+                          IR_TCL_VERSION "/"
 #endif
+                          YAZ_VERSION
                           );
     else if (argc == -1)
         return ir_tcl_strdel (interp, &p->implementationVersion);
@@ -3457,7 +3460,8 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     req->num_databaseNames = p->set_inher.num_databaseNames;
     req->databaseNames = p->set_inher.databaseNames;
 
-#if !CCL2RPN
+#if 1 
+/* !CCL2RPN */
     if (!(req->termListAndStartPoint =
           p_query_scan (p->odr_out, p->protocol_type,
                         &req->attributeSet, start_term)))

@@ -1,7 +1,7 @@
 dnl IR toolkit for tcl/tk
-dnl (c) Index Data 1996-1999
+dnl (c) Index Data 1996-2001
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.30 2001-02-09 12:04:53 adam Exp $
+dnl $Id: configure.in,v 1.31 2001-12-03 00:31:06 adam Exp $
 AC_INIT(ir-tcl.h)
 dnl ------ Substitutions
 AC_SUBST(CC)
@@ -35,6 +35,9 @@ if test "x$tclconfig" = xNONE; then
         saveprefix=${prefix}
 	AC_PREFIX_PROGRAM(tclsh)
 	if test "x$prefix" = xNONE; then
+		AC_PREFIX_PROGRAM(tclsh8.3)
+	fi
+	if test "x$prefix" = xNONE; then
 		AC_PREFIX_PROGRAM(tclsh8.2)
 	fi
 	if test "x$prefix" = xNONE; then
@@ -60,7 +63,9 @@ if test -r ${tclconfig}/tclConfig.sh; then
 	AC_MSG_CHECKING(for Tcl)
 	. ${tclconfig}/tclConfig.sh
 	TCLLIB="${TCL_LIB_SPEC} ${TCL_LIBS}"
-	if test "${TCL_PREFIX}" = "/usr"; then
+	if test -d ${TCL_PREFIX}/include/tcl${TCL_VERSION}; then
+		TCLINC=-I${TCL_PREFIX}/include/tcl${TCL_VERSION}
+	elif test "${TCL_PREFIX}" = "/usr"; then
 		TCLINC=""
 	else
 		TCLINC=-I${TCL_PREFIX}/include

@@ -1,8 +1,8 @@
 # IRTCL makefile for MS NMAKE 
-# $Id: makefile,v 1.1 1999-09-10 10:02:29 adam Exp $
+# $Id: makefile,v 1.2 2001-12-03 00:31:06 adam Exp $
 #
 # Log at the end of the file
-VERSION=1.3
+VERSION=1.4
  
 ###########################################################
 ############### Parameters 
@@ -213,7 +213,10 @@ $(ALL_OBJS): makefile
 ###########################################################
 #
 # $Log: makefile,v $
-# Revision 1.1  1999-09-10 10:02:29  adam
+# Revision 1.2  2001-12-03 00:31:06  adam
+# Towards 1.4. Configure updates.
+#
+# Revision 1.1  1999/09/10 10:02:29  adam
 # Added MS NMAKE files - removed project files.
 #
 
