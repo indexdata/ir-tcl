@@ -1,14 +1,14 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.20 1996-07-25 13:44:04 adam Exp $
+  $Id: ir-tcl.sgml,v 1.21 1996-08-08 14:41:57 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference 
 <author><htmlurl url="http://www.indexdata.dk/" name="Index Data">,
 <tt><htmlurl url="mailto:info@index.ping.dk" name="info@index.ping.dk"></tt>
-<date>$Revision: 1.20 $
+<date>$Revision: 1.21 $
 <abstract>
 This document describes IrTcl -- an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
@@ -53,7 +53,7 @@ In order to compile you need:
 <item> An ANSI C compiler such as GNU C.
 <item> <htmlurl url="http://www.sunlabs.com/research/tcl/" name="Tcl">.
  Version 7.3, 7.4 and 7.5 has been tested.
-<item> <htmlurl url="http://130.225.252.168/yaz.html" name="YAZ">
+<item> <htmlurl url="http://www.indexdata.dk/yaz.html" name="YAZ">
  version 1.2 or higher.
 </itemize>
 
