@@ -1,6 +1,6 @@
 .\" Copyright (c) 1995, 1996 Index Data
 .\" All rights reserved.
-.\" $Id: ir-assoc.n,v 1.1 1996-06-24 13:58:45 adam Exp $
+.\" $Id: ir-assoc.n,v 1.2 1996-06-24 16:24:38 adam Exp $
 .TH ir-assoc N  "24 June 1996" "IrTcl" "IR Association"
 .SH NAME
 ir \- IR association 
@@ -119,4 +119,4 @@ Gets the the user-information-field; this should be inspected when
 the connection is rejected by the target (\fBinitResult\fR returns 0).
 
 .SH "SEE ALSO"
-.BR ir-set "(n)"
+.BR ir-set "(n)", " " ir-scan "(n)"

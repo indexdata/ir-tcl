@@ -1,0 +1,61 @@
+.\" Copyright (c) 1995, 1996 Index Data
+.\" All rights reserved.
+.\" $Id: ir-scan.n,v 1.1 1996-06-24 16:24:39 adam Exp $
+.TH ir-scan N  "24 June 1996" "IrTcl" "IR Scan"
+.SH NAME
+ir-scan \- IR scan
+.SH SYNOPSIS
+.BI "ir-scan " zs " " za
+.sp
+.SH DESCRIPTION
+The Tcl command
+.B ir-scan
+creates an IR scan object \fIzs\fR that belongs to the IR association \fIza\fR.
+The ir-scan describes a scan object and the scan terms returned by a target.
+When a scan object is created it contains no scan terms (yet).
+When scan terms are returned by the target they are automatically stored
+at their logical positions. 
+.SH SCAN REQUEST
+Operations that are used to scan (browse) a target:
+.TP
+.BI "" za " databaseNames " db1 " " db2 " " ...
+Sets the database(s) to be used in the following scan request(s).
+.TP
+.BI "" zs " scan " query
+Sends a scan request. The \fIquery\fR must follow the RPN-query syntax.
+.TP
+.BI "" zs " stepSize [" size "]"
+Sets/gets the step-size to be used in the following scan requests. Default
+is 0.
+.TP
+.BI "" zs " numberOfTermsRequested [" number "]"
+Sets/gets the number-of-terms-requested used in the following scan requests.
+Defaults to 20.
+.TP
+.BI "" zs " preferredPositionInResponse [" position "]"
+Sets/gets the preferred-position-in-response. Defaults to 1.
+.SH SCAN RESPONSE
+Operations used to handle the scan-response:
+.TP
+.BI "" zs " scanStatus"
+Returns the scan status (integer).
+.TP
+.BI "" zs " numberOfEntriesReturned"
+Returns the number-of-entries returned by the target.
+.TP
+.BI "" zs " positionOfTerm"
+Returns position-of-term.
+.TP
+.BI "" zs " stepSize"
+Returns the step-size of the terms returned by the target.
+.TP
+.BI "" zs " scanLine " position
+Returns information about the scan-term at the given \fIposition\fR.
+If the first token returned is \fBSD\fR the rest of the scan term
+describes a surrogate diagnostic message and the three tokens that follow
+are error-code, error-message and additional-information respectively; if
+the first token is \fBT\fR the rest is a normal scan term and two tokens
+that follow are the token itself and the number of occurrences; finally, if
+no scan term is available at the position, the empty string is returned.
+.SH "SEE ALSO"
+.BR ir-assoc "(n)" , " " ir-set "(n)"

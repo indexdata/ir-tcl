@@ -1,14 +1,14 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.18 1996-02-21 15:55:00 quinn Exp $
+  $Id: ir-tcl.sgml,v 1.19 1996-06-24 16:24:39 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference 
 <author><htmlurl url="http://www.indexdata.dk/" name="Index Data">,
 <tt><htmlurl url="mailto:info@index.ping.dk" name="info@index.ping.dk"></tt>
-<date>$Revision: 1.18 $
+<date>$Revision: 1.19 $
 <abstract>
 This document describes IrTcl -- an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
@@ -94,6 +94,11 @@ Tk is present) and a library called <tt>libirtcl.a</tt>.
 To install the programs and support files type:
 <tscreen><verb>
 $ make install
+</verb></tscreen>
+
+If you wish to install man pages type:
+<tscreen><verb>
+$ make install.man
 </verb></tscreen>
 
 Summary of files installed (the names refer to the Makefile variables):
@@ -1141,7 +1146,7 @@ been created.
 <sect>License
 
 <p>
-Copyright &copy; 1995, Index Data.
+Copyright &copy; 1995-1996, Index Data.
 
 Permission to use, copy, modify, distribute, and sell this software and
 its documentation, in whole or in part, for any purpose, is hereby granted,

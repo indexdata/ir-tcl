@@ -1,6 +1,6 @@
 .\" Copyright (c) 1995, 1996 Index Data
 .\" All rights reserved.
-.\" $Id: ir-set.n,v 1.1 1996-06-24 13:58:47 adam Exp $
+.\" $Id: ir-set.n,v 1.2 1996-06-24 16:24:39 adam Exp $
 .TH ir-set N  "24 June 1996" "IrTcl" "IR Set"
 .SH NAME
 ir-set \- IR  set
@@ -161,11 +161,18 @@ be extracted. The \fIspec\fR masks the GRS-1 tag at the first level
 second-level, and so on.
 Each \fIspec\fR has the format \fB(\fItag-set\fB,\fItag-value\fB)\fR, where
 \fItag-type\fR specifies the tag set and the \fItag-value\fR specifies the
-tag value. The GRS-1 record is returned as a Tcl list. Each element consists
-of 5 elements: \fItag-set\fR, \fItag-type\fR, \fItag-value\fR,
-\fIdata-type\fR, \fIdata\fR. The \fItype-type\fR is either \fBnumeric\fR or
-\fBstring\fR. The \fIdata-type\fR is one of: \fBoctets\fR, \fBnumeric\fR,
+tag value.
+The GRS-1 record is returned as a Tcl list. Each element in the
+list consists of a list with 5 (sub) elements: \fItag-set\fR,
+\fItag-type\fR, \fItag-value\fR, \fIdata-type\fR, \fIdata\fR.
+The \fItype-type\fR is either \fBnumeric\fR or \fBstring\fR.
+The \fIdata-type\fR is one of: \fBoctets\fR, \fBnumeric\fR,
 \fBext\fR, \fBstring\fR, \fBbool\fR, \fBintUnit\fR, \fBempty\fR, 
-\fBnotRequested\fR, \fBdiagnostic\fR or \fBsubtree\fR. 
+\fBnotRequested\fR, \fBdiagnostic\fR or \fBsubtree\fR.
+If \fIdata-type\fR is \fBnumeric\fR or \fBstring\fR then \fIdata\fR is
+encoded as a single Tcl token. The \fIdata-type\fR \fBbool\fR is encoded
+as 0 or 1 for false and true respectively. If the \fIdata-type\fR is
+\fBsubtree\fR the \fIdata\fR is a sub-list. In all other cases, the
+\fIdata\fR is the empty string.
 .SH "SEE ALSO"
-.BR ir-assoc "(n)"
+.BR ir-assoc "(n)", " " ir-scan "(n)"
