@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: marc.c,v $
- * Revision 1.6  1995-08-28 12:21:22  adam
+ * Revision 1.7  1995-11-09 15:24:02  adam
+ * Allow charsets [..] in record match.
+ *
+ * Revision 1.6  1995/08/28  12:21:22  adam
  * Removed lines and list as synonyms of list in MARC extractron.
  * Configure searches also for tk4.0 / tcl7.4.
  *
@@ -60,18 +63,39 @@ static int atoi_n (const char *buf, int len)
 
 static int marc_compare (const char *f, const char *p)
 {
+    int ch;
+
     if (*p == '*')
         return 0;
     if (!f)
         return -*p;
-    for (; *f && *p; f++, p++)
-    {
-        if (*p == '?')
-	    continue;
-	if (*p != *f)
-	    break;
-    }
-    return *f - *p;
+    for (; (ch = *p) && *f; f++, p++)
+        switch (*p)
+        {
+        case '*':
+            return 0;
+        case '?':
+            ch = *f;
+            break;
+        case '[':
+            while (1)
+                if (!*++p)
+                    break;
+                else if (*p == ']')
+                {
+                    p++;
+                    break;
+                }
+                else if (*p == *f)
+                    ch = *p;
+            if (ch != *p)
+                return *f - ch;
+            break;
+        default:
+            if (ch != *f)
+                return *f - ch;
+        }
+    return *f - ch;
 }
 
 char *ir_tcl_fread_marc (FILE *inf, size_t *size)
