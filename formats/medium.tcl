@@ -1,6 +1,21 @@
+# IR toolkit for tcl/tk
+# (c) Index Data 1995
+# See the file LICENSE for details.
+# Sebastian Hammer, Adam Dickmeiss
+#
+# $Log: medium.tcl,v $
+# Revision 1.2  1995-06-12 15:18:10  adam
+# Work on presentation formats. These are used in the main window as well
+# as popup windows.
+#
+#
 
-proc display-nice {sno no w} {
-    $w delete 0.0 end
+proc display-medium {sno no w hflag} {
+    if {$hflag} {
+        insertWithTags $w "\n$no\n" marc-data
+    } else {
+        $w delete 0.0 end
+    }
     set i [z39.$sno getMarc $no field 245 * a]
     if {$i != ""} {
         set i [lindex $i 0]
