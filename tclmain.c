@@ -2,7 +2,10 @@
  * IR toolkit for tcl/tk
  * (c) Index Data 1995
  *
- * $Id: tclmain.c,v 1.3 1995-03-09 08:35:58 adam Exp $
+ * $Log: tclmain.c,v $
+ * Revision 1.4  1995-03-17 07:50:31  adam
+ * Headers have changed a little.
+ *
  */
 
 #include <sys/time.h>
