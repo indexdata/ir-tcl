@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.86  1996-03-20 13:54:04  adam
+ * Revision 1.87  1996-05-29 06:37:51  adam
+ * Function ir_tcl_get_grs_r enhanced so that specific elements can be
+ * extracted.
+ *
+ * Revision 1.86  1996/03/20 13:54:04  adam
  * The Tcl_File structure is only manipulated in the Tk-event interface
  * in tkinit.c.
  *
@@ -407,8 +411,10 @@ int ir_tcl_eval (Tcl_Interp *interp, const char *command)
     strcpy (tmp, command);
     r = Tcl_Eval (interp, tmp);
     if (r == TCL_ERROR)
+    {
         logf (LOG_WARN, "Tcl error in line %d: %s", interp->errorLine, 
               interp->result);
+    }
     Tcl_FreeResult (interp);
     free (tmp);
     return r;

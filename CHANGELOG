@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.15 1996-02-05 17:58:02 adam Exp $
+$Id: CHANGELOG,v 1.16 1996-05-29 06:37:40 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -79,5 +79,11 @@ $Id: CHANGELOG,v 1.15 1996-02-05 17:58:02 adam Exp $
 
 05/02/96 Ported ir-tcl to Tcl7.5b1/tk4.1b1. Ir-tcl is now incompatible with
          the alpha versions of tcl7.5/tk4.1.
+
+20/02/96 Identification of record syntaxes, etc. are handled by the YAZ
+         oid utilities.
+
+29/05/96 Set function getGrs enhanced so that specific elements can be
+         extracted by <tagType>.<tagVal> - pairs.
 
 
