@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.84  1996-03-07 12:42:49  adam
+ * Revision 1.85  1996-03-15 11:15:48  adam
+ * Modified to use new prototypes for p_query_rpn and p_query_scan.
+ *
+ * Revision 1.84  1996/03/07  12:42:49  adam
  * Better logging when callback is invoked.
  *
  * Revision 1.83  1996/03/05  09:21:09  adam
@@ -1600,8 +1603,9 @@ static int do_preferredRecordSyntax (void *obj, Tcl_Interp *interp,
     }
     else if (argc == 2)
     {
-        Tcl_AppendElement (interp, IrTcl_getRecordSyntaxStr
-                           (*p->preferredRecordSyntax));
+        Tcl_AppendElement
+            (interp,!p->preferredRecordSyntax ? "" :
+             IrTcl_getRecordSyntaxStr(*p->preferredRecordSyntax));
     }
     return TCL_OK;
             
@@ -1876,7 +1880,6 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
     IrTcl_SetObj *obj = o;
     IrTcl_Obj *p;
     int r;
-    oident bib1;
 
     if (argc <= 0)
         return TCL_OK;
@@ -1901,10 +1904,6 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
     req = apdu->u.searchRequest;
 
     obj->start = 1;
-
-    bib1.proto = p->protocol_type;
-    bib1.oclass = CLASS_ATTSET;
-    bib1.value = VAL_BIB1;
 
     set_referenceId (p->odr_out, &req->referenceId,
                      obj->set_inher.referenceId);
@@ -1963,13 +1962,12 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
     {
         Z_RPNQuery *RPNquery;
 
-        RPNquery = p_query_rpn (p->odr_out, argv[2]);
+        RPNquery = p_query_rpn (p->odr_out, p->protocol_type, argv[2]);
         if (!RPNquery)
         {
             Tcl_AppendResult (interp, "Syntax error in query", NULL);
             return TCL_ERROR;
         }
-        RPNquery->attributeSetId = oid_getoidbyent (&bib1);
         query.which = Z_Query_type_1;
         query.u.type_1 = RPNquery;
         logf (LOG_DEBUG, "RPN");
@@ -1981,6 +1979,11 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
         int pos;
         struct ccl_rpn_node *rpn;
         Z_RPNQuery *RPNquery;
+        oident bib1;
+
+        bib1.proto = p->protocol_type;
+        bib1.oclass = CLASS_ATTSET;
+        bib1.value = VAL_BIB1;
 
         rpn = ccl_find_str(p->bibset, argv[2], &error, &pos);
         if (error)
@@ -2812,8 +2815,8 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     Z_APDU *apdu;
     IrTcl_ScanObj *obj = o;
     IrTcl_Obj *p = obj->parent;
-    oident bib1;
 #if CCL2RPN
+    oident bib1;
     struct ccl_rpn_node *rpn;
     int pos;
 #endif
@@ -2836,20 +2839,17 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
         return TCL_ERROR;
     }
 
-    bib1.proto = p->protocol_type;
-    bib1.oclass = CLASS_ATTSET;
-    bib1.value = VAL_BIB1;
-
     apdu = zget_APDU (p->odr_out, Z_APDU_scanRequest);
     req = apdu->u.scanRequest;
 
     set_referenceId (p->odr_out, &req->referenceId, p->set_inher.referenceId);
     req->num_databaseNames = p->set_inher.num_databaseNames;
     req->databaseNames = p->set_inher.databaseNames;
-    req->attributeSet = oid_getoidbyent (&bib1);
 
 #if !CCL2RPN
-    if (!(req->termListAndStartPoint = p_query_scan (p->odr_out, argv[2])))
+    if (!(req->termListAndStartPoint =
+          p_query_scan (p->odr_out, p->protocol_type,
+                        &req->attributeSet, argv[2])))
     {
         Tcl_AppendResult (interp, "Syntax error in query", NULL);
         return TCL_ERROR;
@@ -2861,6 +2861,11 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
         Tcl_AppendResult (interp, "CCL error: ", ccl_err_msg (r), NULL);
         return TCL_ERROR;
     }
+    bib1.proto = p->protocol_type;
+    bib1.oclass = CLASS_ATTSET;
+    bib1.value = VAL_BIB1;
+
+    req->attributeSet = oid_getoidbyent (&bib1);
     ccl_pr_tree (rpn, stderr);
     fprintf (stderr, "\n");
     if (!(req->termListAndStartPoint = ccl_scan_query (rpn)))
