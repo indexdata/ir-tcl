@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.64  1995-08-24 15:33:02  adam
+# Revision 1.65  1995-08-24 15:39:09  adam
+# Minor changes.
+#
+# Revision 1.64  1995/08/24  15:33:02  adam
 # Minor changes.
 #
 # Revision 1.63  1995/08/04  13:20:48  adam
@@ -348,7 +351,6 @@ proc set-wrap {m} {
 }
 
 proc dputs {m} {
-   puts $m
 }
 
 proc set-display-format {f} {
@@ -3083,7 +3085,7 @@ if {[tk4]} {
 }
 frame .bot.a
 pack .bot.a -side left -fill x
-pack .bot.logo -side right -padx 2 -pady 2
+pack .bot.logo -side right -padx 2 -pady 2 -ipadx 1
 
 message .bot.a.target -text "" -aspect 1000 -border 1
 
@@ -3099,6 +3101,6 @@ pack .bot.a.status .bot.a.set .bot.a.message \
         -side left -padx 2 -pady 2 -ipadx 1 -ipady 1
 
 ir z39
-z39 logLevel all
+#z39 logLevel all
 show-logo 1
 
