@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.31 1997-04-13 19:05:26 adam Exp $
+$Id: CHANGELOG,v 1.32 1997-04-30 07:26:05 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -118,3 +118,4 @@ $Id: CHANGELOG,v 1.31 1997-04-13 19:05:26 adam Exp $
 
 04/13/97 Added ir-log-init command.
 
+04/30/97 Added shared library support.

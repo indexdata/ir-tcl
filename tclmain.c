@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: tclmain.c,v $
- * Revision 1.19  1996-08-20 09:27:49  adam
+ * Revision 1.20  1997-04-30 07:26:08  adam
+ * Added support for shared libaries (if supported by Tcl itself).
+ *
+ * Revision 1.19  1996/08/20 09:27:49  adam
  * More work on explain.
  * Renamed tkinit.c to tkmain.c. The tcl shell uses the Tcl 7.5 interface
  * for socket i/o instead of the handcrafted one (for Tcl 7.3 and Tcl7.4).
@@ -39,6 +42,7 @@ int Tcl_AppInit (Tcl_Interp *interp)
 }
 
 #if TCL_MAJOR_VERSION > 7 || (TCL_MAJOR_VERSION == 7 && TCL_MINOR_VERSION > 4)
+/* new version of tcl: version > 7.4 */
 extern int matherr ();
 int *tclDummyMathPtr = (int*) matherr;
 
@@ -49,6 +53,8 @@ int main (int argc, char **argv)
 }
 
 #else
+/* old version of tcl: version <= 7.4 */
+
 static char *fileName = NULL;
 extern int main ();
 int *tclDummyMainPtr = (int*) main;

@@ -2,7 +2,7 @@
 # (c) Index Data 1995-1996
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.42 1996-11-14 17:11:04 adam Exp $
+# $Id: Makefile.in,v 1.43 1997-04-30 07:26:06 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -32,6 +32,12 @@ TCLINC=@TCLINC@
 TKLIB=@TKLIB@
 TKINC=@TKINC@
 
+# Shared libraries definitions
+SHLIB_CFLAGS = @SHLIB_CFLAGS@
+SHLIB_LD = @SHLIB_LD@
+SHLIB_SUFFIX = @SHLIB_SUFFIX@
+SHLIB_VERSION = @SHLIB_VERSION@
+
 # MOSI settings, directory with libmosi.a and source
 MOSI=@MOSI@
 MOSIDIR=@MOSIDIR@
@@ -51,6 +57,7 @@ DEFS=-DCCL2RPN=0 @DEFS@ -DMOSI=$(MOSI) -DIRTCLDIR=\"$(IRTCLDIR)\" \
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_DATA = @INSTALL_DATA@
+
 RANLIB = @RANLIB@
 
 O=ir-tcl.o marc.o queue.o mem.o grs.o explain.o select.o
@@ -63,6 +70,15 @@ ir-tk: libirtcl.a tkmain.o
 ir-tcl: libirtcl.a tclmain.o
 	$(CC) $(CFLAGS) tclmain.o -o ir-tcl libirtcl.a $(YAZLIB) $(TCLLIB) 
 
+libirtcl.a: $(O)
+	rm -f libirtcl.a
+	ar qc libirtcl.a $(O)
+	$(RANLIB) libirtcl.a
+
+@SHLIB_IRTCL@: $(O)
+	rm -f @SHLIB_IRTCL@
+	${SHLIB_LD} -o @SHLIB_IRTCL@ $(O) $(YAZLIB)
+
 WAISDIR=../freeWAIS-sf-2.0
 
 wais-tcl: libirtcl.a wais-tcl.o waismain.o
@@ -74,11 +90,6 @@ waismain.o: tclmain.c
 
 wais-tcl.o: wais-tcl.c
 	$(CC) -c $(CFLAGS) -I$(WAISDIR)/ir $(DEFS) wais-tcl.c
-
-libirtcl.a: $(O)
-	rm -f libirtcl.a
-	ar qc libirtcl.a $(O)
-	$(RANLIB) libirtcl.a
 
 install.man:
 	@echo "Installation of man-pages"
@@ -176,7 +187,7 @@ distribution:
 	rm -fr tmp
 
 .c.o:
-	$(CC) -c $(CFLAGS) $(DEFS) $<
+	$(CC) -c $(CFLAGS) $(SHLIB_CFLAGS) $(DEFS) $<
 
 $(O) tkmain.o tclmain.o wais-tcl.o waismain.o: ir-tcl.h ir-tclp.h
 
