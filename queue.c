@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: queue.c,v $
- * Revision 1.12  1999-04-20 10:01:46  adam
+ * Revision 1.13  2003-03-05 21:21:42  adam
+ * APDU log. default largeSetLowerBound changed from 2 to 1
+ *
+ * Revision 1.12  1999/04/20 10:01:46  adam
  * Modified calls to ODR encoders/decoders (name argument).
  *
  * Revision 1.11  1996/07/03 13:31:14  adam
@@ -73,6 +76,8 @@ int ir_tcl_send_APDU (Tcl_Interp *interp, IrTcl_Obj *p, Z_APDU *apdu,
         odr_reset (p->odr_out);
         return TCL_ERROR;
     }
+    if (p->odr_pr)
+        z_APDU (p->odr_pr, &apdu, 0, 0);
     rp = &p->request_queue;
     while (*rp)
         rp = &(*rp)->next;

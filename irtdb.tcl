@@ -587,7 +587,7 @@ set profile(localhost,smallSetUpperBound) 0
 set profile(localhost,targetInfoName) {}
 set profile(localhost,timeDefine) 1007339366
 set profile(localhost,timeLastExplain) {}
-set profile(localhost,timeLastInit) 1007339370
+set profile(localhost,timeLastInit) 1046896330
 set profile(localhost,welcomeMessage) {}
 set profile(localhost,windowNumber) 13
 set queryTypes Simple

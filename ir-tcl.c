@@ -4,7 +4,10 @@
  * See the file LICENSE for details.
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.122  2003-03-05 18:02:08  adam
+ * Revision 1.123  2003-03-05 21:21:41  adam
+ * APDU log. default largeSetLowerBound changed from 2 to 1
+ *
+ * Revision 1.122  2003/03/05 18:02:08  adam
  * Fix bug with idAuthentication that didn't work for empty group.
  *
  * Revision 1.121  2003/01/30 13:27:07  adam
@@ -464,6 +467,7 @@
 #endif
 
 static char *wrongArgs = "wrong # args: should be \"";
+static FILE *odr_print_file = 0;
 
 static int ir_tcl_error_exec (Tcl_Interp *interp, int argc, char **argv)
 {
@@ -1705,7 +1709,7 @@ static int do_largeSetLowerBound (void *o, Tcl_Interp *interp,
 
     if (argc <= 0)
     {
-        p->largeSetLowerBound = 2;
+        p->largeSetLowerBound = 1;
         return TCL_OK;
     }
     return ir_tcl_get_set_int (&p->largeSetLowerBound, interp, argc, argv);
@@ -1965,7 +1969,11 @@ static void ir_obj_delete (ClientData clientData)
     ir_tcl_del_q (obj);
     odr_destroy (obj->odr_in);
     odr_destroy (obj->odr_out);
-    odr_destroy (obj->odr_pr);
+    if (obj->odr_pr)
+    {
+        obj->odr_pr->print = 0;
+        odr_destroy (obj->odr_pr);
+    }
     xfree (obj);
 }
 
@@ -2002,7 +2010,12 @@ int ir_obj_init (ClientData clientData, Tcl_Interp *interp,
     obj->odr_in = odr_createmem (ODR_DECODE);
     odr_choice_enable_bias (obj->odr_in, 0);
     obj->odr_out = odr_createmem (ODR_ENCODE);
-    obj->odr_pr = odr_createmem (ODR_PRINT);
+    obj->odr_pr = 0;
+    if (odr_print_file)
+    {
+        obj->odr_pr = odr_createmem (ODR_PRINT);
+	odr_setprint(obj->odr_pr, odr_print_file);
+    }
     obj->state = IR_TCL_R_Idle;
     obj->interp = interp;
 
@@ -3845,18 +3858,24 @@ static int ir_scan_obj_mk (ClientData clientData, Tcl_Interp *interp,
 static int ir_log_init_proc (ClientData clientData, Tcl_Interp *interp,
                              int argc, char **argv)
 {
+    int lev;
     if (argc <= 1 || argc > 4)
     {
         Tcl_AppendResult (interp, wrongArgs, *argv,
                           " ?level ?prefix ?filename\"", NULL);
         return TCL_OK;
     }
+    lev = yaz_log_mask_str (argv[1]);
     if (argc == 2)
-        yaz_log_init (yaz_log_mask_str (argv[1]), "", NULL);
+        yaz_log_init (lev, "", NULL);
     else if (argc == 3)
-        yaz_log_init (yaz_log_mask_str (argv[1]), argv[2], NULL);
+        yaz_log_init (lev, argv[2], NULL);
     else 
-        yaz_log_init (yaz_log_mask_str (argv[1]), argv[2], argv[3]);
+        yaz_log_init (lev, argv[2], argv[3]);
+    if (lev & LOG_DEBUG)
+        odr_print_file = yaz_log_file();
+    else
+        odr_print_file = 0;
     return TCL_OK;
 }
 
@@ -4497,14 +4516,16 @@ static void ir_select_read (ClientData clientData)
             ir_obj_delete ((ClientData) p);
             return;
         }
+	if (p->odr_pr)
+	    z_APDU(p->odr_pr, &apdu, 0, 0);
         /* handle APDU and invoke callback */
         rq = p->request_queue;
-	  if (!rq)
-	  {
-		/* no corresponding request. Skip it. */
-		logf(LOG_DEBUG, "no corresponding request. Skipping it");
+	if (!rq)
+	{
+	    /* no corresponding request. Skip it. */
+	    logf(LOG_DEBUG, "no corresponding request. Skipping it");
             p->state = IR_TCL_R_Idle;
-		return;
+	    return;
         }
         object_name = rq->object_name;
         logf (LOG_DEBUG, "Object %s", object_name);
