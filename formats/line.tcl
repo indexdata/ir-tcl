@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: line.tcl,v $
-# Revision 1.8  1995-10-17 10:58:08  adam
+# Revision 1.9  1995-10-17 14:18:09  adam
+# Minor changes in presentation formats.
+#
+# Revision 1.8  1995/10/17  10:58:08  adam
 # More work on presentation formats.
 #
 # Revision 1.7  1995/09/20  11:37:06  adam
@@ -45,7 +48,7 @@ proc display-grs-line {w r i} {
             insertWithTags $w "\n" {}
             display-grs-line $w [lindex $e 4] [expr $i+1]
         } else {
-            insertWithTags [lindex $e 4] {}
+            insertWithTags $w [lindex $e 4] {}
             insertWithTags $w " ?\n" {}
         }
     }

@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.74  1995-10-17 12:18:57  adam
+# Revision 1.75  1995-10-17 14:18:05  adam
+# Minor changes in presentation formats.
+#
+# Revision 1.74  1995/10/17  12:18:57  adam
 # Bug fix: when target connection closed, the connection was not
 # properly reestablished.
 #
@@ -3171,7 +3174,7 @@ if {! $monoFlag} {
 }
 .data.record tag configure marc-data -foreground black
 .data.record tag configure marc-head \
-        -font -Adobe-Times-Medium-R-Normal-*-140-* \
+        -font -Adobe-Times-Bold-R-Normal-*-140-* \
         -foreground brown -relief raised -borderwidth 1
 .data.record tag configure marc-small-head -foreground brown
 .data.record tag configure marc-pref \

@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: medium.tcl,v $
-# Revision 1.8  1995-10-17 10:58:09  adam
+# Revision 1.9  1995-10-17 14:18:10  adam
+# Minor changes in presentation formats.
+#
+# Revision 1.8  1995/10/17  10:58:09  adam
 # More work on presentation formats.
 #
 # Revision 1.7  1995/10/16  17:01:03  adam
@@ -36,13 +39,13 @@ proc display-grs-medium {w r i} {
         }
         insertWithTags $w "([lindex $e 0]:[lindex $e 2]) " marc-tag
         if {[lindex $e 3] == "string"} {
-            insertWithTags $w [lindex $e 4] marc-text
-            insertWithTags $w "\n" marc-text
+            insertWithTags $w [lindex $e 4] {}
+            insertWithTags $w "\n"
         } elseif {[lindex $e 3] == "subtree"} {
-            insertWithTags $w "\n" marc-text
+            insertWithTags $w "\n"
             display-grs-medium $w [lindex $e 4] [expr $i+1]
         } else {
-            insertWithTags [lindex $e 4] {}
+            insertWithTags $w [lindex $e 4] {}
             insertWithTags $w " ?\n" {}
         }
     }
