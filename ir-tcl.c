@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.53  1995-08-04 12:49:26  adam
+ * Revision 1.54  1995-08-24 12:25:16  adam
+ * Modified to work with yaz 1.0b3.
+ *
+ * Revision 1.53  1995/08/04  12:49:26  adam
  * Bug fix: reading uninitialized variable p.
  *
  * Revision 1.52  1995/08/04  11:32:38  adam
@@ -2632,12 +2635,12 @@ static void ir_handleRecords (void *o, Z_Records *zrs, IrTcl_SetObj *setobj)
             else
             {
                 Z_DatabaseRecord *zr; 
-                Odr_external *oe;
+                Z_External *oe;
                 struct oident *ident;
                 
                 zr = zrs->u.databaseOrSurDiagnostics->records[offset]
                     ->u.databaseRecord;
-                oe = (Odr_external*) zr;
+                oe = (Z_External*) zr;
 		rl->u.dbrec.size = zr->u.octet_aligned->len;
 
                 rl->u.dbrec.type = VAL_USMARC;
@@ -2650,27 +2653,17 @@ static void ir_handleRecords (void *o, Z_Records *zrs, IrTcl_SetObj *setobj)
 		        memcpy (rl->u.dbrec.buf, buf, rl->u.dbrec.size);
                 }
                 else if (rl->u.dbrec.type == VAL_SUTRS && 
-                         oe->which == ODR_EXTERNAL_single)
+                         oe->which == Z_External_sutrs)
                 {
-                    Odr_oct *rc;
-                    
-                    logf (LOG_DEBUG, "Decoding SUTRS");
                     odr_setbuf (p->odr_in, (char*) oe->u.single_ASN1_type->buf,
                                 oe->u.single_ASN1_type->len, 0);
-                    if (!z_SUTRS(p->odr_in, &rc, 0))
+                    if ((rl->u.dbrec.buf = ir_tcl_malloc (oe->u.sutrs->len+1)))
                     {
-                        logf (LOG_WARN, "Cannot decode SUTRS");
-                        rl->u.dbrec.buf = NULL;
+                        memcpy (rl->u.dbrec.buf, oe->u.sutrs->buf,
+                                oe->u.sutrs->len);
+                        rl->u.dbrec.buf[oe->u.sutrs->len] = '\0';
                     }
-                    else 
-                    {
-                        if ((rl->u.dbrec.buf = ir_tcl_malloc (rc->len+1)))
-                        {
-                            memcpy (rl->u.dbrec.buf, rc->buf, rc->len);
-                            rl->u.dbrec.buf[rc->len] = '\0';
-                        }
-                        rl->u.dbrec.size = rc->len;
-                    }
+                    rl->u.dbrec.size = oe->u.sutrs->len;
                 }
                 else
                     rl->u.dbrec.buf = NULL;
