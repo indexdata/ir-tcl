@@ -2,7 +2,7 @@
 # (c) Index Data 1995
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.32 1996-03-27 08:38:30 adam Exp $
+# $Id: Makefile.in,v 1.33 1996-03-27 17:00:08 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -21,18 +21,16 @@ INCDIR=$(prefix)/include
 IRTCLDIR=$(prefix)/lib/irtcl
 
 YAZDIR=@YAZDIR@
-LIBS=@LIBS@
 
 CC=@CC@
 
-# X11 libraries and include file paths
-XLIB=@XLIBSW@
-XINCLUDE=@XINCLUDES@
-
-# Tcl/Tk libraries and include files
+# Tcl libraries and include files
 TCLLIB=@TCLLIB@
-TKLIB=@TKLIB@
 TCLINCLUDE=@TCLINCLUDE@
+
+# Tk & X11 libraries and include files
+TKLIB=@TKLIB@
+TKINCLUDE=@TKINCLUDE@
 
 # MOSI settings, directory with libmosi.a and source
 MOSI=@MOSI@
@@ -44,7 +42,7 @@ MOSIINC=@MOSIINC@
 YAZLIB=$(YAZDIR)/lib/libyaz.a $(MOSILIB)
 
 # All include paths
-INCLUDE=-I. -I$(YAZDIR)/include $(XINCLUDE) $(TCLINCLUDE) $(MOSIINC)
+INCLUDE=-I. -I$(YAZDIR)/include $(TKINCLUDE) $(TCLINCLUDE) $(MOSIINC)
 
 # All command line options except CFLAGS
 DEFS=-DCCL2RPN=0 @DEFS@ -DMOSI=$(MOSI) -DIRTCLDIR=\"$(IRTCLDIR)\" \
@@ -60,16 +58,16 @@ O=ir-tcl.o marc.o queue.o mem.o grs.o
 all: ir-tcl ir-tk
 
 ir-tk: libirtcl.a tkinit.o
-	$(CC) $(CFLAGS) tkinit.o -o ir-tk libirtcl.a $(YAZLIB) $(TKLIB) \
-	$(TCLLIB) $(XLIB) $(LIBS)
+	$(CC) $(CFLAGS) tkinit.o -o ir-tk libirtcl.a $(YAZLIB) $(TKLIB) 
 
 ir-tcl: libirtcl.a tclmain.o
-	$(CC) $(CFLAGS) tclmain.o -o ir-tcl libirtcl.a $(YAZLIB) $(TCLLIB) $(LIBS)
+	$(CC) $(CFLAGS) tclmain.o -o ir-tcl libirtcl.a $(YAZLIB) $(TCLLIB) 
 
 WAISDIR=../freeWAIS-sf-2.0
 
 wais-tcl: libirtcl.a wais-tcl.o waismain.o
-	$(CC) $(CFLAGS) wais-tcl.o waismain.o -o wais-tcl libirtcl.a $(YAZLIB) $(TCLLIB) $(WAISDIR)/ir/libwais.a $(LIBS)
+	$(CC) $(CFLAGS) wais-tcl.o waismain.o -o wais-tcl libirtcl.a \
+		$(YAZLIB)  $(WAISDIR)/ir/libwais.a $(TCLLIB)
 
 waismain.o: tclmain.c
 	$(CC) -c $(CFLAGS) -DUSE_WAIS=1 $(DEFS) tclmain.c -o waismain.o
