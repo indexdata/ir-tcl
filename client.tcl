@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.65  1995-08-24 15:39:09  adam
+# Revision 1.66  1995-08-29 15:30:13  adam
+# Work on GRS records.
+#
+# Revision 1.65  1995/08/24  15:39:09  adam
 # Minor changes.
 #
 # Revision 1.64  1995/08/24  15:33:02  adam
@@ -331,7 +334,9 @@ proc tkerror err {
 proc read-formats {} {
     global displayFormats
     global libdir
-    set formats [glob -nocomplain ${libdir}/formats/*.tcl]
+    if {[catch {set formats [glob -nocomplain ${libdir}/formats/*.tcl]}]} {
+        set formats ./formats/raw.tcl
+    }
     foreach f $formats {
 	if {[file readable $f]} {
             source $f
@@ -3035,6 +3040,9 @@ menu .top.options.m.syntax
 .top.options.m.syntax add separator
 .top.options.m.syntax add radiobutton -label "SUTRS" \
         -value SUTRS -variable recordSyntax
+.top.options.m.syntax add separator
+.top.options.m.syntax add radiobutton -label "GRS1" \
+        -value GRS1 -variable recordSyntax
 
 menubutton .top.help -text "Help" -menu .top.help.m
 menu .top.help.m

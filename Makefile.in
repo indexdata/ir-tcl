@@ -2,7 +2,7 @@
 # (c) Index Data 1995
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.15 1995-08-04 11:32:36 adam Exp $
+# $Id: Makefile.in,v 1.16 1995-08-29 15:30:12 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -52,7 +52,7 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_DATA = @INSTALL_DATA@
 RANLIB = @RANLIB@
 
-O=ir-tcl.o marc.o queue.o mem.o
+O=ir-tcl.o marc.o queue.o mem.o grs.o
 
 all: ir-tk ir-tcl
 

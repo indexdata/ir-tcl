@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.55  1995-08-28 09:43:25  adam
+ * Revision 1.56  1995-08-29 15:30:14  adam
+ * Work on GRS records.
+ *
+ * Revision 1.55  1995/08/28  09:43:25  adam
  * Minor changes. configure only searches for yaz beta 3 and versions after
  * that.
  *
@@ -272,6 +275,7 @@ static struct {
 { VAL_AUSMARC,    "AUSMARC" },
 { VAL_IBERMARC,   "IBERMARC" },
 { VAL_SUTRS,      "SUTRS" },
+{ VAL_GRS1,       "GRS1" },
 { 0, NULL }
 };
 
@@ -1929,6 +1933,41 @@ static int do_getSutrs (void *o, Tcl_Interp *interp, int argc, char **argv)
 
 
 /*
+ * do_getGrs: Get a GRS1 Record
+ */
+static int do_getGrs (void *o, Tcl_Interp *interp, int argc, char **argv)
+{
+    IrTcl_SetObj *obj = o;
+    int offset;
+    IrTcl_RecordList *rl;
+
+    if (argc <= 0)
+        return TCL_OK;
+    if (argc < 3)
+    {
+        sprintf (interp->result, "wrong # args");
+        return TCL_ERROR;
+    }
+    if (Tcl_GetInt (interp, argv[2], &offset)==TCL_ERROR)
+        return TCL_ERROR;
+    rl = find_IR_record (obj, offset);
+    if (!rl)
+    {
+        Tcl_AppendResult (interp, "No record at #", argv[2], NULL);
+        return TCL_ERROR;
+    }
+    if (rl->which != Z_NamePlusRecord_databaseRecord)
+    {
+        Tcl_AppendResult (interp, "No DB record at #", argv[2], NULL);
+        return TCL_ERROR;
+    }
+    if (rl->u.dbrec.type != VAL_GRS1)
+        return TCL_OK;
+    return ir_tcl_get_grs (interp, rl->u.dbrec.u.grs1, argc, argv);
+}
+
+
+/*
  * do_responseStatus: Return response status (present or search)
  */
 static int do_responseStatus (void *o, Tcl_Interp *interp, 
@@ -2086,6 +2125,7 @@ static IrTcl_Method ir_set_method_tab[] = {
     { 0, "type",                    do_type },
     { 0, "getMarc",                 do_getMarc },
     { 0, "getSutrs",                do_getSutrs },
+    { 0, "getGrs",                  do_getGrs },
     { 0, "recordType",              do_recordType },
     { 0, "diag",                    do_diag },
     { 0, "responseStatus",          do_responseStatus },
@@ -2644,9 +2684,11 @@ static void ir_handleRecords (void *o, Z_Records *zrs, IrTcl_SetObj *setobj)
                 oe = (Z_External*) zr;
 		rl->u.dbrec.size = zr->u.octet_aligned->len;
 
-                rl->u.dbrec.type = VAL_USMARC;
                 if ((ident = oid_getentbyoid (oe->direct_reference)))
                     rl->u.dbrec.type = ident->value;
+                else
+                    rl->u.dbrec.type = VAL_USMARC;
+
                 if (oe->which == ODR_EXTERNAL_octet && rl->u.dbrec.size > 0)
                 {
                     char *buf = (char*) zr->u.octet_aligned->buf;
@@ -2665,6 +2707,12 @@ static void ir_handleRecords (void *o, Z_Records *zrs, IrTcl_SetObj *setobj)
                         rl->u.dbrec.buf[oe->u.sutrs->len] = '\0';
                     }
                     rl->u.dbrec.size = oe->u.sutrs->len;
+                }
+                else if (rl->u.dbrec.type == VAL_GRS1 && 
+                         oe->which == Z_External_grs1)
+                {
+                    ir_tcl_read_grs (oe->u.grs1, &rl->u.dbrec.u.grs1);
+                    rl->u.dbrec.buf = NULL;
                 }
                 else
                     rl->u.dbrec.buf = NULL;

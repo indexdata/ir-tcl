@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.14  1995-08-04 11:32:40  adam
+ * Revision 1.15  1995-08-29 15:30:15  adam
+ * Work on GRS records.
+ *
+ * Revision 1.14  1995/08/04  11:32:40  adam
  * More work on output queue. Memory related routines moved
  * to mem.c
  *
@@ -163,6 +166,25 @@ typedef struct {
     char *addinfo;
 } IrTcl_Diagnostic;
 
+struct GRS_Record_entry {
+    int tagType;
+    int tagWhich;
+    union {
+        int num;
+        char *str;
+    } tagVal;
+    int dataWhich;
+    union {
+        struct IrTcl_GRS_Record_ *sub;
+        char *str;
+    } tagData;
+};
+
+typedef struct IrTcl_GRS_Record_ {
+    int noTags;
+    struct GRS_Record_entry *entries;
+} IrTcl_GRS_Record;
+
 typedef struct IrTcl_RecordList_ {
     int no;
     int which;
@@ -170,6 +192,9 @@ typedef struct IrTcl_RecordList_ {
         struct {
 	    char *buf;
 	    size_t size;
+            union {
+                IrTcl_GRS_Record *grs1;
+            } u;
             enum oid_value type;
         } dbrec;
         struct {
@@ -249,6 +274,9 @@ int ir_tcl_strdup (Tcl_Interp *interp, char** p, const char *s);
 int ir_tcl_strdel (Tcl_Interp *interp, char **p);
 
 char *ir_tcl_fread_marc (FILE *inf, size_t *size);
+void ir_tcl_read_grs (Z_GenericRecord *r, IrTcl_GRS_Record **grs_record);
+int ir_tcl_get_grs (Tcl_Interp *interp, IrTcl_GRS_Record *grs_record, 
+                     int argc, char **argv);
 
 #define IR_TCL_FAIL_CONNECT      1
 #define IR_TCL_FAIL_READ         2
