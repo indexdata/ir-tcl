@@ -1224,7 +1224,7 @@ if test "x$yazpath" != "xNONE"; then
 else
         for i in ../yaz* ../yaz; do
                 if test -d $i; then
-                        if test -r $i/include/yaz/yaz-version.h; then
+                        if test -r $i/yaz-config; then
                                 yazconfig=$i/yaz-config
                         fi
                 fi
