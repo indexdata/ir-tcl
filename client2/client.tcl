@@ -1,3 +1,7 @@
+#!/usr/bin/wish
+# $Id: client.tcl,v 1.8 1999-03-30 15:02:40 perhans Exp $
+#
+
 wm title . "IrTcl Client"
 
 # Procedure irmenu
@@ -2167,8 +2171,7 @@ proc query-select {i} {
     if {$queryAutoOld && !$queryAuto} {
         set queryAutoOld $queryAuto
     }
-    if {!$queryAutoOld && $queryAuto && ![info exists profile($hostid,\
-        AttributeDetails,$currentDb,[lindex $queryTypes $i])]} {
+    if {!$queryAutoOld && $queryAuto && ![info exists profile($hostid,AttributeDetails,$currentDb,[lindex $queryTypes $i])]} {
         set queryAutoOld $queryAuto
     }
     set queryInfoFind [lindex [set queryInfo$attributeTypeSelected] $i]
@@ -2719,7 +2722,7 @@ proc update-attr {} {
 # is 0 the current selection of the listbox is read and the global
 # $useTmpValue is set to the current use-value.
 proc use-attr {init} {
-    global useTmpValue attributeTypeSelected
+    global useTmpValue attributeTypeSelected queryAuto profile hostid currentDb
     set ats [string tolower $attributeTypeSelected]
     source ${ats}.tcl
     
@@ -2728,13 +2731,23 @@ proc use-attr {init} {
     if {$init} {
         set s 0
         set lno 0
-        foreach i [lsort -integer [array names $ats]] {
-            $w.top.use.list insert end "[set ${ats}($i)]"
-            if {$useTmpValue == $i} {
-                set s $lno
+        if {$queryAuto} {
+            foreach i $profile($hostid,AttributeDetails,$currentDb,$attributeTypeSelected) {
+                $w.top.use.list insert end "[set ${ats}($i)]"
+                if {$useTmpValue == $i} {
+                    set s $lno
+                }
+                incr lno
             }
-            incr lno
-        } 
+        } else {
+            foreach i [lsort -integer [array names $ats]] {
+                $w.top.use.list insert end "[set ${ats}($i)]"
+                if {$useTmpValue == $i} {
+                    set s $lno
+                }
+                incr lno
+            }
+        }
         $w.top.use.list selection clear 0 end
         $w.top.use.list selection set $s $s
 #        incr s -3
@@ -3105,13 +3118,13 @@ proc index-query {} {
         }
         incr i
     }
-    debug-window "Querystring er her $qs"
+#    debug-window "Querystring er her $qs"
     if {$qs == ""} {
         return ""
     } else {
         set qs "@attrset $attributeTypeSelected $qs"
         dputs "qs=  $qs"
-        debug-window "....og nu er den $qs\n"
+#        debug-window "....og nu er den $qs\n"
         return $qs
     }
 }

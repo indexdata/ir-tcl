@@ -16,20 +16,29 @@ proc get-attributeDetails {target base} {
 			set db [lindex [lindex $rec 1] 1]
 			foreach tagset [lrange [lindex $rec 2] 1 end] {
 				if {[lindex [lindex $tagset 0] 1] == "1.2.840.10003.3.1"} {
+				    source bib1.tcl
 					foreach attributeType [lindex $tagset 1] {
 						if {[lindex [lindex $attributeType 0] 1] == 1} {
 							foreach attributeValues [lrange [lindex $attributeType 2] 1 end] {
-								lappend profile($target,AttributeDetails,$db,Bib1) \
-									[lindex [lindex [lindex $attributeValues 0] 1] 1]
+							    set attribute [lindex [lindex [lindex $attributeValues 0] 1] 1]
+							    if {[lsearch [array names bib1] $attribute] != -1} {
+								    lappend profile($target,AttributeDetails,$db,Bib1) \
+									    $attribute
+							    }
 							}
 						}						
 					}
 				} elseif {[lindex [lindex $tagset 0] 1] == "1.2.840.10003.3.5"} {
+				    source gils.tcl
 					foreach attributeType [lindex $tagset 1] {
 						if {[lindex [lindex $attributeType 0] 1] == 1} {
+						    source gils.tcl
 							foreach attributeValues [lrange [lindex $attributeType 2] 1 end] {
-								lappend profile($target,AttributeDetails,$db,Gils) \
-									[lindex [lindex [lindex $attributeValues 0] 1] 1]
+							    set attribute [lindex [lindex [lindex $attributeValues 0] 1] 1]
+							    if {[lsearch [array names gils] $attribute] != -1} {
+								    lappend profile($target,AttributeDetails,$db,Gils) \
+									$attribute
+							    }
 							}
 						}						
 					}
@@ -49,15 +58,18 @@ proc change-queryInfo {target base} {
 	global queryInfo profile attributeTypeSelected queryTypes
 	global queryInfo$attributeTypeSelected
 	set n [lsearch $queryTypes Auto]
+	set ats [string tolower $attributeTypeSelected]
+    global $ats
+    source ${ats}.tcl
 	foreach tag $profile($target,AttributeDetails,$base,$attributeTypeSelected) {
 #        if {$tag < 2000} 
 #            lappend tempList [list $bib1($tag) 1=$tag]
 #         else 
 #            lappend tempList [list $gils($tag) 1=$tag]
-        set ats [string tolower $attributeTypeSelected]
-        global $ats
-        source ${ats}.tcl
-        lappend tempList [list "[set ${ats}($tag)]" 1=$tag]      
+#        set ats [string tolower $attributeTypeSelected]
+#        global $ats
+#        source ${ats}.tcl
+        lappend tempList [list "[set ${ats}($tag)]" 1=$tag]    
     }
 	set queryInfo$attributeTypeSelected [lreplace [set queryInfo$attributeTypeSelected] $n $n $tempList]
 }
@@ -72,6 +84,7 @@ proc explain-search-request {target zz category finish response fresponse} {
     $zz databaseNames IR-Explain-1
     $zz preferredRecordSyntax explain
     $zz search "@attrset exp1 @attr 1=1 @attr 2=3 @attr 3=3 @attr 4=3 $category"
+#    $zz search "@attrset exp1 @attr 1=1 $category"
 }
 
 # Procedure explain-search-response
@@ -175,55 +188,20 @@ proc explain-check-fail {target zz category finish} {
     eval $finish [list $target]
 }
 
-#proc prettyDump {x} 
-#    foreach y $x 
-#		prettyDumpR $y 0
-    
-
-
-proc prettyDumpR {x ind} {
-    for {set i 0} {$i < $ind} {incr i} {
-		puts -nonewline " "
-    }
-    set i 0
-    foreach y $x {
-		if {$i == 0} {
-		    if {![string compare $y text]} {
-				puts $x
-				return
-		    }
-		    puts $y
-		} else {
-		    prettyDumpR $y [expr $ind + 2]
-		}
-		incr i
-    }
-}
 
 # Procedure explain-check-ok
 proc explain-check-ok {target zz category finish} {
-    global profile settingsChanged currentDb
+    global profile settingsChanged currentDb queryAuto
 
-#    puts ""
-#    puts ""
-#    puts ""
-#    puts ""
     set crec [z39.categoryList getExplain 1 categoryList]
-#    puts "--- categoryList"
-#    puts $crec
-
     set rec [z39.targetInfo getExplain 1]
     set trec [z39.targetInfo getExplain 1 targetInfo]
-#    puts "--- targetInfo"
-#    puts $rec
-
     set no 1
     while {1} {
         if {
         	[catch {set rec [z39.databaseInfo getExplain $no databaseInfo]}]
         } break
-#    	puts "--- databaseInfo $no"
-#		puts $rec
+
     	lappend dbRecs $rec
     	set db [lindex [lindex $rec 1] 1]
 		if {![string length $db]} break
@@ -231,11 +209,18 @@ proc explain-check-ok {target zz category finish} {
 		if {$db != "IR-Explain-1"} {
     	    lappend dbList $db
     	}
-    	debug-window "${no}: $db"
+#    	debug-window "${no}: $db"
     	incr no
     }
     if {[info exists dbList]} {
         set profile($target,databases) $dbList
+    }
+    set queryAuto 1
+    set currentDb [lindex $dbList 0]
+    z39 databaseNames $currentDb
+    show-target $target $currentDb
+    if {[lindex $finish 1] == ""} {
+        set finish [list [lindex $finish 0] $currentDb]
     }
     cascade-target-list
     cascade-dblist $target 1
@@ -245,8 +230,6 @@ proc explain-check-ok {target zz category finish} {
         if {
         	[catch {set rec [z39.attributeDetails getExplain $no attributeDetails]}]
 		} break
-#        puts "--- attributeDetails $no"
-#		puts $rec
         incr no
     }
     set data [lindex [lindex [lindex [lindex [lindex $trec 12] 1] 1] 1] 1]
@@ -287,8 +270,8 @@ proc explain-check {target finish base} {
     set etime $profile($target,timeLastExplain)
     if {[string length $etime]} {
         # Check last explain. If 1 day since last explain do explain again.
-        # 1 day = 86400
-        if {$time > [expr 0 + $etime]} {
+        # 30 days = 2592000 sec.
+        if {$time > [expr 2592000 + $etime]} {
 	    	set refresh 1
         }
     } else {

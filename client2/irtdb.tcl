@@ -172,15 +172,20 @@ set {profile(British Library ,timeLastExplain)} {}
 set {profile(British Library ,timeLastInit)} {}
 set {profile(British Library ,welcomeMessage)} {}
 set {profile(British Library ,windowNumber)} 15
+set {profile(British Library:,AttributeDetails,Explain,Bib1)} {4 2}
+set {profile(British Library:,AttributeDetails,MAR,Bib1)} {1003 59 1002 54 53 48 31 12 10 9 7 5 4 2 1}
+set {profile(British Library:,AttributeDetails,SRI,Bib1)} {1003 59 1002 54 53 31 29 20 12 8 7 6 5 4 3 2 1}
 set {profile(British Library:,authentication)} {}
 set {profile(British Library:,comstack)} tcpip
+set {profile(British Library:,databases)} {EXPLAIN MAR SRI}
 set {profile(British Library:,description)} {}
+set {profile(British Library:,descripton)} {The British Library Z3950 target provides access to two major BL files: the Science Reference Information Service (SRIS) and the Document Supply Centre (DSC) Monographs.}
 set {profile(British Library:,host)} z3950.bl.uk
 set {profile(British Library:,idAuthentication)} {}
 set {profile(British Library:,largeSetLowerBound)} 2
-set {profile(British Library:,maxResultSets)} {}
-set {profile(British Library:,maxResultSize)} {}
-set {profile(British Library:,maxTerms)} {}
+set {profile(British Library:,maxResultSets)} -1
+set {profile(British Library:,maxResultSize)} 10000
+set {profile(British Library:,maxTerms)} 20
 set {profile(British Library:,maximumRecordSize)} 50000
 set {profile(British Library:,mediumSetPresentNumber)} 0
 set {profile(British Library:,multipleDatabases)} 0
@@ -191,16 +196,16 @@ set {profile(British Library:,presentChunk)} 4
 set {profile(British Library:,protocol)} Z39
 set {profile(British Library:,queryCCL)} 0
 set {profile(British Library:,queryRPN)} 1
-set {profile(British Library:,recentNews)} {}
+set {profile(British Library:,recentNews)} {strings {language {text {This is the British Library's experimental Z3950 server developed as part of the Library's involvement  in the project OPAC Network in Europe (ONE)}} } }
 set {profile(British Library:,smallSetUpperBound)} 0
-set {profile(British Library:,targetInfoName)} {}
+set {profile(British Library:,targetInfoName)} LIB
 set {profile(British Library:,targetMaxResultSets)} {}
 set {profile(British Library:,targetMaxResultSize)} {}
 set {profile(British Library:,targetMaxTerms)} {}
 set {profile(British Library:,timeDefine)} {}
-set {profile(British Library:,timeLastExplain)} {}
-set {profile(British Library:,timeLastInit)} 893840445
-set {profile(British Library:,welcomeMessage)} {}
+set {profile(British Library:,timeLastExplain)} 921855991
+set {profile(British Library:,timeLastInit)} 921856103
+set {profile(British Library:,welcomeMessage)} {Welcome to the British Library's Z3950 target.}
 set {profile(British Library:,windowNumber)} 4
 set profile(DanBib,authentication) {}
 set profile(DanBib,comstack) tcpip
@@ -284,7 +289,7 @@ set profile(Default,timeDefine) {}
 set profile(Default,timeLastExplain) {}
 set profile(Default,timeLastInit) {}
 set profile(Default,welcomeMessage) {}
-set profile(Default,windowNumber) 26
+set profile(Default,windowNumber) 28
 set profile(LOC,authentication) {}
 set profile(LOC,comstack) tcpip
 set profile(LOC,databases) {BOOKS NAMES AUTH MAPS MUSIC BIB SERIALS SUBJECTS}
@@ -380,46 +385,54 @@ set profile(Penn,timeLastExplain) {}
 set profile(Penn,timeLastInit) 902483000
 set profile(Penn,welcomeMessage) {}
 set profile(Penn,windowNumber) 25
+set {profile(Steiermrkische Landesbibliothek,AttributeDetails,lbopac,Bib1)} {4 5 6 7 8 12 20 29 31 35 42 53 59 1003 1004 1005 1018}
+set {profile(Steiermrkische Landesbibliothek,AttributeDetails,miopac,Bib1)} {4 5 6 7 8 12 20 29 31 35 42 53 59 1003 1004 1005 1018}
 set {profile(Steiermrkische Landesbibliothek,authentication)} {}
 set {profile(Steiermrkische Landesbibliothek,comstack)} tcpip
 set {profile(Steiermrkische Landesbibliothek,databases)} {lbopac miopac}
 set {profile(Steiermrkische Landesbibliothek,description)} {}
+set {profile(Steiermrkische Landesbibliothek,descripton)} {This is an demonstration service.}
 set {profile(Steiermrkische Landesbibliothek,host)} one.stmk.gv.at
 set {profile(Steiermrkische Landesbibliothek,idAuthentication)} {}
 set {profile(Steiermrkische Landesbibliothek,largeSetLowerBound)} 2
-set {profile(Steiermrkische Landesbibliothek,maxResultSets)} {}
-set {profile(Steiermrkische Landesbibliothek,maxResultSize)} {}
-set {profile(Steiermrkische Landesbibliothek,maxTerms)} {}
+set {profile(Steiermrkische Landesbibliothek,maxResultSets)} 25
+set {profile(Steiermrkische Landesbibliothek,maxResultSize)} 10000
+set {profile(Steiermrkische Landesbibliothek,maxTerms)} 15
 set {profile(Steiermrkische Landesbibliothek,maximumRecordSize)} 50000
 set {profile(Steiermrkische Landesbibliothek,mediumSetPresentNumber)} 0
-set {profile(Steiermrkische Landesbibliothek,multipleDatabases)} {}
-set {profile(Steiermrkische Landesbibliothek,namedResultSets)} {}
+set {profile(Steiermrkische Landesbibliothek,multipleDatabases)} 0
+set {profile(Steiermrkische Landesbibliothek,namedResultSets)} 1
 set {profile(Steiermrkische Landesbibliothek,port)} 2100
 set {profile(Steiermrkische Landesbibliothek,preferredMessageSize)} 30000
 set {profile(Steiermrkische Landesbibliothek,presentChunk)} 4
 set {profile(Steiermrkische Landesbibliothek,protocol)} Z39
+set {profile(Steiermrkische Landesbibliothek,queryButtons,lbopac)} {{I 16} {I 0} {I 13}}
 set {profile(Steiermrkische Landesbibliothek,queryCCL)} 0
 set {profile(Steiermrkische Landesbibliothek,queryRPN)} 1
-set {profile(Steiermrkische Landesbibliothek,recentNews)} {}
+set {profile(Steiermrkische Landesbibliothek,recentNews)} {strings {language {text {This is the experimental Z39.50 server of Steiermaerkische Landesbibliothek developed as part of the Library's envolvement in Project OPAC Network in Europe (ONE)}} } }
 set {profile(Steiermrkische Landesbibliothek,smallSetUpperBound)} 0
-set {profile(Steiermrkische Landesbibliothek,targetInfoName)} {}
+set {profile(Steiermrkische Landesbibliothek,targetInfoName)} {LB Z39.50-server}
 set {profile(Steiermrkische Landesbibliothek,targetMaxResultSets)} {}
 set {profile(Steiermrkische Landesbibliothek,targetMaxResultSize)} {}
 set {profile(Steiermrkische Landesbibliothek,targetMaxTerms)} {}
 set {profile(Steiermrkische Landesbibliothek,timeDefine)} {}
-set {profile(Steiermrkische Landesbibliothek,timeLastExplain)} 893840781
-set {profile(Steiermrkische Landesbibliothek,timeLastInit)} 921596910
-set {profile(Steiermrkische Landesbibliothek,welcomeMessage)} {}
+set {profile(Steiermrkische Landesbibliothek,timeLastExplain)} 921850170
+set {profile(Steiermrkische Landesbibliothek,timeLastInit)} 921850171
+set {profile(Steiermrkische Landesbibliothek,welcomeMessage)} {Welcome to the Z39.50 target of Steiermaerkische Landesbibliothek, Graz, Austria.}
 set {profile(Steiermrkische Landesbibliothek,windowNumber)} 3
+set profile(Steiermrkische,AttributeDetails,lbopac,Bib1) {4 5 6 7 8 12 20 29 31 35 42 53 59 1003 1004 1005 1018}
+set profile(Steiermrkische,AttributeDetails,miopac,Bib1) {4 5 6 7 8 12 20 29 31 35 42 53 59 1003 1004 1005 1018}
 set profile(Steiermrkische,authentication) {}
 set profile(Steiermrkische,comstack) tcpip
+set profile(Steiermrkische,databases) {lbopac miopac}
 set profile(Steiermrkische,description) {}
+set profile(Steiermrkische,descripton) {This is an demonstration service.}
 set profile(Steiermrkische,host) one.stmk.gv.at
 set profile(Steiermrkische,idAuthentication) {}
 set profile(Steiermrkische,largeSetLowerBound) 2
-set profile(Steiermrkische,maxResultSets) {}
-set profile(Steiermrkische,maxResultSize) {}
-set profile(Steiermrkische,maxTerms) {}
+set profile(Steiermrkische,maxResultSets) 25
+set profile(Steiermrkische,maxResultSize) 10000
+set profile(Steiermrkische,maxTerms) 15
 set profile(Steiermrkische,maximumRecordSize) 50000
 set profile(Steiermrkische,mediumSetPresentNumber) 0
 set profile(Steiermrkische,multipleDatabases) 0
@@ -428,15 +441,16 @@ set profile(Steiermrkische,port) 2100
 set profile(Steiermrkische,preferredMessageSize) 30000
 set profile(Steiermrkische,presentChunk) 4
 set profile(Steiermrkische,protocol) Z39
+set profile(Steiermrkische,queryButtons,lbopac) {{I 3} {I 0} {I 10}}
 set profile(Steiermrkische,queryCCL) 0
 set profile(Steiermrkische,queryRPN) 1
-set profile(Steiermrkische,recentNews) {}
+set profile(Steiermrkische,recentNews) {strings {language {text {This is the experimental Z39.50 server of Steiermaerkische Landesbibliothek developed as part of the Library's envolvement in Project OPAC Network in Europe (ONE)}} } }
 set profile(Steiermrkische,smallSetUpperBound) 0
-set profile(Steiermrkische,targetInfoName) {}
+set profile(Steiermrkische,targetInfoName) {LB Z39.50-server}
 set profile(Steiermrkische,timeDefine) {}
-set profile(Steiermrkische,timeLastExplain) {}
+set profile(Steiermrkische,timeLastExplain) 922371170
 set profile(Steiermrkische,timeLastInit) 901511630
-set profile(Steiermrkische,welcomeMessage) {}
+set profile(Steiermrkische,welcomeMessage) {Welcome to the Z39.50 target of Steiermaerkische Landesbibliothek, Graz, Austria.}
 set profile(Steiermrkische,windowNumber) 17
 set {profile(University of Crete,authentication)} {}
 set {profile(University of Crete,comstack)} tcpip
@@ -731,8 +745,8 @@ set profile(ztest9999,windowNumber) 18
 set attributeTypes {Bib1 Gils}
 set attributeTypeSelected Bib1
 set queryTypes {Simple phrase Auto}
-set queryButtonsBib1 {{{I 3} {I 0} {I 10}} {{I 0} {I 1} {I 0}} {{I 3} {I 0} {I 9} {I 1}}}
-set queryInfoBib1 {{{Title {1=4}} {Author {1=1}} {Subject {1=21}} {Any {1=1016}} {Query 1=1016 2=102} {Title-rank 1=4 2=102} {Date/time 1=1012} {Title-regular 1=4 2=3 4=2 5=102} {Ranked 1=1016 2=102 3=3 4=1 6=1} {ISBN 1=7 5=1} {Publisher 1=1018}} {{Title 1=4 4=1 6=2} {Author 1=1003 4=1 6=2} {ISBN 1=7} {ISSN 1=8} {Year 1=30 4=4 6=2} {Any {1=1016}}} {{{Date/time last mod.} 1=1012} {Record-source 1=1019} {Identifier--standard 1=1007} {Abstract 1=62} {{Author, corporate} 1=1005} {Title 1=4}}}
+set queryButtonsBib1 {{{I 3} {I 0} {I 10}} {{I 0} {I 1} {I 0}} {{I 16} {I 0} {I 13}}}
+set queryInfoBib1 {{{Title {1=4}} {Author 1=1003 5=1} {Subject {1=21}} {Any {1=1016}} {Query 1=1016 2=102} {Title-rank 1=4 2=102} {Date/time 1=1012} {Title-regular 1=4 2=3 4=2 5=102} {Ranked 1=1016 2=102 3=3 4=1 6=1} {ISBN 1=7 5=1} {Publisher 1=1018}} {{Title 1=4 4=1 6=2} {Author 1=1003 4=1 6=2} {ISBN 1=7} {ISSN 1=8} {Year 1=30 4=4 6=2} {Any {1=1016}}} {{Title 1=4} {{Title series} 1=5} {{Title uniform} 1=6} {ISBN 1=7} {ISSN 1=8} {{Local no.} 1=12} {{Local classification} 1=20} {{Local subject index} 1=29} {{Date of publication} 1=31} {{Title parallel} 1=35} {{Title former} 1=42} {{Number local call} 1=53} {{Place publication} 1=59} {Author 1=1003} {{Author, personal} 1=1004} {{Author, corporate} 1=1005} {Publisher 1=1018}}}
 set queryButtonsGils {{{I 3} {I 0} {I 9}} {{I 0} {I 1} {I 0}} {{I 5} {I 3} {I 4}}}
 set queryInfoGils {{{Title {1=4}} {Author {1=1}} {Subject {1=21}} {Any {1=1016}} {Query 1=1016 2=102} {Title-rank 1=4 2=102} {Date/time 1=1012} {Title-regular 1=4 2=3 4=2 5=102} {Ranked 1=1016 2=102 3=3 4=1 6=1} {ISBN 1=7}} {{Title 1=4 4=1 6=2} {Author 1=1003 4=1 6=2} {ISBN 1=7} {ISSN 1=8} {Year 1=30 4=4 6=2} {Any {1=1016}}} {{{Date/time last mod.} 1=1012} {Record-source 1=1019} {Identifier--standard 1=1007} {Abstract 1=62} {{Author, corporate} 1=1005} {Title 1=4} {{Contact Telephone*} 1=2032} {{Contact Country*} 1=2029} {{Point of Contact*} 1=2067} {{Contact City*} 1=2026} {{Contact Street Address*} 1=2025} {{Contact Organization*} 1=2024} {{Contact Name*} 1=2023} {{Use Constraints*} 1=2005} {{Access Constraints*} 1=2066} {{Technical Prerequisites*} 1=2018} {{Resource Description*} 1=2016} {{Distributor Telephone*} 1=2014} {{Distributor Country*} 1=2011} {Distributor* 1=2000} {{Distributor City*} 1=2008} {{Distributor Street Address*} 1=2007} {{Distributor Organization*} 1=2006} {{Time Period Textual*} 1=2045} {{South Bounding Coordinate*} 1=2041} {{North Bounding Coordinate*} 1=2040} {{East Bounding Coordinate*} 1=2039} {{West Bounding Coordinate*} 1=2038} {{Spatial Domain*} 1=2059}}}
-set queryAuto 0
+set queryAuto 1
