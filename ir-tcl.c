@@ -3,7 +3,10 @@
  * (c) Index Data 1995
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.10  1995-03-15 16:14:50  adam
+ * Revision 1.11  1995-03-16 17:54:03  adam
+ * Minor changes really.
+ *
+ * Revision 1.10  1995/03/15  16:14:50  adam
  * Blocking arg in cs_create changed.
  *
  * Revision 1.9  1995/03/15  13:59:24  adam
@@ -631,7 +634,7 @@ static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
     { 0, "protocolVersion",         do_protocolVersion },
     { 0, "options",                 do_options },
     { 1, "preferredMessageSize",    do_preferredMessageSize },
-    { 1, "maximumRecordSize",      do_maximumRecordSize },
+    { 1, "maximumRecordSize",       do_maximumRecordSize },
     { 1, "implementationName",      do_implementationName },
     { 1, "implementationId",        do_implementationId },
     { 1, "idAuthentication",        do_idAuthentication },
@@ -1345,6 +1348,8 @@ void ir_select_proc (ClientData clientData)
             ir_select_remove (cs_fileno (p->cs_link), p);
             return;
         }        
+        if (r == 1)
+            return ;
         odr_setbuf (p->odr_in, p->buf_in, r);
         printf ("cs_get ok, got %d\n", r);
         if (!z_APDU (p->odr_in, &apdu, 0))

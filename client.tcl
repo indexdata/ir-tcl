@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.6  1995-03-15 19:10:20  adam
+# Revision 1.7  1995-03-16 17:54:03  adam
+# Minor changes really.
+#
+# Revision 1.6  1995/03/15  19:10:20  adam
 # Database setup in protocol-setup (rather target setup).
 #
 # Revision 1.5  1995/03/15  13:59:23  adam
@@ -24,7 +27,7 @@ set hotTargets {}
 set hotInfo {}
 set busy 0
 
-set profile(Default) {{} {} 16384 8192 tcpip {books names} }
+set profile(Default) {{} {} 16384 8192 tcpip {books names demo} }
 set hostname Default
 
 wm minsize . 360 200
@@ -123,8 +126,8 @@ proc show-full-marc {no} {
         pack  $w.bot -fill both
 
         text $w.top.record -width 60 -height 10 \
-                -yscrollcommand "$w.top.s set"
-        scrollbar $w.top.s -command "$w.top.record yview"
+                -yscrollcommand [list $w.top.s set]
+        scrollbar $w.top.s -command [list $w.top.record yview]
 
         set new 1
     }
