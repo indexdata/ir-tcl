@@ -5,7 +5,10 @@
  * Wais extension to IrTcl
  *
  * $Log: wais-tcl.c,v $
- * Revision 1.2  1996-03-07 12:43:44  adam
+ * Revision 1.3  1996-03-08 16:46:44  adam
+ * Doesn't use documentID to determine positions in present-response.
+ *
+ * Revision 1.2  1996/03/07  12:43:44  adam
  * Better error handling. WAIS target closed before failback is invoked.
  *
  * Revision 1.1  1996/02/29  15:28:08  adam
@@ -63,6 +66,7 @@ typedef struct {
     char          *diag;
     char          *addinfo;
     int           maxDocs;
+    int           presentOffset;
 } WaisSetTcl_Obj;
 
 static void wais_obj_delete (ClientData clientData);
@@ -153,17 +157,6 @@ static WaisTcl_Record *wais_lookup_record_pos_bf (WaisSetTcl_Obj *p, int pos)
     return NULL;
 }
 
-static WaisTcl_Record *wais_lookup_record_id (WaisSetTcl_Obj *p, any *id)
-{
-    WaisTcl_Records *recs;
-
-    for (recs = p->records; recs; recs = recs->next)
-        if (recs->record->documentID->size == id->size &&
-            !memcmp (recs->record->documentID->bytes, id->bytes, id->size))
-            return recs->record;
-    return NULL;
-}
-
 static void wais_delete_record (WaisTcl_Record *rec)
 {
     freeAny (rec->documentID);
@@ -223,11 +216,11 @@ static void wais_add_record_brief (WaisSetTcl_Obj *p,
 }
 
 static void wais_add_record_full (WaisSetTcl_Obj *p,
-                                  any *documentID,
+                                  int position, 
                                   any *documentText)
 {
     WaisTcl_Record *rec;
-    rec = wais_lookup_record_id (p, documentID);
+    rec = wais_lookup_record_pos (p, position);
 
     if (!rec)
     {
@@ -245,6 +238,13 @@ static void wais_add_record_full (WaisSetTcl_Obj *p,
 static void wais_handle_search_response (WaisSetTcl_Obj *p,
                                          SearchResponseAPDU *responseAPDU)
 {
+    logf (LOG_DEBUG, "- SearchStatus=%d", responseAPDU->SearchStatus);
+    logf (LOG_DEBUG, "- ResultCount=%d", responseAPDU->ResultCount);
+    logf (LOG_DEBUG, "- NumberOfRecordsReturned=%d",
+          responseAPDU->NumberOfRecordsReturned);
+    logf (LOG_DEBUG, "- ResultSetStatus=%d", responseAPDU->ResultSetStatus);
+    logf (LOG_DEBUG, "- PresentStatus=%d", responseAPDU->PresentStatus);
+
     if (responseAPDU->DatabaseDiagnosticRecords)
     {
         WAISSearchResponse *ddr = responseAPDU->DatabaseDiagnosticRecords;
@@ -258,14 +258,17 @@ static void wais_handle_search_response (WaisSetTcl_Obj *p,
 
         if (!p->irtcl_set_obj->resultCount)
         {
+#if 1
             if (responseAPDU->NumberOfRecordsReturned >
                 responseAPDU->ResultCount)
                 p->irtcl_set_obj->resultCount =
                     responseAPDU->NumberOfRecordsReturned;
             else
+#endif
                 p->irtcl_set_obj->resultCount =
                     responseAPDU->ResultCount;
         }
+        logf (LOG_DEBUG, "resultCount=%d", p->irtcl_set_obj->resultCount);
         free (p->diag);
         p->diag = NULL;
         free (p->addinfo);
@@ -306,11 +309,14 @@ static void wais_handle_search_response (WaisSetTcl_Obj *p,
             logf (LOG_DEBUG, "Adding text entries");
             for (i = 0; ddr->Text[i]; i++)
             {
-                logf (LOG_DEBUG, " -->%.*s<--",
+                logf (LOG_DEBUG, " size=%d", ddr->Text[i]->DocumentID->size);
+#if 0
+                logf (LOG_DEBUG, "-->%.*s<--",
                       ddr->Text[i]->DocumentID->size,
                       ddr->Text[i]->DocumentID->bytes);
+#endif
                 wais_add_record_full (p,
-                                      ddr->Text[i]->DocumentID,
+                                      p->presentOffset + i,
                                       ddr->Text[i]->DocumentText);
             }
         }
@@ -732,6 +738,7 @@ static int do_present (void *o, Tcl_Interp *interp, int argc, char **argv)
     any *waisQuery;
     SearchAPDU *waisSearch;
     DocObj **docObjs;
+    any refID;
     
     if (argc <= 0)
         return TCL_OK;
@@ -742,6 +749,7 @@ static int do_present (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     else
         start = 1;
+    obj->presentOffset = start;
     if (argc >= 4)
     {
         if (Tcl_GetInt (interp, argv[3], &number) == TCL_ERROR)
@@ -758,6 +766,9 @@ static int do_present (void *o, Tcl_Interp *interp, int argc, char **argv)
     element_names[1] = ES_DocumentText;
     element_names[2] = NULL;
 
+    refID.size = 1;
+    refID.bytes = "3";
+
     docObjs = ir_tcl_malloc (sizeof(*docObjs) * (number+1));
     for (i = 0; i<number; i++)
     {
@@ -769,8 +780,8 @@ static int do_present (void *o, Tcl_Interp *interp, int argc, char **argv)
             interp->result = "present request out of range";
             return TCL_ERROR;
         }
-        docObjs[i] = makeDocObjUsingLines (rec->documentID, "TEXT", 0,
-                                           rec->lines);
+        docObjs[i] = makeDocObjUsingBytes (rec->documentID, "TEXT", 0,
+                                           rec->documentLength);
     }
     docObjs[i] = NULL;
     waisQuery = makeWAISTextQuery (docObjs);
@@ -785,7 +796,7 @@ static int do_present (void *o, Tcl_Interp *interp, int argc, char **argv)
                         obj->irtcl_set_obj->set_inher.databaseNames,
                         QT_TextRetrievalQuery,        /* query type */
                         element_names,                /* element name */
-                        NULL,                         /* reference ID */
+                        &refID,                       /* reference ID */
                         waisQuery);
 
     left = p->max_out;
@@ -829,6 +840,7 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
         interp->result = "wrong # args";
         return TCL_ERROR;
     }
+    obj->presentOffset = 1;
     if (argc == 4)
     {
         docObjs = ir_tcl_malloc (2 * sizeof(*docObjs));
