@@ -4,7 +4,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.21  1995-03-31 08:56:37  adam
+ * Revision 1.22  1995-03-31 10:43:03  adam
+ * More robust when getting bad MARC records.
+ *
+ * Revision 1.21  1995/03/31  08:56:37  adam
  * New button "Search".
  *
  * Revision 1.20  1995/03/29  16:07:09  adam
@@ -1043,6 +1046,8 @@ static int get_marc_fields(Tcl_Interp *interp, Iso2709Rec rec,
     Iso2709Anchor a;
     char *data;
 
+    if (!rec)
+        return TCL_OK;
     a = iso2709_a_mk (rec);
     while (iso2709_a_search (a, argv[4], argv[5], argv[6]))
     {
@@ -1066,6 +1071,8 @@ static int get_marc_lines(Tcl_Interp *interp, Iso2709Rec rec,
     char *data;
     char *ptag = "";
     
+    if (!rec)
+        return TCL_OK;
     a = iso2709_a_mk (rec);
     while (iso2709_a_search (a, argv[4], argv[5], argv[6]))
     {
