@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.10  1995-06-16 12:28:20  adam
+ * Revision 1.11  1995-06-20 08:07:35  adam
+ * New setting: failInfo.
+ * Working on better cancel mechanism.
+ *
+ * Revision 1.10  1995/06/16  12:28:20  adam
  * Implemented preferredRecordSyntax.
  * Minor changes in diagnostic handling.
  * Record list deleted when connection closes.
@@ -90,6 +94,7 @@ typedef struct {
     char       *cs_type;
     int         protocol_type;
     int         connectFlag;
+    int         failInfo;
     COMSTACK    cs_link;
 
     int         preferredMessageSize;
@@ -220,4 +225,10 @@ struct ir_named_entry {
 int ir_tcl_get_marc (Tcl_Interp *interp, const char *buf,
                      int argc, char **argv);
 char *ir_tcl_fread_marc (FILE *inf, size_t *size);
+
+#define IR_TCL_FAIL_CONNECT      1
+#define IR_TCL_FAIL_READ         2
+#define IR_TCL_FAIL_WRITE        3
+#define IR_TCL_FAIL_IN_APDU      4
+#define IR_TCL_FAIL_UNKNOWN_APDU 5
 #endif

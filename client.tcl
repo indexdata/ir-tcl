@@ -4,7 +4,11 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.47  1995-06-19 14:05:29  adam
+# Revision 1.48  1995-06-20 08:07:23  adam
+# New setting: failInfo.
+# Working on better cancel mechanism.
+#
+# Revision 1.47  1995/06/19  14:05:29  adam
 # Bug fix: asked for SUTRS.
 #
 # Revision 1.46  1995/06/19  13:06:06  adam
@@ -182,6 +186,7 @@ set fullMarcSeq 0
 set displayFormat 1
 set popupMarcdf 0
 set textWrap word
+set delayRequest {}
 
 set queryTypes {Simple}
 set queryButtons { { {I 0} {I 1} {I 2} } }
@@ -210,7 +215,7 @@ proc set-wrap {m} {
 }
 
 proc dputs {m} {
-#    puts $m
+    puts $m
 }
 
 proc set-display-format {f} {
@@ -344,10 +349,12 @@ proc bottom-buttons {w buttonList g} {
 proc cancel-operation {} {
     global cancelFlag
     global busy
+    global delayRequest
 
     set cancelFlag 1
+    set delayRequest {}
     if {$busy} {
-        show-status Canceling 0 {}
+        show-status Cancel 0 1
     }
 }
 
@@ -716,8 +723,10 @@ proc define-target-action {} {
 }
 
 proc fail-response {target} {
+    set c [lindex [z39 failInfo] 0]
+    set m [lindex [z39 failInfo] 1]
     close-target
-    tkerror "Target connection closed or protocol error"
+    tkerror "$m ($c)"
 }
 
 proc connect-response {target base} {
@@ -872,12 +881,23 @@ proc search-request {} {
     global busy
     global cancelFlag
     global searchEnable
+    global delayRequest
 
     set target $hostid
 
-    if {$searchEnable == 0} {
+    dputs "search-request"
+    if {$searchEnable < 0} {
+        dputs "searchEnable == 0"
         return
     }
+    if {$cancelFlag} {
+        dputs "cancelFlag"
+        show-status {Searching} 1 0
+        set delayRequest search-request
+        return
+    }
+    set delayRequest {} 
+
     set query [index-query]
     if {$query==""} {
         return
@@ -1139,8 +1159,18 @@ proc search-response {} {
     global setMax
     global cancelFlag
     global busy
+    global delayRequest
 
     dputs "In search-response"
+    if {$cancelFlag} {
+        dputs "Handling cancel"
+        set cancelFlag 0
+        if {$delayRequest != ""} {
+            $delayRequest
+        }
+        return
+    }
+    set delayRequest {}
     init-title-lines
     set setMax [z39.$setNo resultCount]
     show-message "${setMax} hits"
@@ -1163,10 +1193,6 @@ proc search-response {} {
     }
     set setOffset 1
     show-status {Ready} 0 1
-    if {$cancelFlag} {
-        set cancelFlag 0
-        return
-    }
     z39 callback {present-response}
     z39.$setNo present $setOffset 1
     show-status {Retrieving} 1 0
@@ -1176,9 +1202,18 @@ proc present-more {number} {
     global setNo
     global setOffset
     global setMax
+    global busy
+    global cancelFlag
+    global delayRequest
 
-    dputs "setOffset=$setOffset"
     dputs "present-more"
+    if {$cancelFlag} {
+        show-status {Retrieving} 1 0
+        set delayRequest [list present-request $number]
+        return
+    }
+    set delayRequest {}
+
     if {$setNo == 0} {
         dputs "setNo=$setNo"
 	return
@@ -1256,7 +1291,16 @@ proc present-response {} {
     global setOffset
     global setMax
     global cancelFlag
+    global delayRequest
 
+    if {$cancelFlag} {
+        dputs "Handling cancel"
+        set cancelFlag 0
+        if {$delayRequest != ""} {
+            $delayRequest
+        }
+        return
+    }
     dputs "In present-response"
     set no [z39.$setNo numberOfRecordsReturned]
     dputs "Returned $no records, setOffset $setOffset"
@@ -1269,11 +1313,6 @@ proc present-response {} {
         set msg [lindex $status 2]
         set addinfo [lindex $status 3]
         tkerror "NSD$code: $msg: $addinfo"
-        return
-    }
-    if {$cancelFlag} {
-        show-status {Ready} 0 1
-        set cancelFlag 0
         return
     }
     if {$no > 0 && $setOffset <= $setMax} {

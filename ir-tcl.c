@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.44  1995-06-19 17:01:20  adam
+ * Revision 1.45  1995-06-20 08:07:30  adam
+ * New setting: failInfo.
+ * Working on better cancel mechanism.
+ *
+ * Revision 1.44  1995/06/19  17:01:20  adam
  * Minor changes.
  *
  * Revision 1.43  1995/06/19  13:06:08  adam
@@ -646,6 +650,48 @@ static int do_options (void *obj, Tcl_Interp *interp,
 }
 
 /*
+ * do_failInfo: Get fail information
+ */
+static int do_failInfo (void *obj, Tcl_Interp *interp, int argc, char **argv)
+{
+    char buf[16], *cp;
+    IrTcl_Obj *p = obj;
+
+    if (argc <= 0)
+    {
+        p->failInfo = 0;
+	return TCL_OK;
+    }
+    sprintf (buf, "%d", p->failInfo);
+    switch (p->failInfo)
+    {
+    case 0:
+        cp = "ok";
+        break;
+    case IR_TCL_FAIL_CONNECT:
+        cp = "connect failed";
+        break;
+    case IR_TCL_FAIL_READ:
+        cp = "connection closed";
+        break;
+    case IR_TCL_FAIL_WRITE:
+        cp = "connection closed";
+        break;
+    case IR_TCL_FAIL_IN_APDU:
+        cp = "failed to decode incoming APDU";
+        break;
+    case IR_TCL_FAIL_UNKNOWN_APDU:
+        cp = "unknown APDU";
+        break;
+    default:
+        cp = "";
+    } 
+    Tcl_AppendElement (interp, buf);
+    Tcl_AppendElement (interp, cp);
+    return TCL_OK;
+}
+
+/*
  * do_preferredMessageSize: Set/get preferred message size
  */
 static int do_preferredMessageSize (void *obj, Tcl_Interp *interp,
@@ -755,7 +801,7 @@ static int do_targetImplementationName (void *obj, Tcl_Interp *interp,
                                         int argc, char **argv)
 {
     IrTcl_Obj *p = obj;
-
+    
     if (argc == 0)
     {
         p->targetImplementationName = NULL;
@@ -1309,6 +1355,7 @@ static IrTcl_Method ir_method_tab[] = {
 { 1, "comstack",                    do_comstack },
 { 1, "protocol",                    do_protocol },
 { 0, "failback",                    do_failback },
+{ 0, "failInfo",                    do_failInfo },
 
 { 1, "connect",                     do_connect },
 { 0, "protocolVersion",             do_protocolVersion },
@@ -2817,7 +2864,10 @@ void ir_select_read (ClientData clientData)
         {
             logf (LOG_DEBUG, "cs_rcvconnect error");
             if (p->failback)
+            {
+                p->failInfo = IR_TCL_FAIL_CONNECT;
                 IrTcl_eval (p->interp, p->failback);
+            }
             do_disconnect (p, NULL, 2, NULL);
             return;
         }
@@ -2835,7 +2885,10 @@ void ir_select_read (ClientData clientData)
             logf (LOG_DEBUG, "cs_get failed, code %d", r);
             ir_select_remove (cs_fileno (p->cs_link), p);
             if (p->failback)
+            {
+                p->failInfo = IR_TCL_FAIL_READ;
                 IrTcl_eval (p->interp, p->failback);
+            }
             do_disconnect (p, NULL, 2, NULL);
 
 	    /* relase ir object now if callback deleted it */
@@ -2850,7 +2903,10 @@ void ir_select_read (ClientData clientData)
         {
             logf (LOG_DEBUG, "%s", odr_errlist [odr_geterror (p->odr_in)]);
             if (p->failback)
+            {
+                p->failInfo = IR_TCL_FAIL_IN_APDU;
                 IrTcl_eval (p->interp, p->failback);
+            }
             do_disconnect (p, NULL, 2, NULL);
 
 	    /* release ir object now if failback deleted it */
@@ -2874,7 +2930,10 @@ void ir_select_read (ClientData clientData)
         default:
             logf (LOG_WARN, "Received unknown APDU type (%d)", apdu->which);
             if (p->failback)
+            {
+                p->failInfo = IR_TCL_FAIL_UNKNOWN_APDU;
                 IrTcl_eval (p->interp, p->failback);
+            }
             do_disconnect (p, NULL, 2, NULL);
         }
         odr_reset (p->odr_in);
@@ -2909,7 +2968,10 @@ void ir_select_write (ClientData clientData)
             logf (LOG_DEBUG, "cs_rcvconnect error");
             ir_select_remove_write (cs_fileno (p->cs_link), p);
             if (p->failback)
+            {
+                p->failInfo = IR_TCL_FAIL_CONNECT;
                 IrTcl_eval (p->interp, p->failback);
+            }
             do_disconnect (p, NULL, 2, NULL);
             return;
         }
@@ -2922,7 +2984,10 @@ void ir_select_write (ClientData clientData)
     {   
         logf (LOG_DEBUG, "select write fail");
         if (p->failback)
+        {
+            p->failInfo = IR_TCL_FAIL_WRITE;
             IrTcl_eval (p->interp, p->failback);
+        }
         do_disconnect (p, NULL, 2, NULL);
     }
     else if (r == 0)            /* remove select bit */
