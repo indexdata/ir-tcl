@@ -3,10 +3,12 @@
  * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
 
-$Revision: 1.3 $
+$Revision: 1.4 $
 
-Compilation and installation of IrTcl.
-This is a very early alpha-release of IrTcl.
+Quick notes about IrTcl. 
+
+Prerequisites
+-------------
 
 In order to compile you need:
    
@@ -19,32 +21,52 @@ You may also need:
   o  Tk version 3.6 
   o  The XTI/mosi package
 
-Compilation:
-  1) Compile/install yaz/tcl, etc.
+Compilation
+-----------
 
-  2) Edit Makefile (in current directory)
-     Set MOSI to 1/0
-     Define include directory paths of yaz/tcl/tk
-     Define libraries of yaz/tcl/tk
+   Compile/install yaz/tcl, etc.
 
-  3) Type 'make ir-tcl' to make the Tcl version or IrTcl.
-     Type 'make ir-tk' to make the Tk version of IrTcl.
+   Edit Makefile (in current directory)
+   Set MOSI to 1/0
+   Define include directory paths and libraries
 
-Install/run:
+   Type 'make ir-tcl' to make the Tcl version or IrTcl.
+   Type 'make ir-tk' to make the Tk version of IrTcl.
 
-  4) The resulting files are:
-     ir-tcl                     Tcl version of IrTcl
-     ir-tk                      Tk version of IrTcl
-     marc.tcl/iterate.tcl       small IrTcl scripts
-     client.tcl                 Tk graphical client - automatically
-                                executed by ir-tk
-     clientrc.tcl               Startup script - read by client.tcl - holds
-                                user/target definitions.
-     book[1-9]                  Logo - when busy.
+Install/run
+-----------
 
-  5) Type 'ir-tk' to run the Tk graphical client (client.tcl and 
-     clientrc.tcl should be in current directory)
+   The resulting files are:
+     ir-tcl               Tcl version of IrTcl
+     ir-tk                Tk version of IrTcl.
+                              Options:
+                              -file <tclfile>
+                                 Tcl startup script. Default is client.tcl.
+                              -geometry <spec>
+                                 X11 geometry of main window.
+                              -display <spec>
+                                 X11 display.
+                              -name <name>
+                                 Name of top window.
+                              -logLevel <logLevel>
+                                 log level. (fatal, debug, warn, log, all).
+                              -logFile <fname>
+                                 log file. If omitted stderr is used.
+     formats/*.tcl        Small IrTcl scripts to display
+                          records in different formats.
+     client.tcl           Tk graphical client - normally
+                          executed by ir-tk.
+     clientrc.tcl         Startup script - read by client.tcl - holds
+                          user/target definitions.
+     clientg.tcl          User preferrences - read by client.tcl. 
+                          Holds geometry of windows, current display 
+                          format, and hot targets.
+     book[1-9]            book logo.
+     LICENSE              License info - read by client.tcl.
 
-     Type 'ir-tcl' to run the Tcl client. Very similar to tclsh.
+   Type 'ir-tk' to run the Tk graphical client - client.tcl,
+   clientrc.tcl, book[1-9] and formats/*.tcl should exist!
+
+   Type 'ir-tcl' to run the Tcl client. Very similar to tclsh.
 
 

@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.42  1995-06-19 08:08:52  adam
+ * Revision 1.43  1995-06-19 13:06:08  adam
+ * New define: IR_TCL_VERSION.
+ *
+ * Revision 1.42  1995/06/19  08:08:52  adam
  * client.tcl: hotTargets now contain both database and target name.
  * ir-tcl.c: setting protocol edited. Errors in callbacks are logged
  * by logf(LOG_WARN, ...) calls.
@@ -573,13 +576,8 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
 static int do_protocolVersion (void *obj, Tcl_Interp *interp,
                                int argc, char **argv)
 {
-    static struct ir_named_entry version_tab[] = {
-    { "1", 0 },
-    { "2", 1 },
-    { "3", 2 },
-    { "4", 3 },
-    { NULL,0}
-    };
+    int version, i;
+    char buf[10];
     IrTcl_Obj *p = obj;
 
     if (argc <= 0)
@@ -589,8 +587,20 @@ static int do_protocolVersion (void *obj, Tcl_Interp *interp,
 	ODR_MASK_SET (&p->protocolVersion, 1);
         return TCL_OK;
     }
-    return ir_named_bits (version_tab, &p->protocolVersion,
-                          interp, argc-2, argv+2);
+    if (argc == 3)
+    {
+        if (Tcl_GetInt (interp, argv[2], &version)==TCL_ERROR)
+            return TCL_ERROR;
+        ODR_MASK_ZERO (&p->protocolVersion);
+        for (i = 0; i<version; i++)
+            ODR_MASK_SET (&p->protocolVersion, i);
+    }
+    for (i = 4; --i >= 0; )
+        if (ODR_MASK_GET (&p->protocolVersion, i))
+            break;
+    sprintf (buf, "%d", i+1);
+    interp->result = buf;
+    return TCL_OK;
 }
 
 /*
@@ -725,7 +735,8 @@ static int do_implementationVersion (void *obj, Tcl_Interp *interp,
     IrTcl_Obj *p = obj;
 
     if (argc == 0)
-        return ir_strdup (interp, &p->implementationVersion, YAZ_VERSION);
+        return ir_strdup (interp, &p->implementationVersion, 
+                          "YAZ: " YAZ_VERSION " / IrTcl: " IR_TCL_VERSION);
     else if (argc == -1)
         return ir_strdel (interp, &p->implementationVersion);
     Tcl_AppendResult (interp, p->implementationVersion, (char*) NULL);
@@ -954,6 +965,10 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
 	ODR_MASK_SET (&p->options, 1);
 	ODR_MASK_SET (&p->options, 7);
 	ODR_MASK_SET (&p->options, 14);
+
+        ODR_MASK_ZERO (&p->protocolVersion);
+	ODR_MASK_SET (&p->protocolVersion, 0);
+	ODR_MASK_SET (&p->protocolVersion, 1);
     }
     assert (!p->cs_link);
     return TCL_OK;
@@ -2787,7 +2802,10 @@ void ir_select_read (ClientData clientData)
     {
         r = cs_rcvconnect (p->cs_link);
         if (r == 1)
+        {
+            logf (LOG_WARN, "cs_rcvconnect returned 1");
             return;
+        }
         p->connectFlag = 0;
         ir_select_remove_write (cs_fileno (p->cs_link), p);
         if (r < 0)

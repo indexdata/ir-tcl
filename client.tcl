@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.45  1995-06-19 08:08:44  adam
+# Revision 1.46  1995-06-19 13:06:06  adam
+# New define: IR_TCL_VERSION.
+#
+# Revision 1.45  1995/06/19  08:08:44  adam
 # client.tcl: hotTargets now contain both database and target name.
 # ir-tcl.c: setting protocol edited. Errors in callbacks are logged
 # by logf(LOG_WARN, ...) calls.
@@ -203,6 +206,10 @@ proc set-wrap {m} {
     .data.record configure -wrap $m
 }
 
+proc dputs {m} {
+#    puts $m
+}
+
 proc set-display-format {f} {
     global displayFormat
     global setNo
@@ -363,7 +370,7 @@ proc show-logo {v1} {
             set v1 1
         }
         .bot.logo configure -bitmap @book${v1}
-        after 120 [list show-logo $v1]
+        after 140 [list show-logo $v1]
         return
     }
     while {1} {
@@ -382,6 +389,7 @@ proc show-status {status b sb} {
     global scanEnable
     global setOffset
     global setMax
+    global setNo
 
     .bot.a.status configure -text "$status"
     if {$b == 1} {
@@ -398,7 +406,9 @@ proc show-status {status b sb} {
         if {$scanEnable} {
             .mid.scan configure -state normal
         }
-        if {$setOffset > 0 && $setOffset <= $setMax} {
+        if {$setNo == 0} {
+            .top.service.m disable 1
+        } elseif {$setOffset > 0 && $setOffset <= [z39.$setNo resultCount]} {
             .top.service.m enable 1
             .mid.present configure -state normal
         } else {
@@ -507,7 +517,7 @@ proc about-origin-logo {n} {
         set n 1
     }
     $w.top.a.logo configure -bitmap @book$n
-    after 120 [list about-origin-logo $n]
+    after 140 [list about-origin-logo $n]
 }
 
 proc about-origin {} {
@@ -694,7 +704,7 @@ proc define-target-action {} {
         }
     }
     set seq [lindex $profile(Default) 12]
-    puts "seq=${seq}"
+    dputs "seq=${seq}"
     set profile($target) $profile(Default)
     set profile(Default) [lreplace $profile(Default) 12 12 [incr seq]]
 
@@ -708,7 +718,7 @@ proc fail-response {target} {
 }
 
 proc connect-response {target base} {
-    puts "connect-response"
+    dputs "connect-response"
     show-target $target $base
     init-request
 }
@@ -723,10 +733,10 @@ proc open-target {target base} {
     z39 idAuthentication [lindex $profile($target) 3]
     z39 maximumRecordSize [lindex $profile($target) 4]
     z39 preferredMessageSize [lindex $profile($target) 5]
-    puts -nonewline "maximumRecordSize="
-    puts [z39 maximumRecordSize]
-    puts -nonewline "preferredMessageSize="
-    puts [z39 preferredMessageSize]
+    dputs "maximumRecordSize="
+    dputs [z39 maximumRecordSize]
+    dputs "preferredMessageSize="
+    dputs [z39 preferredMessageSize]
     show-status {Connecting} 1 0
     if {$base == ""} {
         z39 databaseNames [lindex [lindex $profile($target) 7] 0]
@@ -735,6 +745,7 @@ proc open-target {target base} {
     }
     z39 failback [list fail-response $target]
     z39 callback [list connect-response $target $base]
+    update idletasks
     set err [catch {
         z39 connect [lindex $profile($target) 1]:[lindex $profile($target) 2]
         } errorMessage]
@@ -821,7 +832,11 @@ proc init-request {} {
     }
     z39 callback {init-response}
     show-status {Initializing} 1 {}
-    z39 init
+    set err [catch {z39 init} errorMessage]
+    if {$err} {
+        tkerror $errorMessage
+        show-status Ready 0 {}
+    }
 }
 
 proc init-response {} {
@@ -870,10 +885,10 @@ proc search-request {} {
 
     if {[lindex $profile($target) 10] == 1} {
         z39.$setNo setName $setNo
-        puts "setName=${setNo}"
+        dputs "setName=${setNo}"
     } else {
         z39.$setNo setName Default
-        puts "setName=Default"
+        dputs "setName=Default"
     }
     if {[lindex $profile($target) 8] == 1} {
         z39.$setNo queryType rpn
@@ -889,7 +904,7 @@ proc search-request {} {
 proc scan-copy {y entry} {
     set w .scan-window
     set no [$w.top.list nearest $y]
-    puts "no=$no"
+    dputs "no=$no"
     .lines.$entry.e delete 0 end
     .lines.$entry.e insert 0 [string range [$w.top.list get $no] 8 end]
 }
@@ -972,7 +987,7 @@ proc scan-term-h {attr} {
     z39 callback [list scan-response $attr 0 35]
     z39.scan numberOfTermsRequested 5
     z39.scan preferredPositionInResponse 1
-    puts "${attr} \{${scanTerm}\}"
+    dputs "${attr} \{${scanTerm}\}"
     if {$scanTerm == ""} {
         z39.scan scan "${attr} 0"
     } else {
@@ -987,12 +1002,12 @@ proc scan-response {attr start toget} {
     global scanView
 
     set w .scan-window
-    puts "In scan-response"
+    dputs "In scan-response"
     set m [z39.scan numberOfEntriesReturned]
-    puts $m
-    puts attr=$attr
-    puts start=$start
-    puts toget=$toget
+    dputs $m
+    dputs attr=$attr
+    dputs start=$start
+    dputs toget=$toget
 
     if {![winfo exists .scan-window]} {
         show-status {Ready} 0 1
@@ -1005,7 +1020,7 @@ proc scan-response {attr start toget} {
         z39.scan numberOfTermsRequested 5
         z39.scan preferredPositionInResponse 1
         set scanTerm $nScanTerm
-        puts "${attr} \{${scanTerm}\}"
+        dputs "${attr} \{${scanTerm}\}"
         if {$scanTerm == ""} {
             z39.scan scan "${attr} 0"
         } else {
@@ -1044,26 +1059,26 @@ proc scan-response {attr start toget} {
     }
     if {$toget > 0 && $m > 1 && $m < $toget} {
         set ntoget [expr $toget - $m + 1]
-        puts ntoget=$ntoget
+        dputs ntoget=$ntoget
         z39 callback [list scan-response $attr [expr $start + $m - 1] $ntoget]
         set q $term
-        puts "down continue: $q"
+        dputs "down continue: $q"
         if {$ntoget > 10} {
             z39.scan numberOfTermsRequested 10
         } else {
             z39.scan numberOfTermsRequested $ntoget
         }
         z39.scan preferredPositionInResponse 1
-        puts "${attr} \{$q\}"
+        dputs "${attr} \{$q\}"
         z39.scan scan "${attr} \{$q\}"
         return
     }
     if {$toget < 0 && $m > 1 && $m < [expr - $toget]} {
         set ntoget [expr - $toget - $m]
-        puts ntoget=$ntoget
+        dputs ntoget=$ntoget
         z39 callback [list scan-response $attr 0 -$ntoget]
         set q [string range [$w.top.list get 0] 8 end]
-        puts "up continue: $q"
+        dputs "up continue: $q"
         if {$ntoget > 10} {
             z39.scan numberOfTermsRequested 10
             z39.scan preferredPositionInResponse 11
@@ -1071,7 +1086,7 @@ proc scan-response {attr start toget} {
             z39.scan numberOfTermsRequested $ntoget
             z39.scan preferredPositionInResponse [incr ntoget]
         }
-        puts "${attr} \{$q\}"
+        dputs "${attr} \{$q\}"
         z39.scan scan "${attr} \{$q\}"
         return
     }
@@ -1087,11 +1102,11 @@ proc scan-down {attr} {
     if {$scanView > $s} {
         z39 callback [list scan-response $attr [expr $s - 1] 25]
         set q [string range [$w.top.list get [expr $s - 1]] 8 end]
-        puts "down: $q"
+        dputs "down: $q"
         z39.scan numberOfTermsRequested 10
         z39.scan preferredPositionInResponse 1
         show-status {Scanning} 1 0
-        puts "${attr} \{$q\}"
+        dputs "${attr} \{$q\}"
         z39.scan scan "${attr} \{$q\}"
         return
     }
@@ -1106,7 +1121,7 @@ proc scan-up {attr} {
     if {$scanView < 0} {
         z39 callback [list scan-response $attr 0 -25]
         set q [string range [$w.top.list get 0] 8 end]
-        puts "up: $q"
+        dputs "up: $q"
         z39.scan numberOfTermsRequested 10
         z39.scan preferredPositionInResponse 11
         show-status {Scanning} 1 0
@@ -1123,7 +1138,7 @@ proc search-response {} {
     global cancelFlag
     global busy
 
-    puts "In search-response"
+    dputs "In search-response"
     init-title-lines
     set setMax [z39.$setNo resultCount]
     show-message "${setMax} hits"
@@ -1160,16 +1175,16 @@ proc present-more {number} {
     global setOffset
     global setMax
 
-    puts "setOffset=$setOffset"
-    puts "present-more"
+    dputs "setOffset=$setOffset"
+    dputs "present-more"
     if {$setNo == 0} {
-        puts "setNo=$setNo"
+        dputs "setNo=$setNo"
 	return
     }
     set max [z39.$setNo resultCount]
     if {$max <= $setOffset} {
-        puts "max=$max"
-        puts "setOffset=$setOffset"
+        dputs "max=$max"
+        dputs "setOffset=$setOffset"
         return
     }
     if {$number == ""} {
@@ -1240,9 +1255,9 @@ proc present-response {} {
     global setMax
     global cancelFlag
 
-    puts "In present-response"
+    dputs "In present-response"
     set no [z39.$setNo numberOfRecordsReturned]
-    puts "Returned $no records, setOffset $setOffset"
+    dputs "Returned $no records, setOffset $setOffset"
     add-title-lines $setNo $no $setOffset
     set setOffset [expr $setOffset + $no]
     set status [z39.$setNo responseStatus]
@@ -1260,7 +1275,7 @@ proc present-response {} {
         return
     }
     if {$no > 0 && $setOffset <= $setMax} {
-        puts "present-request from ${setOffset}"
+        dputs "present-request from ${setOffset}"
         set toGet [expr $setMax - $setOffset + 1]
         if {$toGet > 3} {
             set toGet 3
@@ -1382,7 +1397,7 @@ proc protocol-setup-action {target} {
             $wno]
 
     cascade-target-list
-    puts $profile($target)
+    dputs $profile($target)
     destroy $w
 }
 
@@ -1472,8 +1487,8 @@ proc protocol-setup {target} {
     if {$target == ""} {
         set target Default
     }
-    puts target
-    puts $profile($target)
+    dputs target
+    dputs $profile($target)
 
     frame $w.top.host
     frame $w.top.port
@@ -1499,7 +1514,7 @@ proc protocol-setup {target} {
     
     foreach sub {description host port idAuthentication \
             maximumRecordSize preferredMessageSize} {
-        puts $sub
+        dputs $sub
         bind $w.top.$sub.entry <Control-a> [list add-database $target]
         bind $w.top.$sub.entry <Control-d> [list delete-database $target]
     }
@@ -1548,9 +1563,9 @@ proc protocol-setup {target} {
     
     label $w.top.cs-type.label -text "Transport" 
     radiobutton $w.top.cs-type.tcpip -text "TCP/IP" -anchor w \
-            -command {puts tcp/ip} -variable csRadioType -value tcpip
+            -variable csRadioType -value tcpip
     radiobutton $w.top.cs-type.mosi -text "MOSI" -anchor w\
-            -command {puts mosi} -variable csRadioType -value mosi
+            -variable csRadioType -value mosi
     
     pack $w.top.cs-type.label $w.top.cs-type.tcpip $w.top.cs-type.mosi \
             -padx 4 -side top -fill x
@@ -1560,9 +1575,9 @@ proc protocol-setup {target} {
     
     label $w.top.protocol.label -text "Protocol" 
     radiobutton $w.top.protocol.z39v2 -text "Z39.50" -anchor w \
-            -command {puts Z39} -variable protocolRadioType -value Z39
+            -variable protocolRadioType -value Z39
     radiobutton $w.top.protocol.sr -text "SR" -anchor w \
-            -command {puts sr} -variable protocolRadioType -value SR
+            -variable protocolRadioType -value SR
     
     pack $w.top.protocol.label $w.top.protocol.z39v2 $w.top.protocol.sr \
             -padx 4 -side top -fill x
@@ -2009,7 +2024,7 @@ proc activate-e-index {value no i} {
     global queryIndexTmp
     
     set queryButtonsTmp [lreplace $queryButtonsTmp $no $no [list I $i]]
-    puts $queryButtonsTmp
+    dputs $queryButtonsTmp
     set queryIndexTmp $i
 }
 
@@ -2018,7 +2033,7 @@ proc activate-index {value no i} {
 
     set queryButtonsFind [lreplace $queryButtonsFind $no $no [list I $i]]
 
-    puts "queryButtonsFind $queryButtonsFind"
+    dputs "queryButtonsFind $queryButtonsFind"
 }
 
 proc update-attr {} {
@@ -2169,7 +2184,7 @@ proc use-attr {init} {
         set lno [lindex [$w.top.use.list curselection] 0]
         set i [expr $lno+$lno+1]
         set useTmpValue [lindex $attr $i]
-        puts "useTmpValue=$useTmpValue"
+        dputs "useTmpValue=$useTmpValue"
     }
 }
 
@@ -2186,9 +2201,9 @@ proc index-setup-action {oldAttr queryNo indexNo} {
 
     use-attr 0
 
-    puts "index-setup-action"
-    puts "queryNo $queryNo"
-    puts "indexNo $indexNo"
+    dputs "index-setup-action"
+    dputs "queryNo $queryNo"
+    dputs "indexNo $indexNo"
     if {$useTmpValue > 0} {
         lappend attr "1=$useTmpValue"
     }
@@ -2207,7 +2222,7 @@ proc index-setup-action {oldAttr queryNo indexNo} {
     if {$completenessTmpValue > 0} {
         lappend attr "6=$completenessTmpValue"
     }
-    puts "new attr $attr"
+    dputs "new attr $attr"
     set queryInfoTmp [lreplace $queryInfoTmp $indexNo $indexNo $attr]
     destroy .index-setup
 }
@@ -2339,7 +2354,7 @@ proc query-edit-index {queryNo} {
         return
     }
     set attr [lindex $queryInfoTmp $i]
-    puts "Editing no $i $attr"
+    dputs "Editing no $i $attr"
     index-setup $attr $queryNo $i
 }
 
@@ -2476,7 +2491,7 @@ proc index-query {} {
         }
         incr i
     }
-    puts "qs=  $qs"
+    dputs "qs=  $qs"
     return $qs
 }
 

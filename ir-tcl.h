@@ -23,12 +23,11 @@
  * LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
  * OF THIS SOFTWARE.
  *
- * IR toolkit for tcl/tk
- * (c) Index Data 1995
- * Sebastian Hammer, Adam Dickmeiss
- *
  * $Log: ir-tcl.h,v $
- * Revision 1.7  1995-05-29 08:44:23  adam
+ * Revision 1.8  1995-06-19 13:06:08  adam
+ * New define: IR_TCL_VERSION.
+ *
+ * Revision 1.7  1995/05/29  08:44:23  adam
  * Work on delete of objects.
  *
  * Revision 1.6  1995/05/23  15:34:49  adam
@@ -49,6 +48,8 @@
 
 #ifndef IR_TCL_H
 #define IR_TCL_H
+
+#define IR_TCL_VERSION "0.1"
 
 int ir_tcl_init (Tcl_Interp *interp);
 
