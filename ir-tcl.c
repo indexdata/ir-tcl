@@ -3,7 +3,10 @@
  * (c) Index Data 1995
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.8  1995-03-15 08:25:16  adam
+ * Revision 1.9  1995-03-15 13:59:24  adam
+ * Minor changes.
+ *
+ * Revision 1.8  1995/03/15  08:25:16  adam
  * New method presentStatus to check for error on present. Misc. cleanup
  * of IRRecordList manipulations. Full MARC record presentation in
  * search.tcl.
@@ -36,6 +39,7 @@
 
 #include <odr.h>
 #include <proto.h>
+#include <diagbib1.h>
 
 #include <tcl.h>
 
@@ -45,7 +49,7 @@ typedef struct {
     COMSTACK cs_link;
 
     int preferredMessageSize;
-    int maximumMessageSize;
+    int maximumRecordSize;
     Odr_bitmask options;
     Odr_bitmask protocolVersion;
     char *idAuthentication;
@@ -293,7 +297,7 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
     req.options = &p->options;
     req.protocolVersion = &p->protocolVersion;
     req.preferredMessageSize = &p->preferredMessageSize;
-    req.maximumRecordSize = &p->maximumMessageSize;
+    req.maximumRecordSize = &p->maximumRecordSize;
 
     req.idAuthentication = p->idAuthentication;
     req.implementationId = p->implementationId;
@@ -363,19 +367,19 @@ static int do_preferredMessageSize (void *obj, Tcl_Interp *interp,
 }
 
 /*
- * do_maximumMessageSize: Set/get maximum message size
+ * do_maximumRecordSize: Set/get maximum record size
  */
-static int do_maximumMessageSize (void *obj, Tcl_Interp *interp,
+static int do_maximumRecordSize (void *obj, Tcl_Interp *interp,
                                     int argc, char **argv)
 {
     char buf[20];
     if (argc == 3)
     {
         if (Tcl_GetInt (interp, argv[2], 
-                        &((IRObj *)obj)->maximumMessageSize)==TCL_ERROR)
+                        &((IRObj *)obj)->maximumRecordSize)==TCL_ERROR)
             return TCL_ERROR;
     }
-    sprintf (buf, "%d", ((IRObj *)obj)->maximumMessageSize);
+    sprintf (buf, "%d", ((IRObj *)obj)->maximumRecordSize);
     Tcl_AppendResult (interp, buf, NULL);
     return TCL_OK;
 }
@@ -624,7 +628,7 @@ static int ir_obj_method (ClientData clientData, Tcl_Interp *interp,
     { 0, "protocolVersion",         do_protocolVersion },
     { 0, "options",                 do_options },
     { 1, "preferredMessageSize",    do_preferredMessageSize },
-    { 1, "maximumMessageSize",      do_maximumMessageSize },
+    { 1, "maximumRecordSize",      do_maximumRecordSize },
     { 1, "implementationName",      do_implementationName },
     { 1, "implementationId",        do_implementationId },
     { 1, "idAuthentication",        do_idAuthentication },
@@ -666,7 +670,7 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
         return TCL_ERROR;
     obj->cs_link = cs_create (tcpip_type, 0);
 
-    obj->maximumMessageSize = 32768;
+    obj->maximumRecordSize = 32768;
     obj->preferredMessageSize = 4096;
 
     obj->idAuthentication = NULL;
@@ -1020,18 +1024,27 @@ static int do_presentStatus (void *o, Tcl_Interp *interp,
                              int argc, char **argv)
 {
     IRSetObj *obj = o;
+    const char *cp;
     char buf[28];
 
     switch (obj->which)
     {
     case Z_Records_DBOSD:
-    	Tcl_AppendResult (interp, "DBOSD", NULL);
+    	Tcl_AppendElement (interp, "DBOSD");
         break;
     case Z_Records_NSD:
-        sprintf (buf, "NSD %d", obj->condition);
-        Tcl_AppendResult (interp, buf, " {", 
-                          (obj->addinfo ? obj->addinfo : ""), 
-                          "}", NULL);
+        Tcl_AppendElement (interp, "NSD");
+        sprintf (buf, "%d", obj->condition);
+        Tcl_AppendElement (interp, buf);
+        cp = diagbib1_str (obj->condition);
+        if (cp)
+            Tcl_AppendElement (interp, (char*) cp);
+        else
+            Tcl_AppendElement (interp, "");
+        if (obj->addinfo)
+            Tcl_AppendElement (interp, obj->addinfo);
+        else
+            Tcl_AppendElement (interp, "");
         break;
     }
     return TCL_OK;

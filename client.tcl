@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.4  1995-03-14 17:32:29  adam
+# Revision 1.5  1995-03-15 13:59:23  adam
+# Minor changes.
+#
+# Revision 1.4  1995/03/14  17:32:29  adam
 # Presentation of full Marc record in popup window.
 #
 # Revision 1.3  1995/03/12  19:31:52  adam
@@ -301,8 +304,8 @@ proc search-response {} {
     show-message "[z39.$setNo resultCount] hits"
     set setMax [z39.$setNo resultCount]
     puts $setMax
-    if {$setMax > 16} {
-        set setMax 16
+    if {$setMax > 30} {
+        set setMax 30
     }
     z39 callback {present-response}
     set setOffset 1
@@ -564,3 +567,4 @@ set setNo 0
 ir z39
 z39 comstack tcpip
 set csRadioType [z39 comstack]
+z39 preferredMessageSize 12000
