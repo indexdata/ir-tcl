@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.93  1996-08-16 15:07:45  adam
+ * Revision 1.94  1996-08-21 13:32:53  adam
+ * Implemented saveFile method and extended loadFile method to work with it.
+ *
+ * Revision 1.93  1996/08/16  15:07:45  adam
  * First work on Explain.
  *
  * Revision 1.92  1996/08/09  15:33:07  adam
@@ -2633,46 +2636,164 @@ static int do_present (void *o, Tcl_Interp *interp, int argc, char **argv)
     return ir_tcl_send_APDU (interp, p, apdu, "present", *argv);
 }
 
+#define IR_TCL_RECORD_ENCODING_ISO2709  1
+#define IR_TCL_RECORD_ENCODING_RAW      2
+
+typedef struct {
+    int encoding;
+    int syntax;
+    int size;
+} IrTcl_FileRecordHead;
+
 /*
  * do_loadFile: Load result set from file
  */
-
 static int do_loadFile (void *o, Tcl_Interp *interp,
                         int argc, char **argv)
 {
     IrTcl_SetObj *setobj = o;
     FILE *inf;
     size_t size;
-    int  no = 1;
+    int offset;
+    int start = 1;
+    int number = 30000;
     char *buf;
-
+    
     if (argc <= 0)
         return TCL_OK;
-    if (argc != 3)
+    if (argc < 3)
     {
         interp->result = "wrong # args";
         return TCL_ERROR;
     }
+    if (argc > 3)
+        start = atoi (argv[3]);
+    if (argc > 4)
+        number = atoi (argv[4]);
+    offset = start;
+
     inf = fopen (argv[2], "r");
     if (!inf)
     {
         Tcl_AppendResult (interp, "Cannot open ", argv[2], NULL);
         return TCL_ERROR;
     }
-    while ((buf = ir_tcl_fread_marc (inf, &size)))
+    while (offset < (start+number))
     {
+        IrTcl_FileRecordHead head;
         IrTcl_RecordList *rl;
 
-        rl = new_IR_record (setobj, no, Z_NamePlusRecord_databaseRecord, "F");
-        rl->u.dbrec.type = VAL_USMARC;
-        rl->u.dbrec.buf = buf;
-        rl->u.dbrec.size = size;
-        no++;
+        if (fread (&head, sizeof(head), 1, inf) < 1)
+            break;
+        rl = new_IR_record (setobj, offset,
+                            Z_NamePlusRecord_databaseRecord,
+                            (argc > 5) ? argv[5] : NULL);
+        rl->u.dbrec.type = head.syntax;
+        if (head.encoding == IR_TCL_RECORD_ENCODING_ISO2709)
+        {
+            if (!(buf = ir_tcl_fread_marc (inf, &size)))
+                break;
+            rl->u.dbrec.buf = buf;
+            rl->u.dbrec.size = size;
+            if (size != head.size)
+            {
+                Tcl_AppendResult (interp, "Bad ISO2709 encoding in file",
+                                  argv[2], NULL);
+                fclose (inf);
+                return TCL_ERROR;
+            }
+        } 
+        else if (head.encoding == IR_TCL_RECORD_ENCODING_RAW)
+        {
+            rl->u.dbrec.size = head.size;
+            rl->u.dbrec.buf = ir_tcl_malloc (head.size + 1);
+            if (fread (rl->u.dbrec.buf, rl->u.dbrec.size, 1, inf) < 1)
+            {
+                Tcl_AppendResult (interp, "Bad RAW encoding in file",
+                                  argv[2], NULL);
+                fclose (inf);
+                return TCL_ERROR;
+            }
+            rl->u.dbrec.buf[rl->u.dbrec.size] = '\0';
+        }
+        else
+        {
+            rl->u.dbrec.buf = NULL;
+            rl->u.dbrec.size = 0;
+            Tcl_AppendResult (interp, "Bad encoding in file", argv[2], NULL);
+            fclose (inf);
+            return TCL_ERROR;
+        }
+        offset++;
     }
-    setobj->numberOfRecordsReturned = no-1;
+    setobj->numberOfRecordsReturned = offset - start;
     fclose (inf);
     return TCL_OK;
 }
+
+/*
+ * do_saveFile: Save result set on file
+ */
+static int do_saveFile (void *o, Tcl_Interp *interp,
+                        int argc, char **argv)
+{
+    IrTcl_SetObj *setobj = o;
+    FILE *outf;
+    int offset;
+    int start = 1;
+    int number = 30000;
+    IrTcl_RecordList *rl;
+    
+    if (argc <= 0)
+        return TCL_OK;
+    if (argc < 3)
+    {
+        interp->result = "wrong # args";
+        return TCL_ERROR;
+    }
+    if (argc > 3)
+        start = atoi (argv[3]);
+    if (argc > 4)
+        number = atoi (argv[4]);
+    offset = start;
+
+    outf = fopen (argv[2], "w");
+    if (!outf)
+    {
+        Tcl_AppendResult (interp, "Cannot open ", argv[2], NULL);
+        return TCL_ERROR;
+    }
+    while (offset < (start+number) && (rl = find_IR_record (setobj, offset)))
+    {
+        if (rl->which == Z_NamePlusRecord_databaseRecord &&
+            rl->u.dbrec.buf && rl->u.dbrec.size)
+        {
+            IrTcl_FileRecordHead head;
+
+            head.encoding = IR_TCL_RECORD_ENCODING_RAW;
+            head.syntax = rl->u.dbrec.type;
+            head.size = rl->u.dbrec.size;
+            if (fwrite (&head, sizeof(head), 1, outf) < 1)
+            {
+                Tcl_AppendResult (interp, "Cannot write ", argv[2], NULL);
+                return TCL_ERROR;
+            }
+            if (fwrite (rl->u.dbrec.buf, rl->u.dbrec.size, 1, outf) < 1)
+            {
+                Tcl_AppendResult (interp, "Cannot write ", argv[2], NULL);
+                return TCL_ERROR;
+            }
+        }
+        offset++;
+    }
+    if (fclose (outf))
+    {
+        Tcl_AppendResult (interp, "Cannot write ", argv[2], NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
 
 static IrTcl_Method ir_set_method_tab[] = {
     { "search",                  do_search, NULL},
@@ -2695,6 +2816,7 @@ static IrTcl_Method ir_set_method_tab[] = {
     { "diag",                    do_diag, NULL},
     { "responseStatus",          do_responseStatus, NULL},
     { "loadFile",                do_loadFile, NULL},
+    { "saveFile",                do_saveFile, NULL},
     { NULL, NULL}
 };
 

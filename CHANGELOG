@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.26 1996-08-09 15:33:05 adam Exp $
+$Id: CHANGELOG,v 1.27 1996-08-21 13:32:49 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -102,4 +102,9 @@ $Id: CHANGELOG,v 1.26 1996-08-09 15:33:05 adam Exp $
          asynchronous I/O works much better on Windows now.
 
 08/09/96 Borland C 5 makefile supplied with IrTcl.
-         
+
+08/21/95 New method, saveFile, that saves DB of records to a file.
+
+08/21/96 loadFile method changed to use load records previously saved
+         with saveFile.
+

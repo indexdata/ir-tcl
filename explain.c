@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: explain.c,v $
- * Revision 1.2  1996-08-20 09:27:48  adam
+ * Revision 1.3  1996-08-21 13:32:50  adam
+ * Implemented saveFile method and extended loadFile method to work with it.
+ *
+ * Revision 1.2  1996/08/20  09:27:48  adam
  * More work on explain.
  * Renamed tkinit.c to tkmain.c. The tcl shell uses the Tcl 7.5 interface
  * for socket i/o instead of the handcrafted one (for Tcl 7.3 and Tcl7.4).
@@ -177,7 +180,10 @@ static int
 ir_match_start (const char *name, void *p, IrExpArg *iea, int argi)
 {
     if (!p)
+    {
+        Tcl_AppendResult (iea->interp, name, " ", NULL);
         return 0;
+    }
     if (argi < iea->argc)
     {
         if (strcmp (name, iea->argv[argi]))
@@ -211,7 +217,7 @@ static int ir_null (IrExpArg *iea,
 {
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    Tcl_AppendResult (iea->interp, "{} ", NULL);
+    Tcl_AppendResult (iea->interp, "1 ", NULL);
     return ir_match_end (name, iea, argi);
 }
 
