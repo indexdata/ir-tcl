@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: explain.c,v $
- * Revision 1.11  1998-05-20 12:24:41  adam
+ * Revision 1.12  2003-02-18 10:28:00  adam
+ * Fix for new schema definition
+ *
+ * Revision 1.11  1998/05/20 12:24:41  adam
  * Fixed bug regaring missing element languages in TargetInfo.
  * Changed code so that it works with ASN.1 compiled YAZ code.
  *
@@ -1594,7 +1597,12 @@ static int ir_Specification (IrExpArg *iea,
 {
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
+#if YAZ_VERSIONL >= 0x010903
+    if (p->which == Z_Schema_oid)
+       ir_oid (iea, p->schema.oid, "schema", argi);
+#else
     ir_oid (iea, p->schema, "schema", argi);
+#endif
     ir_ElementSpec (iea, p->elementSpec, "elementSpec", argi);
     return ir_match_end (name, iea, argi);
 }
