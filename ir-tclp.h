@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.20  1996-01-04 11:05:23  adam
+ * Revision 1.21  1996-01-04 16:12:14  adam
+ * Setting PDUType renamed to eventType.
+ *
+ * Revision 1.20  1996/01/04  11:05:23  adam
  * New setting: PDUType - returns type of last PDU returned from the target.
  * Fixed a bug in configure/Makefile.
  *
@@ -154,7 +157,7 @@ typedef struct {
     char       *userInformationField;
 
     char       *hostname;
-    char       *pduType;
+    char       *eventType;
    
     char       *buf_in;
     int         len_in;
