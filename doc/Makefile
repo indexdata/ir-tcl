@@ -1,8 +1,11 @@
-# $Id: Makefile,v 1.5 1998-01-16 09:24:17 adam Exp $
+# $Id: Makefile,v 1.6 1999-02-11 09:27:38 adam Exp $
 all: ir-tcl.ps ir-tcl.txt ir-tcl.html
 
 ir-tcl.txt: ir-tcl.sgml
 	sgml2txt ir-tcl.sgml
+
+ir-tcl.ps: ir-tcl.sgml
+	sgml2ps ir-tcl.sgml
 
 ir-tcl.dvi: ir-tcl.sgml
 	sgml2ps -d ir-tcl.sgml

@@ -2,7 +2,7 @@
 # (c) Index Data 1995-1999
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.49 1999-02-11 09:13:23 adam Exp $
+# $Id: Makefile.in,v 1.50 1999-02-11 09:27:37 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -176,21 +176,16 @@ autoconf:
 
 distribution:
 	echo "Making distribution version $(VERSION). Did you commit?"
-	autoconf
 	if [ -d tmp ]; then \
 		rm -fr tmp; \
 	fi
 	mkdir tmp; cd tmp; cvs export -f -D now ir-tcl
 	rm tmp/ir-tcl/wais-tcl.c
-	cp configure tmp/ir-tcl
-	cd tmp; mv ir-tcl ir-tcl-$(VERSION)
-	cd tmp; tar zcf ../ir-tcl-$(VERSION).tar.gz ir-tcl-$(VERSION)
-	cd tmp; mv ir-tcl-$(VERSION) ir-tcl
 	cd tmp/ir-tcl/doc; make all
-	mv tmp/ir-tcl/doc/ir-tcl.txt .; gzip -f ir-tcl.txt
-	mv tmp/ir-tcl/doc/ir-tcl.ps .; gzip -f ir-tcl.ps
-	cd tmp/ir-tcl; mkdir irtcl; cp doc/*.html CHANGELOG irtcl
-	cd tmp/ir-tcl; tar zcf ../../irtclhtml.tar.gz irtcl
+	cp tmp/ir-tcl/doc/*.html .
+	cp tmp/ir-tcl/CHANGELOG .
+	mv tmp/ir-tcl tmp/ir-tcl-$(VERSION)
+	cd tmp; tar zcvf ../ir-tcl-$(VERSION).tar.gz ir-tcl-$(VERSION)
 	rm -fr tmp
 
 .c.o:
