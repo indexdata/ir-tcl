@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.108  1998-10-12 11:48:08  adam
+ * Revision 1.109  1998-10-13 21:23:26  adam
+ * Fixed searchStatus method.
+ *
+ * Revision 1.108  1998/10/12 11:48:08  adam
  * Removed printf call.
  *
  * Revision 1.107  1998/06/10 13:00:46  adam
@@ -3771,11 +3774,13 @@ static void ir_searchResponse (void *o, Z_SearchResponse *searchrs,
         logf (LOG_DEBUG, "Search response, no object!");
         return;
     }
-    setobj->searchStatus = searchrs->searchStatus ? 1 : 0;
+    setobj->searchStatus = *searchrs->searchStatus;
     get_referenceId (&setobj->set_inher.referenceId, searchrs->referenceId);
     setobj->resultCount = *searchrs->resultCount;
     if (searchrs->presentStatus)
         setobj->presentStatus = *searchrs->presentStatus;
+    else
+        setobj->presentStatus = Z_RES_NONE;
     if (searchrs->nextResultSetPosition)
         setobj->nextResultSetPosition = *searchrs->nextResultSetPosition;
 
