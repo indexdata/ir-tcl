@@ -1045,7 +1045,7 @@ fi
 if test -r ${tryprefix}/lib/tclConfig.sh; then
 	echo $ac_n "checking for Tcl""... $ac_c" 1>&6
 echo "configure:1048: checking for Tcl" >&5
-	source ${tryprefix}/lib/tclConfig.sh
+	. ${tryprefix}/lib/tclConfig.sh
 	TCLLIB="${TCL_LIB_SPEC} ${TCL_LIBS}"
 	TCLINC=-I${TCL_PREFIX}/include
 	RANLIB=$TCL_RANLIB
@@ -1344,7 +1344,7 @@ fi
 if test -r ${tryprefix}/lib/tkConfig.sh; then
 	echo $ac_n "checking for Tk""... $ac_c" 1>&6
 echo "configure:1347: checking for Tk" >&5
-	source ${tryprefix}/lib/tkConfig.sh
+	. ${tryprefix}/lib/tkConfig.sh
 	echo "$ac_t""$TK_VERSION" 1>&6
 	TKINC=${TK_XINCLUDES}
 	TKLIB="${TK_LIB_SPEC} ${TCL_LIB_SPEC} ${TK_LIBS}"

@@ -1,7 +1,7 @@
 dnl IR toolkit for tcl/tk
 dnl (c) Index Data 1996-1998
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.23 1998-01-16 11:01:17 adam Exp $
+dnl $Id: configure.in,v 1.24 1998-03-11 11:14:04 adam Exp $
 AC_INIT(ir-tcl.h)
 CC=${CC-cc}
 dnl ------ Substitutions
@@ -93,7 +93,7 @@ else
 fi
 if test -r ${tryprefix}/lib/tclConfig.sh; then
 	AC_MSG_CHECKING(for Tcl)
-	source ${tryprefix}/lib/tclConfig.sh
+	. ${tryprefix}/lib/tclConfig.sh
 	TCLLIB="${TCL_LIB_SPEC} ${TCL_LIBS}"
 	TCLINC=-I${TCL_PREFIX}/include
 	RANLIB=$TCL_RANLIB
@@ -150,7 +150,7 @@ dnl ------ look for Tk
 dnl
 if test -r ${tryprefix}/lib/tkConfig.sh; then
 	AC_MSG_CHECKING(for Tk)
-	source ${tryprefix}/lib/tkConfig.sh
+	. ${tryprefix}/lib/tkConfig.sh
 	AC_MSG_RESULT($TK_VERSION)
 	TKINC=${TK_XINCLUDES}
 	TKLIB="${TK_LIB_SPEC} ${TCL_LIB_SPEC} ${TK_LIBS}"
