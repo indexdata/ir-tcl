@@ -1,5 +1,5 @@
 # IRTCL makefile for MS NMAKE 
-# $Id: makefile,v 1.3 2003-01-30 13:27:07 adam Exp $
+# $Id: makefile,v 1.4 2003-03-05 22:06:32 adam Exp $
 #
 # Log at the end of the file
 VERSION=1.4.1
@@ -22,8 +22,8 @@ all: dirs irtcl
 ROOTDIR=..   # The home of IRTCL
 
 # TCL include files, libraries, etc.
-TCLINCL="c:\tcl\include"
-TCLLIB="c:\tcl\lib\tcl83.lib"
+TCLINCL="c:\program files\tcl\include"
+TCLLIB="c:\program files\tcl\lib\tclstub83.lib"
 
 # YAZ include files, libraries, etc.
 YAZDIR=$(ROOTDIR)\..\YAZ
@@ -63,7 +63,9 @@ irtcl : $(IRTCLDLL)
 
 COMMON_C_OPTIONS=          \
   /nologo /W3 /GX /FD /c   \
-  /D "WIN32" /D "IR_TCL_VERSION=\"$(VERSION)\""  \
+  /D "WIN32" \
+  /D "IR_TCL_VERSION=\"$(VERSION)\""  \
+  /D USE_TCL_STUBS=1       \
   /FR"$(OBJDIR)\\"         \
   /Fo"$(OBJDIR)\\"         \
   /Fd"$(OBJDIR)\\"
@@ -208,10 +210,10 @@ $(IRTCLDLL) : "$(BINDIR)" $(IRTCL_OBJS) $(RES)
 
 ############## clean
 clean:
-	del $(OBJDIR)\*.obj
-	del $(OBJDIR)\*.sbr
-	del $(TMPDIR)\*.
-	del $(IRTCLDLL)
+	-del $(OBJDIR)\*.obj
+	-del $(OBJDIR)\*.sbr
+	-del $(TMPDIR)\*.
+	-del $(IRTCLDLL)
 
 # Because DOS del will only accept one file name to delete,
 # the _H_ files work only on sets that have just one file.
@@ -236,7 +238,10 @@ $(ALL_OBJS): makefile
 ###########################################################
 #
 # $Log: makefile,v $
-# Revision 1.3  2003-01-30 13:27:07  adam
+# Revision 1.4  2003-03-05 22:06:32  adam
+# TclStubs on WIN32
+#
+# Revision 1.3  2003/01/30 13:27:07  adam
 # Changed version to 1.4.1. Added WIN32 version resource.
 # IrTcl ignores unexpected PDU's, rather than die.
 #
