@@ -20,11 +20,7 @@ else
 MCFLAGS=
 endif
 
-IRTCL_VERSION=1.4
 IRTCLDIR?=$(shell pwd)
-# If this is not IndexData's release, then it is a cvs-checkout. Go cheat!
-#   YAZ_VERSION:=$(YAZ_VERSION)-$(shell date -r$(YAZSRCDIR)/CVS +"CVS%Y%m%d")
-export IRTCL_VERSION
 
 # Local library path for linking with right dependencies
 LOCAL_LINK=-ldebian/ir-tcl/usr/lib
