@@ -4,7 +4,10 @@
  * See the file LICENSE for details.
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.121  2003-01-30 13:27:07  adam
+ * Revision 1.122  2003-03-05 18:02:08  adam
+ * Fix bug with idAuthentication that didn't work for empty group.
+ *
+ * Revision 1.121  2003/01/30 13:27:07  adam
  * Changed version to 1.4.1. Added WIN32 version resource.
  * IrTcl ignores unexpected PDU's, rather than die.
  *
@@ -789,7 +792,7 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
     req->preferredMessageSize = &p->preferredMessageSize;
     req->maximumRecordSize = &p->maximumRecordSize;
 
-    if (p->idAuthenticationGroupId)
+    if (p->idAuthenticationGroupId || p->idAuthenticationUserId)
     {
         Z_IdPass *pass = odr_malloc (p->odr_out, sizeof(*pass));
         Z_IdAuthentication *auth = odr_malloc (p->odr_out, sizeof(*auth));
@@ -812,9 +815,7 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
             pass->password = NULL;
         req->idAuthentication = auth;
     }
-    else if (!p->idAuthenticationOpen || !*p->idAuthenticationOpen)
-        req->idAuthentication = NULL;
-    else
+    else if (p->idAuthenticationOpen && *p->idAuthenticationOpen)
     {
         Z_IdAuthentication *auth = odr_malloc (p->odr_out, sizeof(*auth));
 
@@ -823,6 +824,8 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
         auth->u.open = p->idAuthenticationOpen;
         req->idAuthentication = auth;
     }
+    else
+        req->idAuthentication = NULL;
     req->implementationId = p->implementationId;
     req->implementationName = p->implementationName;
     req->implementationVersion = p->implementationVersion;
@@ -1184,6 +1187,12 @@ static int do_idAuthentication (void *obj, Tcl_Interp *interp,
     {
         if (argc == 3)
         {
+            xfree (p->idAuthenticationGroupId);
+            xfree (p->idAuthenticationUserId);
+            xfree (p->idAuthenticationPassword);
+            p->idAuthenticationGroupId = NULL;
+            p->idAuthenticationUserId = NULL;
+            p->idAuthenticationPassword = NULL;
             if (argv[2][0] && 
                 ir_tcl_strdup (interp, &p->idAuthenticationOpen, argv[2])
                 == TCL_ERROR)
@@ -1191,6 +1200,8 @@ static int do_idAuthentication (void *obj, Tcl_Interp *interp,
         }
         else if (argc == 5)
         {
+            xfree (p->idAuthenticationOpen);
+            p->idAuthenticationOpen = NULL;
             if (argv[2][0] && 
                 ir_tcl_strdup (interp, &p->idAuthenticationGroupId, argv[2])
                 == TCL_ERROR)
@@ -1207,7 +1218,7 @@ static int do_idAuthentication (void *obj, Tcl_Interp *interp,
     }
     if (p->idAuthenticationOpen)
         Tcl_AppendElement (interp, p->idAuthenticationOpen);
-    else if (p->idAuthenticationGroupId)
+    else if (p->idAuthenticationGroupId || p->idAuthenticationUserId)
     {
         Tcl_AppendElement (interp, p->idAuthenticationGroupId);
         Tcl_AppendElement (interp, p->idAuthenticationUserId);

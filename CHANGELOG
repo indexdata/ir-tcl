@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.52 2003-02-23 23:15:31 adam Exp $
+$Id: CHANGELOG,v 1.53 2003-03-05 18:02:08 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -161,3 +161,5 @@ $Id: CHANGELOG,v 1.52 2003-02-23 23:15:31 adam Exp $
 
 02/24/03 Release of ir-tcl-1.4.1
 ------------------------------------------------------
+
+05/03/03 Fix bug with idAuthentication that didn't work for empty group.
