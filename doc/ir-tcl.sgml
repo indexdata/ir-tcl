@@ -1,13 +1,13 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.9 1995-06-25 10:25:33 adam Exp $
+  $Id: ir-tcl.sgml,v 1.10 1995-06-26 10:20:45 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference
 <author>Index Data, <tt/info@index.ping.dk/
-<date>$Revision: 1.9 $
+<date>$Revision: 1.10 $
 <abstract>
 This document describes IrTcl &mdash; an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
@@ -40,8 +40,8 @@ See &lsqb;ref 2&rsqb; for more information about the XTI/mOSI implementation.
 <itemize>
 <item> A simple command line shell &mdash; useful for
 testing purposes.
-<item> A system which operates within the Tk environment which
-makes it very easy to implement GUI clients.
+<item> A simple command line shell which operates within the Tk
+ environment &mdash; makes it very easy to implement GUI clients.
 </itemize>
 
 <sect>Compilation and installation
@@ -101,32 +101,36 @@ $ make install
 Summary of files installed (the names refer to the Makefile variables):
 
 <descrip>
-<tag><tt>ir-tk</tt></tag> The Tk client. Installed in <tt>BINDIR</tt> &mdash;
-defaults to <tt>/usr/local/bin</tt>. When ir-tk starts it reads
-<tt>client.tcl</tt>. If the files doesn't exist in the current
-directory it tries to read it from <tt>IRTCLDIR</tt> - defaults
-to <tt>/usr/local/lib/irtcl</tt>.
-<tag><tt>ir-tcl</tt></tag> The Tcl client. Installed in <tt>BINDIR</tt> &mdash;
-defaults to <tt>/usr/local/bin</tt>.
+<tag><tt>ir-tk</tt></tag> The <sf/IrTcl/ shell for Tk.
+ Installed in <tt>BINDIR</tt> &mdash; defaults to
+ <tt>/usr/local/bin</tt>. <tt>ir-tk</tt> works like
+ <tt>wish</tt> &mdash without arguments it reads commands from stdin.
+ A source file may be specified by option <tt>-f</tt>. <tt>ir-tk</tt>
+ accept the same set of options as <tt>wish</tt>.
+<tag><tt>ir-tcl</tt></tag> The <sf/IrTcl/ shell for Tcl. Installed in
+ <tt>BINDIR</tt> &mdash; defaults to <tt>/usr/local/bin</tt>.
+<tag><tt>client.tcl</tt></tag> A graphical client for <tt>ir-tk</tt>.
+ The client is installed as an executable script called <tt>irclient</tt> in
+ <tt>BINDIR</tt>. This client needs a number of files, bitmaps, etc.
+ The client looks for the files in the current directory &mdash if
+ this fails it tries to look in the directory <tt>IRTCLDIR</tt>
+ &mdash; defaults to <tt>/usr/local/lib/irtcl</tt>.
 <tag><tt>libirtcl.a</tt></tag> The <sf/IrTcl/ library. 
-Installed in <tt>LIBDIR</tt> &mdash; defaults to <tt>/usr/local/lib</tt>.
+ Installed in <tt>LIBDIR</tt> &mdash; defaults to <tt>/usr/local/lib</tt>.
 <tag><tt>ir-tcl.h</tt></tag> The <sf/IrTcl/ header file.
-Installed in <tt>INCDIR</tt> &mdash; defaults to <tt>/usr/local/include</tt>.
-<tag><tt>client.tcl</tt></tag> A graphical client written in TK. 
-Installed in <tt>IRTCLDIR</tt> &mdash; defaults to 
-<tt>/usr/local/lib/irtcl</tt>.
+ Installed in <tt>INCDIR</tt> &mdash; defaults to <tt>/usr/local/include</tt>.
 <tag><tt>clientrc.tcl</tt></tag> A setup file with definitions
-of target and queries. Read and updated by <tt>client.tcl</tt>. Installed
-in <tt>IRTCLDIR</tt> &mdash; defaults to <tt>/usr/local/lib/irtcl</tt>.
+ of target and queries. Read and updated by <tt>client.tcl</tt>. Installed
+ in <tt>IRTCLDIR</tt> &mdash; defaults to <tt>/usr/local/lib/irtcl</tt>.
 <tag><tt>formats/*</tt></tag> Display format files written
-in Tk. Read by <tt>client.tcl</tt>. Installed 
-in <tt>IRTCLDIR</tt> &mdash; defaults to <tt>/usr/local/lib/irtcl</tt>.
+ in Tk. Read by <tt>client.tcl</tt>. Installed 
+ in <tt>IRTCLDIR</tt> &mdash; defaults to <tt>/usr/local/lib/irtcl</tt>.
 <tag><tt>bitmaps/*</tt></tag> Various bitmap files. Read by
-<tt>client.tcl</tt>. Installed 
-in <tt>IRTCLDIR</tt> &mdash; defaults to <tt>/usr/local/lib/irtcl</tt>.
+ <tt>client.tcl</tt>. Installed 
+ in <tt>IRTCLDIR</tt> &mdash; defaults to <tt>/usr/local/lib/irtcl</tt>.
 <tag><tt>LICENSE</tt></tag> LICENSE file. Read by
-<tt>client.tcl</tt>. Installed 
-in <tt>IRTCLDIR</tt> &mdash; defaults to <tt>/usr/local/lib/irtcl</tt>.
+ <tt>client.tcl</tt>. Installed 
+ in <tt>IRTCLDIR</tt> &mdash; defaults to <tt>/usr/local/lib/irtcl</tt>.
 </descrip>
 
 <sect1>ir-tcl
@@ -143,14 +147,12 @@ as a script.
 <sect1>ir-tk
 
 <p>
-<tt>ir-tk</tt> is a program which basically waits for X events and
-socket events (assocated with Z39.50/SR targets). <tt>ir-tk</tt> normally
-tries to evaluate the file named <tt>client.tcl</tt> when it
-starts. However, this behaviour may be changed by specifying another 
-filename with the <tt>-file</tt> option.
+<tt>ir-tk</tt> is a program that works like <tt>wish</tt> except that
+<tt>ir-tk</tt> include the new set of commands.
 
-The enclosed script <tt>client.tcl</tt> is a graphical client which
-demonstates an example of a user interface for the Z39.50/SR protocols.
+The enclosed script <tt>client.tcl</tt> for <tt>ir-tk</tt> 
+is a graphical client which demonstates an example of a user interface
+for the Z39.50/SR protocols.
 At first the script was relatively small but it has grown since the 
 beginning. At present it is about 3000 lines.
 
@@ -977,9 +979,9 @@ record.
 
 <sect1>SUTRS
 
+<p>
 In <sf/IrTcl/ a SUTRS record is treated as one single string. To retrieve
-a SUTRS string at a given index, the <tt>getSutrs</tt> should be used. 
-The <tt>getSutrs</tt> is immediately followed by a index.
+a SUTRS record use the <tt>getSutrs</tt> followed by an index.
 
 <sect>Scan
 

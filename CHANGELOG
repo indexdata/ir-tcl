@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.1 1995-06-25 10:24:58 adam Exp $
+$Id: CHANGELOG,v 1.2 1995-06-26 10:20:19 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -21,3 +21,9 @@ $Id: CHANGELOG,v 1.1 1995-06-25 10:24:58 adam Exp $
 
 06/22/95 Preferred record syntax can be specified by the user in client.tcl.
 
+06/26/95 ir-tk doesn't read client.tcl when no options are given. Instead
+         it works like wish. The demonstrating client is named 'irclient'
+         when installed in the directory with executables.
+------------------------------------------------------
+06/26/95 Release of ir-tcl-1.0b1
+         

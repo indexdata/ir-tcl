@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: tclmain.c,v $
- * Revision 1.8  1995-06-21 15:16:44  adam
+ * Revision 1.9  1995-06-26 10:20:20  adam
+ * ir-tk works like wish.
+ *
+ * Revision 1.8  1995/06/21  15:16:44  adam
  * More work on configuration.
  *
  * Revision 1.7  1995/06/21  11:04:54  adam
@@ -90,10 +93,33 @@ int main (int argc, char **argv)
             exit (1);
         tcl_mainloop (interp, 0);
     }
-    else
+    else if (isatty(0))
     {
+
         Tcl_SetVar (interp, "tcl_interactive", "1", TCL_GLOBAL_ONLY);
         tcl_mainloop (interp, 1);
+    }
+    else
+    {
+        Tcl_DString command;
+        char input_buf[1024];
+        int count;
+
+        printf ("xx\n");
+        Tcl_DStringInit (&command);
+        while (fgets (input_buf, 1024, stdin))
+        {
+            count = strlen(input_buf);
+            Tcl_DStringAppend (&command, input_buf, count);
+            if (Tcl_CommandComplete (Tcl_DStringValue (&command)))
+            {
+                int code = Tcl_Eval (interp, Tcl_DStringValue (&command));
+                Tcl_DStringFree (&command);
+                if (code)
+                    printf ("Error: %s\n", interp->result);
+            }
+        }
+        tcl_mainloop (interp, 0);
     }
     exit (0);
 }
@@ -112,7 +138,7 @@ void tcl_mainloop (Tcl_Interp *interp, int interactive)
     if (interactive)
     {
         Tcl_DStringInit (&command);
-        printf ("[TCL]"); fflush (stdout);
+        printf ("%% "); fflush (stdout);
     }
     while (1)
     {
@@ -169,8 +195,8 @@ void tcl_mainloop (Tcl_Interp *interp, int interactive)
         }
         if (interactive && FD_ISSET(0, &fdset_tcl_r))
         {
-            char input_buf[256];
-            int count = read (0, input_buf, 256);
+            char input_buf[1024];
+            int count = read (0, input_buf, 1024);
 
             if (count <= 0)
                 exit (0);
@@ -180,10 +206,10 @@ void tcl_mainloop (Tcl_Interp *interp, int interactive)
                 int code = Tcl_Eval (interp, Tcl_DStringValue (&command));
                 Tcl_DStringFree (&command);
                 if (code)
-                    printf ("[ERR:%s]\n", interp->result);
+                    printf ("Error: %s\n", interp->result);
                 else
-                    printf ("[RES:%s]\n", interp->result);
-                printf ("[TCL]"); fflush (stdout);
+                    printf ("%s", interp->result);
+                printf ("%% "); fflush (stdout);
             }
         }
     }
