@@ -1,6 +1,9 @@
 #
 # $Log: client.tcl,v $
-# Revision 1.28  1995-06-02 14:52:13  adam
+# Revision 1.29  1995-06-05 14:11:18  adam
+# Bug fix in present-more.
+#
+# Revision 1.28  1995/06/02  14:52:13  adam
 # Minor changes really.
 #
 # Revision 1.27  1995/06/02  14:29:42  adam
@@ -215,7 +218,7 @@ proc show-status {status b sb} {
         return
     }
     if {$sb} {
-        .top.search configure -state normal
+        .top.service configure -state normal
         .mid.search configure -state normal
         .mid.scan configure -state normal
         .mid.present configure -state normal
@@ -225,7 +228,7 @@ proc show-status {status b sb} {
         }
         set searchEnable 1
     } else {
-        .top.search configure -state disabled
+        .top.service configure -state disabled
         .mid.search configure -state disabled
         .mid.scan configure -state disabled
         .mid.present configure -state disabled
@@ -295,11 +298,10 @@ proc about-origin {} {
     bottom-buttons $w [list {Close} [list destroy $w]] 1
 }
 
-proc show-full-marc {no b} {
-    global setNo
+proc show-full-marc {sno no b} {
     global fullMarcSeq
 
-    if {[z39.$setNo type $no] != "DB"} {
+    if {[z39.$sno type $no] != "DB"} {
         return
     }
     if {$b} {
@@ -329,7 +331,7 @@ proc show-full-marc {no b} {
 
         set new 1
     }
-    set r [z39.$setNo getMarc $no list * * *]
+    set r [z39.$sno getMarc $no list * * *]
 
     $w.top.record tag configure marc-tag -foreground blue
     $w.top.record tag configure marc-data -foreground black
@@ -364,7 +366,7 @@ proc show-full-marc {no b} {
 
         bottom-buttons $w [list \
                 {Close} [list destroy $w] \
-                {Duplicate} [list show-full-marc $no 1]] 0
+                {Duplicate} [list show-full-marc $sno $no 1]] 0
     }
 }
 
@@ -781,25 +783,35 @@ proc present-more {number} {
     global setOffset
     global setMax
 
+    puts "setOffset=$setOffset"
     puts "present-more"
     if {$setNo == 0} {
+        puts "setNo=$setNo"
 	return
     }
     set max [z39.$setNo resultCount]
-    if {$max <= $setMax} {
+    if {$max <= $setOffset} {
+        puts "max=$max"
+        puts "setOffset=$setOffset"
         return
     }
     if {$number == ""} {
         set setMax $max
     } else {
         incr setMax $number
+        if {$setMax > $max} {
+            set setMax $max
+        }
     }
     z39 callback {present-response}
 
     set toGet [expr $setMax - $setOffset + 1]
+    if {$toGet <= 0} {
+        return
+    }
     if {$toGet > 3} {
         set toGet 3
-    }
+    } 
     z39.$setNo present $setOffset $toGet
     show-status {Retrieve} 1 0
 }
@@ -808,7 +820,12 @@ proc init-title-lines {} {
     .data.list delete 0 end
 }
 
+proc title-press {y setno} {
+    show-full-marc $setno [expr 1 + [.data.list nearest $y]] 0
+}
+
 proc add-title-lines {setno no offset} {
+    bind .data.list <Double-Button-1> [list title-press %y $setno]
     for {set i 0} {$i < $no} {incr i} {
         set o [expr $i + $offset]
         set type [z39.$setno type $o]
@@ -1727,18 +1744,26 @@ menu .top.target.m.clist
 menu .top.target.m.slist
 cascade-target-list
 
-menubutton .top.search -text "Search" -underline 0 -menu .top.search.m
-menu .top.search.m
-.top.search.m add command -label "Database" -command {database-select}
-.top.search.m add cascade -label "Query type" -menu .top.search.m.querytype
-menu .top.search.m.querytype
-.top.search.m.querytype add radiobutton -label "RPN"
-.top.search.m.querytype add radiobutton -label "CCL"
-.top.search.m add cascade -label "Present" -menu .top.search.m.present
-menu .top.search.m.present
-.top.search.m.present add command -label "More" -command [list present-more 10]
-.top.search.m.present add command -label "All" -command [list present-more {}]
-.top.search configure -state disabled
+menubutton .top.service -text "Service" -underline 0 -menu .top.service.m
+menu .top.service.m
+.top.service.m add command -label "Database" -command {database-select}
+.top.service.m add cascade -label "Query type" -menu .top.service.m.querytype
+menu .top.service.m.querytype
+.top.service.m.querytype add radiobutton -label "RPN"
+.top.service.m.querytype add radiobutton -label "CCL"
+.top.service.m add cascade -label "Present" -menu .top.service.m.present
+menu .top.service.m.present
+.top.service.m.present add command -label "More" \
+        -command [list present-more 10]
+.top.service.m.present add command -label "All" \
+        -command [list present-more {}]
+.top.service configure -state disabled
+
+menubutton .top.rset -text "Set" -menu .top.rset.m
+menu .top.rset.m
+.top.rset.m add cascade -label "Select" -menu .top.rset.m.list
+.top.rset.m add command -label "Load" -command {load-set}
+menu .top.rset.m.list
 
 menubutton .top.query -text "Query" -underline 0 -menu .top.query.m
 menu .top.query.m
@@ -1757,7 +1782,7 @@ menu .top.help.m
 .top.help.m add command -label "About" \
         -command {tkerror "About not available. Sorry"}
 
-pack .top.file .top.target .top.query .top.search -side left
+pack .top.file .top.target .top.rset .top.query .top.service -side left
 pack .top.help -side right
 
 index-lines .lines 1 $queryButtonsFind [lindex $queryInfo 0] activate-index
@@ -1773,7 +1798,7 @@ button .mid.clear -width 7 -text {Clear} -command index-clear
 pack .mid.search .mid.scan .mid.present .mid.clear -side left \
         -fill y -padx 5 -pady 3
 
-listbox .data.list -yscrollcommand {.data.scroll set} -font fixed
+listbox .data.list -yscrollcommand {.data.scroll set} -font fixed -geometry 20x2
 scrollbar .data.scroll -orient vertical -border 1
 pack .data.list -side left -fill both -expand yes
 pack .data.scroll -side right -fill y
@@ -1797,12 +1822,7 @@ pack .bot.a.target -side top -anchor nw -padx 2 -pady 2
 pack .bot.a.status .bot.a.set .bot.a.message \
         -side left -padx 2 -pady 2
 
-bind .data.list <Double-Button-1> {set indx [.data.list nearest %y]
-show-full-marc [incr indx] 0}
-
 ir z39
-z39 options search present scan namedResultSets triggerResourceCtrl
-puts [z39 options]
 
 show-logo 1
 
