@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.71  1996-01-19 16:22:38  adam
+ * Revision 1.72  1996-01-19 17:45:34  quinn
+ * Added debugging output
+ *
+ * Revision 1.71  1996/01/19  16:22:38  adam
  * New method: apduDump - returns information about last incoming APDU.
  *
  * Revision 1.70  1996/01/10  09:18:34  adam
@@ -1057,6 +1060,7 @@ static int do_connect (void *obj, Tcl_Interp *interp,
             do_disconnect (p, NULL, 2, NULL);
             return TCL_ERROR;
         }
+	logf(LOG_DEBUG, "cs_connect() returned %d", r);
         p->eventType = "connect";
         ir_select_add (cs_fileno (p->cs_link), p);
         if (r == 1)
@@ -1102,6 +1106,7 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
         odr_reset (p->odr_in);
 
         assert (p->cs_link);
+	logf(LOG_DEBUG, "Closing connection");
         cs_close (p->cs_link);
         p->cs_link = NULL;
 
@@ -3340,8 +3345,10 @@ void ir_select_read (ClientData clientData)
     Tcl_CmdInfo cmd_info;
     const char *apdu_call;
 
+    logf(LOG_DEBUG, "Read handler");
     if (p->state == IR_TCL_R_Connecting)
     {
+	logf(LOG_DEBUG, "Connect handler");
         r = cs_rcvconnect (p->cs_link);
         if (r == 1)
         {
@@ -3391,15 +3398,19 @@ void ir_select_read (ClientData clientData)
             return;
         }        
         if (r == 1)
+	{
+	    logf(LOG_DEBUG, "PDU Fraction read");
             return ;
+	}
         /* got complete APDU. Now decode */
         p->apduLen = r;
         p->apduOffset = -1;
         odr_setbuf (p->odr_in, p->buf_in, r, 0);
-        logf (LOG_DEBUG, "cs_get ok, got %d", r);
+        logf (LOG_DEBUG, "cs_get ok, total size %d", r);
         if (!z_APDU (p->odr_in, &apdu, 0))
         {
-            logf (LOG_DEBUG, "%s", odr_errmsg (odr_geterror (p->odr_in)));
+            logf (LOG_DEBUG, "cs_get failed: %s",
+		odr_errmsg (odr_geterror (p->odr_in)));
             do_disconnect (p, NULL, 2, NULL);
             if (p->failback)
             {
@@ -3411,6 +3422,7 @@ void ir_select_read (ClientData clientData)
             ir_obj_delete (p);
             return;
         }
+	logf(LOG_DEBUG, "Decoded ok");
         /* handle APDU and invoke callback */
         rq = p->request_queue;
         if (!rq)
@@ -3495,9 +3507,10 @@ void ir_select_write (ClientData clientData)
     int r;
     IrTcl_Request *rq;
 
-    logf (LOG_DEBUG, "In write handler");
+    logf (LOG_DEBUG, "Write handler");
     if (p->state == IR_TCL_R_Connecting)
     {
+	logf(LOG_DEBUG, "Connect handler");
         r = cs_rcvconnect (p->cs_link);
         if (r == 1)
             return;
@@ -3525,7 +3538,7 @@ void ir_select_write (ClientData clientData)
     assert (rq);
     if ((r=cs_put (p->cs_link, rq->buf_out, rq->len_out)) < 0)
     {
-        logf (LOG_DEBUG, "select write fail");
+        logf (LOG_DEBUG, "cs_put write fail");
         if (p->failback)
         {
             p->failInfo = IR_TCL_FAIL_WRITE;
@@ -3537,6 +3550,7 @@ void ir_select_write (ClientData clientData)
     }
     else if (r == 0)            /* remove select bit */
     {
+	logf(LOG_DEBUG, "Write completed");
         p->state = IR_TCL_R_Waiting;
         ir_select_remove_write (cs_fileno (p->cs_link), p);
         free (rq->buf_out);
