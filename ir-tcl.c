@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.89  1996-06-11 15:27:15  adam
+ * Revision 1.90  1996-06-27 14:21:00  adam
+ * Yet another Windows port.
+ *
+ * Revision 1.89  1996/06/11  15:27:15  adam
  * Event type set to connect a little earlier in the do_connect function.
  *
  * Revision 1.88  1996/06/03  09:04:22  adam
@@ -3643,7 +3646,7 @@ static void ir_select_read (ClientData clientData)
 /*
  * ir_select_write: handle outgoing packages - not yet written.
  */
-static void ir_select_write (ClientData clientData)
+static int ir_select_write (ClientData clientData)
 {
     IrTcl_Obj *p = clientData;
     int r;
@@ -3657,7 +3660,7 @@ static void ir_select_write (ClientData clientData)
         if (r == 1)
         {
             logf (LOG_DEBUG, "cs_rcvconnect returned 1");
-            return;
+            return 2;
         }
         p->state = IR_TCL_R_Idle;
         p->ref_count = 2;
@@ -3672,16 +3675,16 @@ static void ir_select_write (ClientData clientData)
                 ir_tcl_eval (p->interp, p->failback);
             }
             ir_obj_delete (p);
-            return;
+            return 2;
         }
         if (p->callback)
             ir_tcl_eval (p->interp, p->callback);
         ir_obj_delete (p);
-        return;
+        return 2;
     }
     rq = p->request_queue;
     if (!rq || !rq->buf_out)
-        return;
+        return 0;
     assert (rq);
     if ((r=cs_put (p->cs_link, rq->buf_out, rq->len_out)) < 0)
     {
@@ -3705,14 +3708,20 @@ static void ir_select_write (ClientData clientData)
         free (rq->buf_out);
         rq->buf_out = NULL;
     }
+    return 1;
 }
 
 static void ir_select_notify (ClientData clientData, int r, int w, int e)
 {
-    if (r)
+    if (w)
+    {
+        if (!ir_select_write (clientData) && r)
+            ir_select_read (clientData);
+    } 
+    else if (r)
+    {
         ir_select_read (clientData);
-    else if (w)
-        ir_select_write (clientData);
+    }
 }
 
 /* ------------------------------------------------------- */
