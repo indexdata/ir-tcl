@@ -116,8 +116,7 @@ binary-arch: build install
 	# Go kill those CVS-dirs before build
 	-find debian/tmp -type d -name CVS | xargs rm -rf
 	# For some reason it is necessary to remove empty-dirs in doc
-	-rm -rf debian/tmp/usr/include debian/tmp/usr/lib debian/tmp/usr/bin \
-	        debian/tmp/usr/lib/ir-tcl
+	-rm -rf debian/tmp/usr/include debian/tmp/usr/lib debian/tmp/usr/bin 
 
 	dh_builddeb -p ir-tcl
 
