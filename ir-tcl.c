@@ -1,11 +1,13 @@
 /*
  * IR toolkit for tcl/tk
- * (c) Index Data 1995-1999
+ * (c) Index Data 1995-2000
  * See the file LICENSE for details.
- * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.114  1999-05-17 20:37:41  adam
+ * Revision 1.115  2000-09-13 12:18:49  adam
+ * Logging utility patch (YAZ version 1.7).
+ *
+ * Revision 1.114  1999/05/17 20:37:41  adam
  * Fixed problem with ASN code.
  *
  * Revision 1.113  1999/04/20 10:01:46  adam
@@ -1367,11 +1369,11 @@ static int do_logLevel (void *o, Tcl_Interp *interp,
     if (argc <= 2)
         return TCL_OK;
     if (argc == 3)
-        log_init (log_mask_str (argv[2]), "", NULL);
+        yaz_log_init (yaz_log_mask_str (argv[2]), "", NULL);
     else if (argc == 4)
-        log_init (log_mask_str (argv[2]), argv[3], NULL);
+        yaz_log_init (yaz_log_mask_str (argv[2]), argv[3], NULL);
     else if (argc == 5)
-        log_init (log_mask_str (argv[2]), argv[3], argv[4]);
+        yaz_log_init (yaz_log_mask_str (argv[2]), argv[3], argv[4]);
     return TCL_OK;
 }
 
@@ -3724,11 +3726,11 @@ static int ir_log_init_proc (ClientData clientData, Tcl_Interp *interp,
         return TCL_OK;
     }
     if (argc == 2)
-        log_init (log_mask_str (argv[1]), "", NULL);
+        yaz_log_init (yaz_log_mask_str (argv[1]), "", NULL);
     else if (argc == 3)
-        log_init (log_mask_str (argv[1]), argv[2], NULL);
+        yaz_log_init (yaz_log_mask_str (argv[1]), argv[2], NULL);
     else 
-        log_init (log_mask_str (argv[1]), argv[2], argv[3]);
+        yaz_log_init (yaz_log_mask_str (argv[1]), argv[2], argv[3]);
     return TCL_OK;
 }
 
@@ -3745,7 +3747,7 @@ static int ir_log_proc (ClientData clientData, Tcl_Interp *interp,
                           " level string\"", NULL);
         return TCL_OK;
     }
-    mask = log_mask_str_x (argv[1], 0);
+    mask = yaz_log_mask_str_x (argv[1], 0);
     logf (LOG_DEBUG, "%s", argv[2]);
     return TCL_OK;
 }
