@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.100  1997-09-09 10:19:50  adam
+# Revision 1.101  1997-11-19 11:20:56  adam
+# New target profile format - associative arrrays instead of LONG lists.
+#
+# Revision 1.100  1997/09/09 10:19:50  adam
 # New MSV5.0 port with fewer warnings.
 #
 # Revision 1.99  1997/04/13 19:00:37  adam
@@ -355,9 +358,20 @@ if {$tk_version == "3.6"} {
     }
 }
 
-# The following two procedures deals with menu entries. The interface
+# The following procedures deals with menu entries. The interface
 # changed from Tk 3.6 to 4.X
 
+# Procedure irmenu
+if {[tk4]} {
+    proc irmenu {w} {
+	    menu $w -tearoff off
+    }
+} else {
+    proc irmenu {w} {
+	    menu $w
+	}
+}
+    
 # Procedure configure-enable-e {w n}
 #  w   is a menu
 #  n   menu entry number (0 is first entry)
@@ -370,11 +384,11 @@ if {$tk_version == "3.6"} {
 
 if {[tk4]} {
     proc configure-enable-e {w n} {
-        incr n
+#        incr n
         $w entryconfigure $n -state normal
     }
     proc configure-disable-e {w n} {
-        incr n
+#        incr n
         $w entryconfigure $n -state disabled
     }
     set noFocus [list -takefocus 0]
@@ -430,44 +444,33 @@ set hotTargets {}
 set hotInfo {}
 set busy 0
 
-# profile: associative array with target profiles.
-#indx exp description
-#
-#   0  T  Target description
-#   1     Host
-#   2     Port
-#   3     Authentication
-#   4     Maximum Record Size
-#   5     Preferred Messages Size
-#   6     Comstack
-#   7  D  Databases available
-#   8  T  Result Sets support
-#   9     RPN-Query support
-#  10     CCL-Query support
-#  11     Protocol (Z39/SR)
-#  12     Window Number
-#  13     LSLB  Large Set Lower Bound
-#  14     SSUB  Small Set Upper Bound
-#  15     MSPN  Medium Set Present Number
-#  16     Present Chunk - number of records to fetch in each present
-#  17     Time of first define
-#  18     Time of last init
-#  19     Time of last explain
-#  20  T  Name in TargetInfo
-#  21  T  Recent News
-#  22  T  Max Result Sets
-#  23  T  Max Result Size
-#  24  T  Max Terms
-#  25  D  List of database info records
-#  26  T  Multiple Databases
-#  27  T  Welcome message
-#
-#
-# Legend:
-#  T  TargetInfo explain
-#  D  DatabaseInfo explain
+set profile(Default,description) {}
+set profile(Default,host) {}
+set profile(Default,port) 210
+set profile(Default,authentication) {}
+set profile(Default,maximumRecordSize) 50000
+set profile(Default,preferredMessageSize) 30000
+set profile(Default,comstack) tcpip
+set profile(Default,namedResultSets) 1
+set profile(Default,queryRPN) 1
+set profile(Default,queryCCL) 0
+set profile(Default,protocol) Z39
+set profile(Default,windowNumber) 1
+set profile(Default,largeSetLowerBound) 2
+set profile(Default,smallSetUpperBound) 0
+set profile(Default,mediumSetPresentNumber) 0
+set profile(Default,presentChunk) 4
+set profile(Default,timeDefine) {}
+set profile(Default,timeLastInit) {}
+set profile(Default,timeLastExplain) {}
+set profile(Default,targetInfoName) {}
+set profile(Default,recentNews) {}
+set profile(Default,maxResultSets) {}
+set profile(Default,maxResultSize) {}
+set profile(Default,maxTerms) {}
+set profile(Default,multipleDatabases) 0
+set profile(Default,welcomeMessage) {}
 
-set profile(Default) {{} {} {210} {} 50000 30000 tcpip {} 1 {} {} Z39 1 2 0 0 4}
 set hostid Default
 set settingsChanged 0
 set setNo 0
@@ -491,8 +494,7 @@ wm minsize . 0 0
 set setOffset 0
 set setMax 0
 
-if {$tk_version == "3.6" || $tk_version == "4.0" || $tk_version == "4.1" ||
-    $tk_version == "4.2"} {
+if {[lindex [split $tk_version .] 0] > 4} {
     set font(bb,normal) -Adobe-Helvetica-Medium-R-Normal-*-240-*
     set font(bb,bold) -Adobe-Helvetica-Bold-R-Normal-*-240-*
     set font(b,normal) -Adobe-Helvetica-Medium-R-Normal-*-180-*
@@ -515,27 +517,28 @@ if {$tk_version == "3.6" || $tk_version == "4.0" || $tk_version == "4.1" ||
 # Procedure tkerror {err}
 #   err   error message
 # Override the Tk error handler function.
-proc tkerror err {
-    global font
-    set w .tkerrorw
-
-    if {[winfo exists $w]} {
-        destroy $w
-    }
-    toplevel $w
-    wm title $w "Error"
-
-    place-force $w .
-    top-down-window $w
-
-    label $w.top.b -bitmap error
-    message $w.top.t -aspect 300 -text "Error: $err" \
+if {1} {
+    proc tkerror err {
+	global font
+	set w .tkerrorw
+	
+	if {[winfo exists $w]} {
+	    destroy $w
+	}
+	toplevel $w
+	wm title $w "Error"
+	
+	place-force $w .
+	top-down-window $w
+	
+	label $w.top.b -bitmap error
+	message $w.top.t -aspect 300 -text "Error: $err" \
             -font $font(b,bold)
-    pack $w.top.b $w.top.t -side left -padx 10 -pady 10
-
-    bottom-buttons $w [list {Close} [list destroy $w]] 1
+	pack $w.top.b $w.top.t -side left -padx 10 -pady 10
+	
+	bottom-buttons $w [list {Close} [list destroy $w]] 1
+    }
 }
-
 # Read tag set file (if present)
 if {[file readable "${libdir}/tagsets.tcl"]} {
     source "${libdir}/tagsets.tcl"
@@ -548,18 +551,35 @@ if {[file readable "clientrc.tcl"]} {
     source "${libdir}/clientrc.tcl"
 }
 
-# Make old definitions up-to-date.
-foreach n [array names profile] {
-    set l [llength $profile($n)]
-    while {$l < 29} {
-        lappend profile($n) {}
-        incr l
-    }
-}
-
 # Read the user configuration file.
 if {[file readable "~/.clientrc.tcl"]} {
     source "~/.clientrc.tcl"
+}
+
+# Convert old format to new format...
+foreach target [array names profile] {
+    set timedef [clock seconds]
+    if {[string first , $target] == -1} {
+	if {![info exists profile($target,port)]} {
+	    foreach n [array names profile Default,*] {
+		set profile($target,[string range $n 8 end]) $profile($n)
+	    }
+	    set profile($target,description) [lindex $profile($target) 0]
+	    set profile($target,host) [lindex $profile($target) 1]
+	    set profile($target,port) [lindex $profile($target) 2]
+	    set profile($target,authentication) [lindex $profile($target) 3]
+	    set profile($target,maximumRecordSize) \
+		[lindex $profile($target) 4]
+	    set profile($target,preferredMessageSize) \
+		[lindex $profile($target) 5]
+	    set profile($target,comstack) [lindex $profile($target) 6]
+	    set profile($target,databases) [lindex $profile($target) 7]
+	    set profile($target,timeDefine) $timedef
+
+	    incr profile(Default,windowNumber)
+	}
+	unset profile($target)
+    }
 }
 
 # These globals describe the current query type. They are set to the
@@ -632,7 +652,8 @@ proc apduDump {} {
         top-down-window $w
         
         text $w.top.t -font fixed -width 60 -height 12 -wrap word \
-		-relief flat -borderwidth 0 -yscrollcommand [list $w.top.s set]
+            -relief flat -borderwidth 0 \
+			-yscrollcommand [list $w.top.s set] -background grey85
         scrollbar $w.top.s -command [list $w.top.t yview]
         
         pack $w.top.s -side right -fill y
@@ -653,9 +674,7 @@ proc apduDump {} {
 #  f    display format
 # Reformats main record window to use display format given by f
 proc set-display-format {f} {
-    global displayFormat
-    global setNo
-    global busy
+    global displayFormat setNo busy
 
     set displayFormat $f
     if {$setNo == 0} {
@@ -808,11 +827,9 @@ proc bottom-buttons {w buttonList g} {
 # If the system is currently busy a "Cancel" will be displayed in the
 # status area and the cancelFlag is set to true indicating that future
 # responses from the target should be ignored. The system is no longer
-# when this procedure exists.
+# busy when this procedure exists.
 proc cancel-operation {} {
-    global cancelFlag
-    global busy
-    global delayRequest
+    global cancelFlag busy delayRequest
 
     if {$busy} {
         set cancelFlag 1
@@ -826,10 +843,8 @@ proc cancel-operation {} {
 #  base       name of database
 # Displays target name and database name in the target status area.
 proc show-target {target base} {
-    global profile
-
     if {![string length $target]} {
-        .bot.a.target configure -text ""
+        .bot.a.target configure -text {}
         return
     }
     if {![string length $base]} {
@@ -846,8 +861,7 @@ proc show-target {target base} {
 # by itself. The global 'busy' variable determines whether the logo is
 # moving or not.
 proc show-logo {v1} {
-    global busy
-    global libdir
+    global busy libdir
 
     if {$busy != 0} {
         incr v1
@@ -876,11 +890,8 @@ proc show-logo {v1} {
 # busy flag 'busy' to b if b is non-empty. If sb is non-empty it indicates
 # whether service buttons should be enabled or disabled.
 proc show-status {status b sb} {
-    global busy
-    global scanEnable
-    global setOffset
-    global setMax
-    global setNo
+    global busy scanEnable
+    global setOffset setMax setNo
 
     .bot.a.status configure -text "$status"
     if {$b == 1} {
@@ -1108,7 +1119,8 @@ proc popup-marc {sno no b df} {
         pack  $w.bot -fill both
 
         text $w.top.record -width 60 -height 5 -wrap word -relief flat \
-                -borderwidth 0 -font fixed -yscrollcommand [list $w.top.s set]
+                -borderwidth 0 -font fixed \
+                -yscrollcommand [list $w.top.s set] -background grey85
         scrollbar $w.top.s -command [list $w.top.record yview]
 
         global monoFlag
@@ -1140,7 +1152,7 @@ proc popup-marc {sno no b df} {
                 {Duplicate} {}] 0
         menubutton $w.bot.formats -text "Format" -menu $w.bot.formats.m \
                 -relief raised
-        menu $w.bot.formats.m
+        irmenu $w.bot.formats.m
         pack $w.bot.formats -expand yes -ipadx 2 -ipady 2 \
                 -padx 3 -pady 3 -side left
     } else {
@@ -1227,7 +1239,7 @@ proc set-target-hotlist {olen} {
    
     if {$olen > 0} {
         if {[tk4]} {
-            .top.target.m delete 7 [expr 7+$olen]
+            .top.target.m delete 6 [expr 6+$olen]
         } else {
             .top.target.m delete 6 [expr 6+$olen]
         }
@@ -1273,19 +1285,19 @@ proc define-target-action {} {
     if {![string length $target]} {
         return
     }
-    foreach n [array names profile] {
-        if {$n == $target} {
+    foreach n [array names profile *,host] {
+        if {![string compare $n ${target},host]} {
             destroy .target-define
             protocol-setup $n
             return
         }
     }
-    set seq [lindex $profile(Default) 12]
-    dputs "seq=${seq}"
-    dputs $profile(Default)
-    set profile($target) $profile(Default)
-    set profile(Default) [lreplace $profile(Default) 12 12 [incr seq]]
-   
+    foreach n [array names profile Default,*] {
+	set profile($target,[string range $n 8 end]) $profile($n)
+
+    }
+    incr profile(Default,windowNumber)
+    
     protocol-setup $target
     destroy .target-define
 }
@@ -1325,42 +1337,34 @@ proc open-target {target base} {
     global hostid
     global presentChunk
 
-    set desc [lindex $profile($target) 0]
-    if {[string length $desc]} {
-        .data.record insert end $desc
-    } else {
-        .data.record insert end $target
-    }
-    .data.record insert end "\n\n"
-
     z39 disconnect
-    z39 comstack [lindex $profile($target) 6]
-    z39 protocol [lindex $profile($target) 11]
-    eval z39 idAuthentication [lindex $profile($target) 3]
-    z39 maximumRecordSize [lindex $profile($target) 4]
-    z39 preferredMessageSize [lindex $profile($target) 5]
+    z39 comstack $profile($target,comstack)
+    z39 protocol $profile($target,protocol)
+    eval z39 idAuthentication $profile($target,authentication)
+    z39 maximumRecordSize $profile($target,maximumRecordSize)
+    z39 preferredMessageSize $profile($target,preferredMessageSize)
     dputs "maximumRecordSize=[z39 maximumRecordSize]"
     dputs "preferredMessageSize=[z39 preferredMessageSize]"
     show-status Connecting 1 0
-    set x [lindex $profile($target) 13]
+    set x $profile($target,largeSetLowerBound)
     if {![string length $x]} {
         set x 2
     }
     z39 largeSetLowerBound $x
     
-    set x [lindex $profile($target) 14]
+    set x $profile($target,smallSetUpperBound)
     if {![string length $x]} {
         set x 0
     }
     z39 smallSetUpperBound $x
     
-    set x [lindex $profile($target) 15]
+    set x $profile($target,mediumSetPresentNumber)
     if {![string length $x]} {
         set x 0
     }
     z39 mediumSetPresentNumber $x
 
-    set presentChunk [lindex $profile($target) 16]
+    set presentChunk $profile($target,presentChunk)
     if {![string length $presentChunk]} {
         set presentChunk 4
     }
@@ -1370,7 +1374,7 @@ proc open-target {target base} {
     show-target $target $base
     update idletasks
     set err [catch {
-        z39 connect [lindex $profile($target) 1]:[lindex $profile($target) 2]
+        z39 connect $profile($target,host):$profile($target,port)
         } errorMessage]
     if {$err} {
         set hostid Default
@@ -1484,8 +1488,7 @@ proc init-request {target base} {
 # are enabled. The global $scanEnable indicates whether the target
 # supports scan.
 proc init-response {target base} {
-    global cancelFlag profile
-    global scanEnable settingsChanged
+    global cancelFlag profile scanEnable settingsChanged
 
     dputs {init-response}
     apduDump
@@ -1498,8 +1501,21 @@ proc init-response {target base} {
         close-target
         tkerror "Connection rejected by target: $u"
     } else {
+	z39 failback [list explain-crash $target $base]
         explain-check $target [list ready-response $base]
     }
+}
+
+# Procedure explain-crash
+# Handles target that dies during explain.
+proc explain-crash {target base} {
+    global profile settingsChanged
+    
+    set profile($target,timeLastInit) [clock seconds]
+    set settingsChanged 1
+
+    show-message {}
+    open-target $target $base
 }
 
 # Procedure explain-check 
@@ -1513,32 +1529,37 @@ proc explain-check {target response} {
 proc ready-response {base target} {
     global profile settingsChanged scanEnable
     
-    if {![string length $base]} {
-        set base [lindex [lindex $profile($target) 7] 0]
+    z39 failback [list fail-response $target]
+    if {[string length $base]} {
+	set profile($target,timeLastInit) [clock seconds]
+	set settingsChanged 1
+
+	z39 databaseNames $base
+	cascade-dblist $target $base
+	show-target $target $base
     }
-    if {![string length $base]} {
-        set base Default
-    }
-    z39 databaseNames $base
-    set profile($target) [lreplace $profile($target) 18 18 [clock seconds]]
-    set settingsChanged 1
     if {[lsearch [z39 options] scan] >= 0} {
         set scanEnable 1
     } else {
         set scanEnable 0
     }
-    cascade-dblist $target $base
-    show-target $target $base
+    .data.record delete 1.0 end
+    set desc [string trim $profile($target,description)]
+    if {[string length $desc]} {
+        .data.record insert end "$desc\n\n"
+    } else {
+        .data.record insert end "$target\n\n"
+    }
+    set data [string trim $profile($target,welcomeMessage)]
+    if {[string length $data]} {
+	.data.record insert end "Welcome Message:\n$data\n\n"
+    }
+    set data [string trim $profile($target,recentNews)]
+    if {[string length $data]} {
+        .data.record insert end "News:\n$data\n"
+    }
     show-message {}
     show-status Ready 0 1
-
-    .data.record insert end [lindex $profile($target) 27]
-    .data.record insert end "\n"
-    set data [lindex $profile($target) 21]
-    if {[string length $data]} {
-        .data.record insert end "News:\n"
-        .data.record insert end "$data\n"
-    }
 }
 
 # Procedure search-request
@@ -1584,19 +1605,18 @@ proc search-request {bflag} {
     incr setNoLast
     set setNo $setNoLast
     ir-set z39.$setNo z39
-
-    if {[lindex $profile($target) 10] == 1} {
+    
+    if {$profile($target,namedResultSets)} {
         z39.$setNo setName $setNo
         dputs "setName=${setNo}"
     } else {
-        z39.$setNo setName Default
-        dputs "setName=Default"
+        z39.$setNo setName default
+        dputs "setName=default"
     }
-    if {[lindex $profile($target) 8] == 1} {
-        z39.$setNo queryType rpn
-    }
-    if {[lindex $profile($target) 9] == 1} {
-        z39.$setNo queryType ccl
+    if {$profile($target,queryRPN)} {
+	z39.$setNo queryType rpn
+    } elseif {$profile($target,queryCCL)} {
+	z39.$setNo queryType ccl
     }
     dputs Setting
     dputs $recordSyntax
@@ -1962,7 +1982,6 @@ proc search-response {} {
         set msg [lindex $status 2]
         set addinfo [lindex $status 3]
         tkerror "NSD$code: $msg: $addinfo"
-	dputs "xxxxxxxxxxxxxxx"
         return
     }
     show-message "${setMax} hits"
@@ -2057,7 +2076,7 @@ proc present-more {number} {
 # Procedure init-title-lines 
 # Utility that cleans the main record window.
 proc init-title-lines {} {
-    .data.record delete 0.0 end
+    .data.record delete 1.0 end
 }
 
 # Procedure recall-set {setno}
@@ -2087,7 +2106,7 @@ proc add-title-lines {setno no offset} {
     }
     if {$offset == 1} {
         .bot.a.set configure -text $setno
-        .data.record delete 0.0 end
+        .data.record delete 1.0 end
     }
     set ffunc [lindex $displayFormats $displayFormat]
     dputs "ffunc=$ffunc"
@@ -2255,14 +2274,15 @@ proc define-target-dialog {} {
 # This procedure is invoked when the user tries to delete a target
 # definition. If user is sure, the target definition is deleted.
 proc protocol-setup-delete {target w} {
-    global profile
-    global settingsChanged
+    global profile settingsChanged
 
     set a [alert "Are you sure you want to delete the target \
 definition $target ?"]
     if {$a} {
         destroy $w
-        unset profile($target)
+	foreach n [array names profile $target,*] {
+	    unset profile($n)
+	}
         set settingsChanged 1
         cascade-target-list
         delete-target-hotlist $target
@@ -2273,51 +2293,33 @@ definition $target ?"]
 # target     target to be defined
 # w          target definition toplevel widget
 # This procedure reads all appropriate globals and makes a new/modified
-# profile for the target. The global array $targetS contains most of the
+# profile for the target. The global array $profileS contains most of the
 # information the user may modify.
 proc protocol-setup-action {target w} {
-    global profile
-    global settingsChanged
-    global targetS
+    global profile settingsChanged profileS
 
     set dataBases {}
     set settingsChanged 1
-    set len [$w.top.databases.list size]
-    for {set i 0} {$i < $len} {incr i} {
-        lappend dataBases [$w.top.databases.list get $i]
-    }
-    set wno [lindex $profile($target) 12]
-    set timedef [lindex $profile($target) 17]
+
+    set timedef $profile($target,timeDefine)
     if {![string length $timedef]} {
         set timedef [clock seconds]
     }
+    set profileS($target,timeDefine) $timedef
 
-    set idauth [$w.top.idAuthentication.entry get]
+    foreach n [array names profile $target,*] {
+	set profile($n) $profileS($n)
+	unset profileS($n)
+    }
 
-    set profile($target) [list [$w.top.description.entry get] \
-            [$w.top.host.entry get] \
-            [$w.top.port.entry get] \
-            $idauth \
-            $targetS($target,MRS) \
-            $targetS($target,PMS) \
-            $targetS($target,csType) \
-            $dataBases \
-            $targetS($target,RPN) \
-            $targetS($target,CCL) \
-            $targetS($target,ResultSets) \
-            $targetS($target,protocolType) \
-            $wno \
-            $targetS($target,LSLB) \
-            $targetS($target,SSUB) \
-            $targetS($target,MSPN) \
-            $targetS($target,presentChunk) \
-            $timedef \
-            {} \
-            {} ]
+    set len [$w.top.databases.list size]
+    catch {unset profile($target,databases)}
+    for {set i 0} {$i < $len} {incr i} {
+	lappend profile($target,databases) [$w.top.databases.list get $i]
+    }
 
     cascade-target-list
     delete-target-hotlist $target
-    dputs $profile($target)
     destroy $w
 }
 
@@ -2402,11 +2404,10 @@ proc delete-database {target w} {
 # Procedure protocol-setup {target}
 #  target     target to be defined
 # Makes a dialog in which the user may modify/view a target definition
-# (profile). The $targetS - array holds the initial definition of the
+# (profile). The $profileS - array holds the initial definition of the
 # target.
 proc protocol-setup {target} {
-    global profile
-    global targetS
+    global profile profileS
     
     set bno 0
     while {[winfo exists .setup-$bno]} {
@@ -2423,8 +2424,9 @@ proc protocol-setup {target} {
     if {![string length $target]} {
         set target Default
     }
-    dputs target
-    dputs $profile($target)
+    foreach n [array names profile $target,*] {
+	set profileS($n) $profile($n)
+    }
 
     frame $w.top.description
     frame $w.top.host
@@ -2449,24 +2451,14 @@ proc protocol-setup {target} {
         bind $w.top.$sub.entry <Control-a> [list add-database $target $w]
         bind $w.top.$sub.entry <Control-d> [list delete-database $target $w]
     }
-    $w.top.description.entry insert 0 [lindex $profile($target) 0]
-    $w.top.host.entry insert 0 [lindex $profile($target) 1]
-    $w.top.port.entry insert 0 [lindex $profile($target) 2]
-    $w.top.idAuthentication.entry insert 0 [lindex $profile($target) 3]
-    set targetS($target,csType) [lindex $profile($target) 6]
-    set targetS($target,RPN) [lindex $profile($target) 8]
-    set targetS($target,CCL) [lindex $profile($target) 9]
-    set targetS($target,ResultSets) [lindex $profile($target) 10]
-    set targetS($target,protocolType) [lindex $profile($target) 11]
-    if {![string length $targetS($target,protocolType)]} {
-        set targetS($target,protocolType) Z39
-    }
-    set targetS($target,LSLB) [lindex $profile($target) 13]
-    set targetS($target,SSUB) [lindex $profile($target) 14]
-    set targetS($target,MSPN) [lindex $profile($target) 15]
-    set targetS($target,presentChunk) [lindex $profile($target) 16]
-    set targetS($target,MRS) [lindex $profile($target) 4]
-    set targetS($target,PMS) [lindex $profile($target) 5]
+    $w.top.description.entry configure -textvariable \
+	profileS($target,description)
+    $w.top.host.entry configure -textvariable \
+	profileS($target,host)
+    $w.top.port.entry configure -textvariable \
+	profileS($target,port)
+    $w.top.idAuthentication.entry configure -textvariable \
+	profileS($target,authentication)
 
     # Databases ....
     pack $w.top.databases -side left -pady 2 -padx 2 -expand yes -fill both
@@ -2494,18 +2486,19 @@ proc protocol-setup {target} {
             -padx 2 -pady 2
     $w.top.databases.scroll config -command "$w.top.databases.list yview"
 
-    foreach b [lindex $profile($target) 7] {
-        $w.top.databases.list insert end $b
+    if {[info exists profile($target,databases)]} {
+	foreach b $profile($target,databases) {
+	    $w.top.databases.list insert end $b
+	}
     }
-
     # Transport ...
     pack $w.top.cs-type -pady 2 -padx 2 -side top -fill x
     
     label $w.top.cs-type.label -text "Transport" 
     radiobutton $w.top.cs-type.tcpip -text "TCP/IP" -anchor w \
-            -variable targetS($target,csType) -value tcpip
+            -variable profileS($target,comstack) -value tcpip
     radiobutton $w.top.cs-type.mosi -text "MOSI" -anchor w\
-            -variable targetS($target,csType) -value mosi
+            -variable profileS($target,comstack) -value mosi
     
     pack $w.top.cs-type.label $w.top.cs-type.tcpip $w.top.cs-type.mosi \
             -padx 2 -side top -fill x
@@ -2515,9 +2508,9 @@ proc protocol-setup {target} {
     
     label $w.top.protocol.label -text "Protocol" 
     radiobutton $w.top.protocol.z39v2 -text "Z39.50" -anchor w \
-            -variable targetS($target,protocolType) -value Z39
+            -variable profileS($target,protocol) -value Z39
     radiobutton $w.top.protocol.sr -text "SR" -anchor w \
-            -variable targetS($target,protocolType) -value SR
+            -variable profileS($target,protocol) -value SR
     
     pack $w.top.protocol.label $w.top.protocol.z39v2 $w.top.protocol.sr \
             -padx 2 -side top -fill x
@@ -2527,11 +2520,11 @@ proc protocol-setup {target} {
 
     label $w.top.query.label -text "Query support"
     checkbutton $w.top.query.c1 -text "RPN query" -anchor w \
-            -variable targetS($target,RPN)
+            -variable profileS($target,queryRPN)
     checkbutton $w.top.query.c2 -text "CCL query" -anchor w \
-            -variable targetS($target,CCL)
+            -variable profileS($target,queryCCL)
     checkbutton $w.top.query.c3 -text "Result sets" -anchor w \
-            -variable targetS($target,ResultSets)
+            -variable profileS($target,namedResultSets)
 
     pack $w.top.query.label -side top 
     pack $w.top.query.c1 $w.top.query.c2 $w.top.query.c3 \
@@ -2551,7 +2544,7 @@ proc protocol-setup {target} {
 # of a target definition (profile).
 proc advanced-setup {target b} {
     global profile
-    global targetS
+    global profileS
 
     set w .advanced-setup-$b
     
@@ -2586,12 +2579,18 @@ proc advanced-setup {target b} {
             {Maximum Record Size:} {Preferred Message Size:}} \
             [list advanced-setup-action $target $b] [list destroy $w]
 
-    $w.top.largeSetLowerBound.entry insert 0 $targetS($target,LSLB)
-    $w.top.smallSetUpperBound.entry insert 0 $targetS($target,SSUB)
-    $w.top.mediumSetPresentNumber.entry insert 0 $targetS($target,MSPN)
-    $w.top.presentChunk.entry insert 0 $targetS($target,presentChunk)
-    $w.top.maximumRecordSize.entry insert 0 $targetS($target,MRS)
-    $w.top.preferredMessageSize.entry insert 0 $targetS($target,PMS)
+    $w.top.largeSetLowerBound.entry configure -textvariable \
+	profileS($target,largeSetLowerBound)
+    $w.top.smallSetUpperBound.entry configure -textvariable \
+	profileS($target,smallSetUpperBound)
+    $w.top.mediumSetPresentNumber.entry configure -textvariable \
+	profileS($target,mediumSetPresentNumber)
+    $w.top.presentChunk.entry configure -textvariable \
+	profileS($target,presentChunk)
+    $w.top.maximumRecordSize.entry configure -textvariable \
+	profileS($target,maximumRecordSize)
+    $w.top.preferredMessageSize.entry configure -textvariable \
+	profileS($target,preferredMessageSize)
     
     bottom-buttons $w [list {Ok} [list advanced-setup-action $target $b] \
             {Cancel} [list destroy $w]] 0   
@@ -2601,17 +2600,17 @@ proc advanced-setup {target b} {
 #  target     target to be defined
 #  b          window number of target top level
 # This procedure is called when the user hits Ok in the advanced target
-# setup dialog. The temporary result is stored in the $targetS - array.
+# setup dialog. The temporary result is stored in the $profileS - array.
 proc advanced-setup-action {target b} {
     set w .advanced-setup-$b
-    global targetS
+    global profileS
     
-    set targetS($target,LSLB) [$w.top.largeSetLowerBound.entry get]
-    set targetS($target,SSUB) [$w.top.smallSetUpperBound.entry get]
-    set targetS($target,MSPN) [$w.top.mediumSetPresentNumber.entry get]
-    set targetS($target,presentChunk) [$w.top.presentChunk.entry get]
-    set targetS($target,MRS) [$w.top.maximumRecordSize.entry get]
-    set targetS($target,PMS) [$w.top.preferredMessageSize.entry get]
+    set profileS($target,LSLB) [$w.top.largeSetLowerBound.entry get]
+    set profileS($target,SSUB) [$w.top.smallSetUpperBound.entry get]
+    set profileS($target,MSPN) [$w.top.mediumSetPresentNumber.entry get]
+    set profileS($target,presentChunk) [$w.top.presentChunk.entry get]
+    set profileS($target,MRS) [$w.top.maximumRecordSize.entry get]
+    set profileS($target,PMS) [$w.top.preferredMessageSize.entry get]
 
     dputs "advanced-setup-action"
     destroy $w
@@ -2661,7 +2660,7 @@ proc database-select {} {
             -padx 2 -pady 2
     $w.top.databases.scroll config -command "$w.top.databases.list yview"
 
-    foreach b [lindex $profile($hostid) 7] {
+    foreach b $profile($hostid,databases) {
         $w.top.databases.list insert end $b
     }
     top-down-ok-cancel $w {database-select-action} 1
@@ -2681,9 +2680,11 @@ proc cascade-dblist {target base} {
 
     set w .top.service.m.dblist
     $w delete 0 200
-    foreach db [lindex $profile($target) 7] {
-        $w add command -label $db \
-                -command [list cascade-dblist-select $target $db]
+    if {[info exists profile($target,databases)]} {
+	foreach db $profile($target,databases) {
+	    $w add command -label $db \
+		-command [list cascade-dblist-select $target $db]
+	}
     }
 }
 
@@ -2698,25 +2699,39 @@ proc cascade-target-list {} {
         destroy $sub
     }
     .top.target.m.clist delete 0 last
-    foreach n [lsort [array names profile]] {
-        if {$n != "Default"} {
-            set nl [lindex $profile($n) 12]
-            if {[llength [lindex $profile($n) 7]] > 1} {
-                .top.target.m.clist add cascade -label $n \
-                        -menu .top.target.m.clist.$nl
-                menu .top.target.m.clist.$nl
-                foreach b [lindex $profile($n) 7] {
-                    .top.target.m.clist.$nl add command -label $b \
-                            -command [list reopen-target $n $b]
-                }
-            } else {
-                .top.target.m.clist add command -label $n \
-                        -command [list reopen-target $n {}]
-            }
-        }
+    foreach nn [lsort [array names profile *,host]] {
+	if {[string length $profile($nn)]} {
+	    set ll [expr [string length $nn] - 6]
+	    set n [string range $nn 0 $ll]
+	    
+	    set nl $profile($n,windowNumber)
+	    if {[info exists profile($n,databases)]} {
+		set ndb [llength $profile($n,databases)]
+	    } else {
+		set ndb 0
+	    }
+	    if {$ndb > 1} {
+		.top.target.m.clist add cascade -label $n \
+		    -menu .top.target.m.clist.$nl
+		irmenu .top.target.m.clist.$nl
+		foreach b $profile($n,databases) {
+		    .top.target.m.clist.$nl add command -label $b \
+			-command [list reopen-target $n $b]
+		}
+	    } elseif {$ndb == 1} {
+		.top.target.m.clist add command -label $n -command \
+		    [list reopen-target $n [lindex $profile($n,databases) 0]]
+	    } else {
+		.top.target.m.clist add command -label $n -command \
+		    [list reopen-target $n {}]
+	    }
+	}
     }
     .top.target.m.slist delete 0 last
-    foreach n [lsort [array names profile]] {
+    foreach nn [lsort [array names profile *,host]] {
+	set ll [expr [string length $nn] - 6]
+	set n [string range $nn 0 $ll]
+	
         .top.target.m.slist add command -label $n \
                 -command [list protocol-setup $n]
     }
@@ -2865,20 +2880,19 @@ proc save-geometry {} {
         return
     } 
     if {$hostid != "Default"} {
-        puts $f "set hostid \{$hostid\}"
+        puts $f "set hostid [list $hostid]"
         set b [z39 databaseNames]
-        puts $f "set hostbase $b"
+        puts $f "set hostbase [list $b]"
     }
-    puts $f "set hotTargets \{ $hotTargets \}"
+    puts $f "set hotTargets [list $hotTargets]"
     puts $f "set textWrap $textWrap"
     puts $f "set displayFormat $displayFormat"
     puts $f "set popupMarcdf $popupMarcdf"
     puts $f "set recordSyntax $recordSyntax"
     puts $f "set elementSetNames $elementSetNames"
     foreach n [array names windowGeometry] {
-        puts -nonewline $f "set \{windowGeometry($n)\} \{"
-        puts -nonewline $f $windowGeometry($n)
-        puts $f "\}"
+        puts -nonewline $f "set [list windowGeometry($n)] "
+        puts $f [list $windowGeometry($n)]
     }
     close $f
 }
@@ -2909,24 +2923,14 @@ proc save-settings {} {
     }
     puts $f "# Setup file"
 
-    foreach n [array names profile] {
-
-        puts -nonewline $f "set \{profile($n)\} \{"
-        puts -nonewline $f $profile($n)
-        puts $f "\}"
-        puts $f {}
+    foreach n [lsort [array names profile]] {
+        puts $f "set [list profile($n)] [list $profile($n)]"
     }
-    puts -nonewline $f "set queryTypes \{" 
-    puts -nonewline $f $queryTypes
-    puts $f "\}"
+    puts $f "set queryTypes [list $queryTypes]"
     
-    puts -nonewline $f "set queryButtons \{" 
-    puts -nonewline $f $queryButtons
-    puts $f "\}"
+    puts $f "set queryButtons [list $queryButtons]"
     
-    puts -nonewline $f "set queryInfo \{"
-    puts -nonewline $f $queryInfo
-    puts $f "\}"
+    puts $f "set queryInfo [list $queryInfo]"
     close $f
     set settingsChanged 0
 }
@@ -3006,7 +3010,7 @@ proc listbuttonx {button no names handle user} {
     } else {
         menubutton $button -text [lindex [lindex $names $no] 0] \
                 -width 10 -menu ${button}.m -relief raised -border 1
-        menu ${button}.m
+        irmenu ${button}.m
         if {[tk4]} {
             ${button}.m configure -tearoff off
 	}
@@ -3029,7 +3033,7 @@ proc listbuttonx {button no names handle user} {
 proc listbutton {button no names} {
     menubutton $button -text [lindex $names $no] -width 10 -menu ${button}.m \
             -relief raised -border 1
-    menu ${button}.m
+    irmenu ${button}.m
     if {[tk4]} {
         ${button}.m configure -tearoff off
     }
@@ -3078,7 +3082,7 @@ proc listbuttonv {button var names} {
     }
     menubutton $button -text $n -menu ${button}.m \
             -relief raised -border 1
-    menu ${button}.m
+    irmenu ${button}.m
     if {[tk4]} {
         ${button}.m configure -tearoff off
     }
@@ -3809,8 +3813,10 @@ proc index-lines {w realOp buttonInfo queryInfo handle} {
             if {! [winfo exists $w.$i.e]} {
                 entry $w.$i.e -width 32 -relief sunken -border 1
                 bind $w.$i.e <FocusIn> [list index-focus-in $w $i]
-                bind $w.$i.e <FocusOut> [list $w.$i configure \
-                        -background white]
+				if {![tk4]} {
+                    bind $w.$i.e <FocusOut> [list $w.$i configure \
+                          -background white]
+				}
                 pack $w.$i.l -side left
                 pack $w.$i.e -side left -fill x -expand yes
                 pack $w.$i -side top -fill x -padx 2 -pady 2
@@ -3914,14 +3920,14 @@ pack .bot -fill x
 
 # Init: Definition of File menu.
 menubutton .top.file -text File -menu .top.file.m
-menu .top.file.m
+irmenu .top.file.m
 .top.file.m add command -label {Save settings} -command {save-settings}
 .top.file.m add separator
 .top.file.m add command -label Exit -command {exit-action}
 
 # Init: Definition of Target menu.
 menubutton .top.target -text Target -menu .top.target.m
-menu .top.target.m
+irmenu .top.target.m
 .top.target.m add cascade -label Connect -menu .top.target.m.clist
 .top.target.m add command -label Disconnect -command {close-target}
 .top.target.m add command -label About -command {about-target}
@@ -3933,35 +3939,37 @@ set-target-hotlist 0
 configure-disable-e .top.target.m 1
 configure-disable-e .top.target.m 2
 
-menu .top.target.m.clist
-menu .top.target.m.slist
+irmenu .top.target.m.clist
+irmenu .top.target.m.slist
 cascade-target-list
 
 # Init: Definition of Service menu.
 menubutton .top.service -text Service -menu .top.service.m
-menu .top.service.m
+irmenu .top.service.m
 .top.service.m add cascade -label Database -menu .top.service.m.dblist
 .top.service.m add cascade -label Present -menu .top.service.m.present
-menu .top.service.m.present
+irmenu .top.service.m.present
 .top.service.m.present add command -label {10 More} \
         -command [list present-more 10]
 .top.service.m.present add command -label All \
         -command [list present-more {}]
 .top.service.m add command -label Search -command {search-request 0}
 .top.service.m add command -label Scan -command {scan-request}
+.top.service.m add command -label Explain -command \
+    {explain-refresh $hostid {ready-response {}} }
 
 .top.service configure -state disabled
 
-menu .top.service.m.dblist
+irmenu .top.service.m.dblist
 
 menubutton .top.rset -text Set -menu .top.rset.m
-menu .top.rset.m
+irmenu .top.rset.m
 .top.rset.m add command -label Load -command {load-set}
 .top.rset.m add separator
 
 # Init: Definition of the Options menu.
 menubutton .top.options -text Options -menu .top.options.m
-menu .top.options.m
+irmenu .top.options.m
 .top.options.m add cascade -label Query -menu .top.options.m.query
 .top.options.m add cascade -label Format -menu .top.options.m.formats
 .top.options.m add cascade -label Wrap -menu .top.options.m.wrap
@@ -3970,7 +3978,7 @@ menu .top.options.m
 .top.options.m add radiobutton -label Debug -variable debugMode -value 1
 
 # Init: Definition of the Options|Query menu.
-menu .top.options.m.query
+irmenu .top.options.m.query
 .top.options.m.query add cascade -label Select \
         -menu .top.options.m.query.clist
 .top.options.m.query add cascade -label Edit \
@@ -3980,13 +3988,13 @@ menu .top.options.m.query
 .top.options.m.query add cascade -label Delete \
         -menu .top.options.m.query.dlist
 
-menu .top.options.m.query.slist
-menu .top.options.m.query.clist
-menu .top.options.m.query.dlist
+irmenu .top.options.m.query.slist
+irmenu .top.options.m.query.clist
+irmenu .top.options.m.query.dlist
 cascade-query-list
 
 # Init: Definition of the Options|Formats menu.
-menu .top.options.m.formats
+irmenu .top.options.m.formats
 set i 0
 foreach f $displayFormats {
     .top.options.m.formats add radiobutton -label $f -value $i \
@@ -3995,7 +4003,7 @@ foreach f $displayFormats {
 }
 
 # Init: Definition of the Options|Wrap menu.
-menu .top.options.m.wrap
+irmenu .top.options.m.wrap
 .top.options.m.wrap add radiobutton -label Character \
         -value char -variable textWrap -command {set-wrap char}
 .top.options.m.wrap add radiobutton -label Word \
@@ -4004,7 +4012,7 @@ menu .top.options.m.wrap
         -value none -variable textWrap -command {set-wrap none}
 
 # Init: Definition of the Options|Syntax menu.
-menu .top.options.m.syntax
+irmenu .top.options.m.syntax
 .top.options.m.syntax add radiobutton -label None \
         -value None -variable recordSyntax
 .top.options.m.syntax add separator
@@ -4030,7 +4038,7 @@ menu .top.options.m.syntax
         -value GRS1 -variable recordSyntax
 
 # Init: Definition of the Options|Elements menu.
-menu .top.options.m.elements
+irmenu .top.options.m.elements
 .top.options.m.elements add radiobutton -label Unspecified \
         -value None -variable elementSetNames
 .top.options.m.elements add radiobutton -label Full \
@@ -4040,7 +4048,7 @@ menu .top.options.m.elements
 
 # Init: Definition of Help menu.
 menubutton .top.help -text "Help" -menu .top.help.m
-menu .top.help.m
+irmenu .top.help.m
 
 .top.help.m add command -label "Help on help" \
         -command {tkerror "Help on help not available. Sorry"}
@@ -4066,7 +4074,8 @@ pack .mid.search .mid.scan .mid.present .mid.clear -side left \
 
 # Init: Define record area in main window.
 text .data.record -font fixed -height 2 -width 20 -wrap none -borderwidth 0 \
-        -relief flat -yscrollcommand [list .data.scroll set] -wrap $textWrap
+        -relief flat -yscrollcommand [list .data.scroll set] \
+        -wrap $textWrap -background grey85
 scrollbar .data.scroll -command [list .data.record yview]
 if {[tk4]} {
     .data.record configure -takefocus 0
@@ -4107,7 +4116,7 @@ frame .bot.a
 pack .bot.a -side left -fill x
 pack .bot.logo -side right -padx 2 -pady 2 -ipadx 1
 
-message .bot.a.target -text "" -aspect 1000 -border 1
+message .bot.a.target -text {} -aspect 2000 -border 1
 
 label .bot.a.status -text "Not connected" -width 15 -relief \
         sunken -anchor w -border 1
@@ -4125,7 +4134,7 @@ pack .bot.a.status .bot.a.set .bot.a.message \
 if {[catch {ir z39}]} {
     set e [info sharedlibextension]
     puts -nonewline "Loading irtcl$e ..."
-    load irtcl$e irtcl
+    load ${libdir}/irtcl$e irtcl
     ir z39
     puts "ok"
 }
@@ -4134,9 +4143,9 @@ if {[file exists ${libdir}/explain.tcl]} {
     source ${libdir}/explain.tcl
 }
 
-#if {[file exists ${libdir}/setup.tcl]} {
-#    source ${libdir}/setup.tcl
-#}
+if {[file exists ${libdir}/setup.tcl]} {
+    source ${libdir}/setup.tcl
+}
 
 # Init: Uncomment this line if you wan't to enable logging.
 ir-log-init all

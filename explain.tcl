@@ -1,6 +1,9 @@
 
-proc explain-search {target zz category finish response fresponse} {
-    z39 callback [list explain-search-r $target $zz $category $finish \
+# Procedure explain-search
+#  Issue search request with explain-attribute set and specific
+#  category.
+proc explain-search-request {target zz category finish response fresponse} {
+    z39 callback [list explain-search-response $target $zz $category $finish \
             $response $fresponse]
     ir-set $zz z39
     $zz databaseNames IR-Explain-1
@@ -8,7 +11,9 @@ proc explain-search {target zz category finish response fresponse} {
     $zz search "@attrset exp1 @attr 1=1 $category"
 }
 
-proc explain-search-r {target zz category finish response fresponse} {
+# Procedure explain-search-response
+#  Deal with search response.
+proc explain-search-response {target zz category finish response fresponse} {
     global cancelFlag
 
     apduDump
@@ -29,65 +34,92 @@ proc explain-search-r {target zz category finish response fresponse} {
     set rr [$zz numberOfRecordsReturned]
     set cnt [expr $cnt - $rr]
     if {$cnt <= 0} {
-        $response $target $zz $category $finish
+	explain-present-response $target $zz $category $finish \
+	    $response $fresponse
         return
     }
-    z39 callback [list $response $target $zz $category $finish]
+    z39 callback [list explain-present-response $target $zz $category $finish \
+		      $response $fresponse]
     incr rr
     $zz present $rr $cnt
 }
 
-proc explain-check {target finish} {
-    global profile
+# Procedure explain-present-response
+#  Deal with explain present response.
+proc explain-present-response {target zz category finish response fresponse} {
+    global cancelFlag
 
-    set time [clock seconds]
-    set etime [lindex $profile($target) 19]
-    if {[string length $etime]} {
-        # Check last explain. If 1 day since last explain do explain egain.
-        # 1 day = 86400
-        if {$time > [expr 180 + $etime]} {
-            explain-start $target $finish
-            return
-        }
-    } else {
-        # Check last init. If never init or 1 week after do explain anyway.
-        # 1 week = 604800
-        set etime [lindex $profile($target) 18]
-        if {![string length $etime]} {
-            explain-start $target $finish
-            return
-        } elseif {$time > [expr 604800 + $etime]} {
-            explain-start $target $finish
-            return
-        }
+    apduDump
+    if {$cancelFlag} {
+        close-target
+        return
     }
-    eval $finish [list $target]
+    set cnt [$zz resultCount]
+    ir-log debug "cnt=$cnt"
+    for {set i 1} {$i <= $cnt} {incr i} {
+	if {[string compare [$zz type $i] DB]} {
+	    $fresponse $target $zz $category $finish
+	    return
+	}
+	if {[string compare [$zz recordType $i] Explain]} {
+	    $fresponse $target $zz $category $finish
+	    return
+	}
+    }
+    $response $target $zz $category $finish
 }
 
-proc explain-start {target finish} {
+
+# Procedure explain-check-0
+#  Phase 0: CategoryList
+proc explain-check-0 {target finish} {
+    show-status Explaining 1 0
+    show-message CategoryList
+    explain-search-request $target z39.categoryList CategoryList $finish \
+            explain-check-5 explain-check-fail
+}
+
+# Procedure explain-check-5
+#  TargetInfo
+proc explain-check-5 {target zz category finish} {
     show-status Explaining 1 0
     show-message TargetInfo
-    explain-search $target z39.targetInfo TargetInfo $finish \
-            explain-check-1 explain-check-1f
+
+    if {![catch {set rec [z39.categoryList getExplain $no databaseInfo]}]} {
+	dputs $rec
+    }
+    explain-search-request $target z39.targetInfo TargetInfo $finish \
+            explain-check-10 explain-check-fail
 }
 
-proc explain-check-1f {target zz category finish} {
+# Procedure explain-check-10
+#  DatabaseInfo
+proc explain-check-10 {target zz category finish} {
+    show-status Explaining 1 0
+    show-message DatabaseInfo
+    explain-search-request $target z39.databaseInfo DatabaseInfo $finish \
+            explain-check-ok explain-check-fail
+}
+
+# Proedure explain-check-fail
+#  Deal with explain check failure - call finish handler
+proc explain-check-fail {target zz category finish} {
     eval $finish [list $target]
 }
 
-proc explain-check-1 {target zz category finish} {
-    show-status Explaining 1 0
-    show-message DatabaseInfo
-    explain-search $target z39.databaseInfo DatabaseInfo $finish \
-            explain-check-2 explain-check-1f
-}
 
-proc explain-check-2 {target zz category finish} {
+# Procedure explain-check-ok
+proc explain-check-ok {target zz category finish} {
     global profile settingsChanged
+
+    set trec [z39.categoryList getExplain 1 categoryList]
+    puts "--- categoryList"
+    puts $trec
 
     set trec [z39.targetInfo getExplain 1 targetInfo]
     puts "--- targetInfo"
     puts $trec
+
     set no 1
     while {1} {
         if {[catch {set rec \
@@ -102,42 +134,64 @@ proc explain-check-2 {target zz category finish} {
         incr no
     }
     if {[info exists dbList]} {
-        set profile($target) [lreplace $profile($target) 7 7 $dbList]
-        set profile($target) [lreplace $profile($target) 25 25 {}]
+        set profile($target,databases) $dbList
     }
     cascade-target-list
     
     set data [lindex [lindex [lindex [lindex [lindex $trec 12] 1] 1] 1] 1]
     if {[string length $data]} {
-        set profile($target) [lreplace $profile($target) 0 0 $data]
+        set profile($target,descripton) $data
     }
 
-    set l [llength $profile($target)]
-    while {$l < 29} {
-        lappend profile($target) {}
-        incr l
-    }
-
-    set profile($target) [lreplace $profile($target) 8 8 \
-            [lindex [lindex $trec 4] 1]]
-    set profile($target) [lreplace $profile($target) 19 19 \
-            [clock seconds]]
-    set profile($target) [lreplace $profile($target) 20 20 \
-            [lindex [lindex $trec 1] 1]]
-    set profile($target) [lreplace $profile($target) 21 21 \
-            [lindex [lindex $trec 2] 1]]
-    set profile($target) [lreplace $profile($target) 22 22 \
-            [lindex [lindex $trec 6] 1]]
-    set profile($target) [lreplace $profile($target) 23 23 \
-            [lindex [lindex $trec 7] 1]]
-    set profile($target) [lreplace $profile($target) 24 24 \
-            [lindex [lindex $trec 8] 1]]
-    set profile($target) [lreplace $profile($target) 26 26 \
-            [lindex [lindex $trec 5] 1]]
-    set profile($target) [lreplace $profile($target) 27 27 \
-            [lindex [lindex [lindex [lindex [lindex $trec 10] 1] 1] 1] 1]]
-
+    set profile($target,namedResultSets) [lindex [lindex $trec 4] 1]
+    set profile($target,timeLastExplain) [clock seconds]
+    set profile($target,targetInfoName) [lindex [lindex $trec 1] 1]
+    set profile($target,recentNews) [lindex [lindex $trec 2] 1]
+    set profile($target,maxResultSets) [lindex [lindex $trec 6] 1]
+    set profile($target,maxResultSize) [lindex [lindex $trec 7] 1]
+    set profile($target,maxTerms) [lindex [lindex $trec 8] 1]
+    set profile($target,multipleDatabases) [lindex [lindex $trec 5] 1]
+    set profile($target,welcomeMessage) \
+	[lindex [lindex [lindex [lindex [lindex $trec 10] 1] 1] 1] 1]
+    
     set settingsChanged 1
 
     eval $finish [list $target]
+}
+
+# Procedure explain-refresh
+proc explain-refresh {target finish} {
+    explain-check-0 $target $finish
+}
+
+# Procedure explain-check
+#   Checks target for explain database.
+#   Evals "$finish $target" on finish.
+proc explain-check {target finish} {
+    global profile
+    
+    set refresh 0
+    set time [clock seconds]
+    set etime $profile($target,timeLastExplain)
+    if {[string length $etime]} {
+        # Check last explain. If 1 day since last explain do explain egain.
+        # 1 day = 86400
+        if {$time > [expr 180 + $etime]} {
+	    set refresh 1
+        }
+    } else {
+        # Check last init. If never init or 1 week after do explain anyway.
+        # 1 week = 604800
+        set etime $profile($target,timeLastInit)
+        if {![string length $etime]} {
+	    set refresh 1
+        } elseif {$time > [expr 604800 + $etime]} {
+	    set refresh 1
+        }
+    }
+    if {$refresh} {
+	explain-refresh $target $finish
+    } else {
+	eval $finish [list $target]
+    }
 }

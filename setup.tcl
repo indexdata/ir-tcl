@@ -4,18 +4,12 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: setup.tcl,v $
-# Revision 1.1  1996-09-13 10:54:25  adam
+# Revision 1.2  1997-11-19 11:20:57  adam
+# New target profile format - associative arrrays instead of LONG lists.
+#
+# Revision 1.1  1996/09/13 10:54:25  adam
 # Started work on Explain in client.
 #
-#
-
-set pref(font,h1) {-Adobe-Helvetica-Bold-R-Normal-*-240-*}
-set pref(font,h2) {-Adobe-Helvetica-Bold-R-Normal-*-180-*}
-set pref(font,h3) {-Adobe-Helvetica-Bold-R-Normal-*-140-*}
-set pref(font,h4) {-Adobe-Helvetica-Bold-R-Normal-*-120-*}
-
-set pref(font,s1) {-Adobe-Helvetica-Bold-R-Normal-*-100-*}
-set pref(font,s2) {-Adobe-Helvetica-Bold-R-Normal-*-80-*}
 
 proc print-date {w msg date} {
     frame $w
@@ -50,42 +44,9 @@ proc entry-fieldsx {width parent list tlist returnAction escapeAction} {
 proc protocol-setup {target} {
     global profileS profile
     
-    set tinfo $profile($target)
-
-    set profileS($target,targetDescription) [lindex $tinfo 0]
-    set profileS($target,host) [lindex $tinfo 1]
-    set profileS($target,port) [lindex $tinfo 2]
-    set profileS($target,idAuthentication) [lindex $tinfo 3]
-    set profileS($target,targetMRS) [lindex $tinfo 4]
-
-    set profileS($target,targetPMS) [lindex $tinfo 5]
-    set profileS($target,comstack) [lindex $tinfo 6]
-    set profileS($target,databases) [lindex $tinfo 7]
-    set profileS($target,targetResultSets) [lindex $tinfo 8]
-    set profileS($target,RPN) [lindex $tinfo 9]
-    set profileS($target,CCL) [lindex $tinfo 10]
-
-    set profileS($target,protocolType) [lindex $tinfo 11]
-    set profileS($target,wno) [lindex $tinfo 12]
-    set profileS($target,LSLB) [lindex $tinfo 13]
-    set profileS($target,SSUB) [lindex $tinfo 14]
-
-    set profileS($target,MSPN) [lindex $tinfo 15]
-    set profileS($target,PresentChunk) [lindex $tinfo 16]
-    set profileS($target,timeDefine) [lindex $tinfo 17]
-    set profileS($target,timeInit) [lindex $tinfo 18]
-    set profileS($target,timeExplain) [lindex $tinfo 19]
-
-    set profileS($target,targetName) [lindex $tinfo 20]
-    set profileS($target,targetRecentNews) [lindex $tinfo 21]
-    set profileS($target,targetMaxResultSets) [lindex $tinfo 22]
-    set profileS($target,targetMaxResultSize) [lindex $tinfo 23]
-    set profileS($target,targetMaxTerms) [lindex $tinfo 24]
-
-    set profileS($target,spare) [lindex $tinfo 25]
-    set profileS($target,targetMultipleDatabases) [lindex $tinfo 26]
-    set profileS($target,targetWelcome) [lindex $tinfo 27]
-
+    foreach n [array names profile $target,*] {
+	set profileS($n) $profile($n)
+    }
     target-setup $target 0 0
 }
 
@@ -96,37 +57,11 @@ proc protocol-setup-action {target} {
     if {![string length $timedef]} {
         set timedef [clock seconds]
     }
-    set profile($target) [list \
-            $profileS($target,targetDescription) \
-            $profileS($target,host) \
-            $profileS($target,port) \
-            $profileS($target,idAuthentication) \
-            $profileS($target,targetMRS) \
-            $profileS($target,targetPMS) \
-            $profileS($target,comstack) \
-            $profileS($target,databases) \
-            $profileS($target,targetResultSets) \
-            $profileS($target,RPN) \
-            $profileS($target,CCL) \
-            $profileS($target,protocolType) \
-            $profileS($target,wno) \
-            $profileS($target,LSLB) \
-            $profileS($target,SSUB) \
-            $profileS($target,MSPN) \
-            $profileS($target,PresentChunk) \
-            $profileS($target,timeDefine) \
-            $profileS($target,timeInit) \
-            $profileS($target,timeExplain) \
-            $profileS($target,targetName) \
-            $profileS($target,targetRecentNews) \
-            $profileS($target,targetMaxResultSets) \
-            $profileS($target,targetMaxResultSize) \
-            $profileS($target,targetMaxTerms) \
-            $profileS($target,spare) \
-            $profileS($target,targetMultipleDatabases) \
-            $profileS($target,targetWelcome) \
-            ]
 
+    foreach n [array names profileS $target,*] {
+	set profile($n) $profileS($n)
+	unset profileS($n)
+    }
     set settingsChanged 1
 
     cascade-target-list
@@ -177,9 +112,6 @@ proc target-setup-leave-0 {target} {
     set w .setup100
     set y $w.top.hostport
 
-    set profileS($target,host) [$y.host.entry get]
-    set profileS($target,port) [$y.port.entry get]
-    set profileS($target,idAuthentication) [$y.idAuthentication.entry get]
 }
 
 proc target-setup-enter-0 {target} {
@@ -204,9 +136,12 @@ proc target-setup-enter-0 {target} {
             {{Host:} {Port:} {Id Authentication:}} \
             [list target-setup $target 0 2] [list destroy $w]
 
-    $y.host.entry insert 0 $profileS($target,host)
-    $y.port.entry insert 0 $profileS($target,port)
-    $y.idAuthentication.entry insert 0 $profileS($target,idAuthentication)
+    $y.host.entry configure -textvariable \
+	profileS($target,host)
+    $y.port.entry configure -textvariable \
+	profileS($target,port)
+    $y.idAuthentication.entry configure -textvariable \
+	profileS($target,idAuthentication)
 
     # bottom
 
@@ -224,8 +159,8 @@ proc target-setup-enter-0 {target} {
     label $y.label -text "Dates"
     pack $y.label -side top -fill x
     print-date $w.top.dates.a {Defined:}      $profileS($target,timeDefine)
-    print-date $w.top.dates.b {Last Access:}  $profileS($target,timeInit)
-    print-date $w.top.dates.c {Last Explain:} $profileS($target,timeExplain)
+    print-date $w.top.dates.b {Last Access:}  $profileS($target,timeLastInit)
+    print-date $w.top.dates.c {Last Explain:} $profileS($target,timeLastExplain)
 
     # protocol . . .
 
@@ -236,9 +171,9 @@ proc target-setup-enter-0 {target} {
     
     label $y.label -text "Protocol" 
     radiobutton $y.z39v2 -text "Z39.50" -anchor w \
-            -variable profileS($target,protocolType) -value Z39
+            -variable profileS($target,protocol) -value Z39
     radiobutton $y.sr -text "SR" -anchor w \
-            -variable profileS($target,protocolType) -value SR
+            -variable profileS($target,protocol) -value SR
     
     pack $y.label $y.z39v2 $y.sr -padx 2 -side top -fill x
 
@@ -263,15 +198,12 @@ proc target-setup-leave-1 {target} {
     set w .setup100
     set y $w.top.nr
 
-    set profileS($target,targetName) [$y.name.text get 0.0 end]
-    set profileS($target,targetRecentNews) [$y.recentNews.text get 0.0 end]
-    set profileS($target,targetDescription) [$y.description.text get 0.0 end]
+    set profileS($target,targetInfoName) [$y.name.text get 0.0 end]
+    set profileS($target,recentNews) [$y.recentNews.text get 0.0 end]
+    set profileS($target,description) [$y.description.text get 0.0 end]
+    set profileS($target,welcomeMessage) [$y.welcome.text get 0.0 end]
 
     set y $w.top.rs
-
-    set profileS($target,targetMaxResultSets) [$y.maxResultSets.entry get]
-    set profileS($target,targetMaxResultSize) [$y.maxResultSize.entry get]
-    set profileS($target,targetMaxTerms) [$y.maxTerms.entry get]
 }
 
 proc target-setup-enter-1 {target} {
@@ -299,7 +231,7 @@ proc target-setup-enter-1 {target} {
     text $y.name.text -width 40 -height 2 -relief sunken -border 1 \
             -wrap word
     TextEditable $y.name.text
-    $y.name.text insert end $profileS($target,targetName)
+    $y.name.text insert end $profileS($target,targetInfoName)
     pack $y.name.text -side right -fill x -expand yes
     
     label $y.recentNews.label -text "Recent News" -width 15
@@ -307,7 +239,7 @@ proc target-setup-enter-1 {target} {
     text $y.recentNews.text -width 40 -height 2 -relief sunken -border 1 \
             -wrap word
     TextEditable $y.recentNews.text
-    $y.recentNews.text insert end $profileS($target,targetRecentNews)
+    $y.recentNews.text insert end $profileS($target,recentNews)
     pack $y.recentNews.text -side right -fill x -expand yes
 
     label $y.description.label -text "Description" -width 15
@@ -315,7 +247,7 @@ proc target-setup-enter-1 {target} {
     text $y.description.text -width 40 -height 4 -relief sunken -border 1 \
             -wrap word
     TextEditable $y.description.text
-    $y.description.text insert end $profileS($target,targetDescription)
+    $y.description.text insert end $profileS($target,description)
     pack $y.description.text -side right -fill x -expand yes
 
     label $y.welcome.label -text "Welcome Message" -width 15
@@ -323,7 +255,7 @@ proc target-setup-enter-1 {target} {
     text $y.welcome.text -width 40 -height 4 -relief sunken -border 1 \
             -wrap word
     TextEditable $y.welcome.text
-    $y.welcome.text insert end $profileS($target,targetWelcome)
+    $y.welcome.text insert end $profileS($target,welcomeMessage)
     pack $y.welcome.text -side right -fill x -expand yes
     
     # Result Sets Size, numbers, etc. . . .
@@ -344,9 +276,12 @@ proc target-setup-enter-1 {target} {
             {{Max Result Sets:} {Max Result Size:} {Max Terms:}} \
             [list target-setup $target 1 2] [list destroy $w]
 
-    $y.maxResultSets.entry insert 0 $profileS($target,targetMaxResultSets)
-    $y.maxResultSize.entry insert 0 $profileS($target,targetMaxResultSize)
-    $y.maxTerms.entry insert 0 $profileS($target,targetMaxTerms)
+    $y.maxResultSets.entry configure \
+	-textvariable profileS($target,targetMaxResultSets)
+    $y.maxResultSize.entry configure \
+	-textvariable profileS($target,targetMaxResultSize)
+    $y.maxTerms.entry configure \
+	-textvariable profileS($target,targetMaxTerms)
 
     # Checkbuttons . . .
     set y $w.top.ns
@@ -355,10 +290,10 @@ proc target-setup-enter-1 {target} {
     pack $y -side right -padx 2 -pady 2 -fill both -expand yes
 
     checkbutton $y.resultSets -text "Named Result Sets" \
-            -anchor n -variable profileS($target,targetResultSets)
+            -anchor n -variable profileS($target,namedResultSets)
     
     checkbutton $y.multipleDatabases -text "Multiple Database Search" \
-            -anchor n -variable profileS($target,targetMultipleDatabases)
+            -anchor n -variable profileS($target,multipleDatabases)
 
     pack $y.resultSets $y.multipleDatabases -side top -padx 2 -pady 2
 
@@ -400,11 +335,8 @@ proc target-setup-db-add-action {target wp} {
     set w .database-select
 
     set db [$w.top.database.entry get]
-    if {![string length [lindex $profileS($target,databases) 0]]} {
-        set profileS($target,databases) $db
-    } else {
-        lappend profileS($target,databases) $db
-    }
+    lappend profileS($target,databases) $db
+
     destroy $w
     target-setup-dblist-update $target
 }
@@ -424,6 +356,10 @@ proc target-setup-db-remove {target wp} {
                     [lreplace $profileS($target,databases) $i $i]
         }
         target-setup-dblist-update $target
+        if {![llength $profileS($target,databases)]} {
+            unset profileS($target,databases)
+            puts removed
+        }
     }
 }
 
@@ -434,13 +370,15 @@ proc target-setup-dblist-update {target} {
     set y $w.top.name
 
     set no 0
-    set databaseList $profileS($target,databases)
-    $y.data configure -text [lindex $databaseList 0]
-    $y.data.m delete 0 100
-    foreach d $databaseList {
-        $y.data.m add command -label $d -command \
+    if {[info exists profileS($target,databases)]} {
+        set databaseList $profileS($target,databases)
+        $y.data configure -text [lindex $databaseList 0]
+        $y.data.m delete 0 100
+        foreach d $databaseList {
+             $y.data.m add command -label $d -command \
                 [list target-setup-2-dbselect $y.data $d]
-        incr no
+            incr no
+        }
     }
     if {$no == 0} {
         $y.remove configure -state disabled
@@ -454,8 +392,6 @@ proc target-setup-enter-2 {target} {
 
     set w .setup100
 
-    set databaseList $profileS($target,databases)
-    
     wm title $w "$target - Database Information"
     
     frame $w.top.name -border 2
@@ -465,7 +401,7 @@ proc target-setup-enter-2 {target} {
     
     pack $w.top.name.label -side left
     menubutton $w.top.name.data -menu $w.top.name.data.m -relief raised
-    menu $w.top.name.data.m
+    irmenu $w.top.name.data.m
 
     pack $w.top.name.data -side left
    
