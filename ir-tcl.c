@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.63  1995-11-13 09:55:39  adam
+ * Revision 1.64  1995-11-13 15:39:18  adam
+ * Bug fix: {small,medium}SetElementSetNames weren't set correctly.
+ * Bug fix: idAuthentication weren't set correctly.
+ *
+ * Revision 1.63  1995/11/13  09:55:39  adam
  * Multiple records at a position in a result-set with differnt
  * element specs.
  *
@@ -545,6 +549,8 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
         Z_IdPass *pass = odr_malloc (p->odr_out, sizeof(*pass));
         Z_IdAuthentication *auth = odr_malloc (p->odr_out, sizeof(*auth));
 
+        logf (LOG_DEBUG, "using pass authentication");
+
         auth->which = Z_IdAuthentication_idPass;
         auth->u.idPass = pass;
         if (p->idAuthenticationGroupId && *p->idAuthenticationGroupId)
@@ -567,6 +573,7 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
     {
         Z_IdAuthentication *auth = odr_malloc (p->odr_out, sizeof(*auth));
 
+        logf (LOG_DEBUG, "using open authentication");
         auth->which = Z_IdAuthentication_open;
         auth->u.open = p->idAuthenticationOpen;
         req->idAuthentication = auth;
@@ -880,19 +887,23 @@ static int do_idAuthentication (void *obj, Tcl_Interp *interp,
     {
         if (argc == 3)
         {
-            if (ir_tcl_strdup (interp, &p->idAuthenticationOpen, argv[2])
+            if (argv[2][0] && 
+                ir_tcl_strdup (interp, &p->idAuthenticationOpen, argv[2])
                 == TCL_ERROR)
                 return TCL_ERROR;
         }
         else if (argc == 5)
         {
-            if (ir_tcl_strdup (interp, &p->idAuthenticationGroupId, argv[2])
+            if (argv[2][0] && 
+                ir_tcl_strdup (interp, &p->idAuthenticationGroupId, argv[2])
                 == TCL_ERROR)
                 return TCL_ERROR;
-            if (ir_tcl_strdup (interp, &p->idAuthenticationUserId, argv[3])
+            if (argv[3][0] && 
+                ir_tcl_strdup (interp, &p->idAuthenticationUserId, argv[3])
                 == TCL_ERROR)
                 return TCL_ERROR;
-            if (ir_tcl_strdup (interp, &p->idAuthenticationPassword, argv[4])
+            if (argv[4][0] &&
+                ir_tcl_strdup (interp, &p->idAuthenticationPassword, argv[4])
                 == TCL_ERROR)
                 return TCL_ERROR;
         }
@@ -1697,7 +1708,7 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
         Z_ElementSetNames *esn = odr_malloc (p->odr_out, sizeof(*esn));
         
         esn->which = Z_ElementSetNames_generic;
-        esn->u.generic = obj->set_inher.elementSetNames;
+        esn->u.generic = obj->set_inher.smallSetElementSetNames;
         req->smallSetElementSetNames = esn;
     }
     else
@@ -1709,7 +1720,7 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
         Z_ElementSetNames *esn = odr_malloc (p->odr_out, sizeof(*esn));
         
         esn->which = Z_ElementSetNames_generic;
-        esn->u.generic = obj->set_inher.elementSetNames;
+        esn->u.generic = obj->set_inher.mediumSetElementSetNames;
         req->mediumSetElementSetNames = esn;
     }
     else
@@ -1964,14 +1975,17 @@ static int do_recordElements (void *o, Tcl_Interp *interp,
     }
     else if (argc == -1)
         return ir_tcl_strdel (NULL, &obj->recordElements);
-    if (argc > 2)
+    if (argc > 3)
     {
         sprintf (interp->result, "wrong # args");
         return TCL_ERROR;
     }
-    if (argc == 2)
+    if (argc == 3)
+    {
+        free (obj->recordElements);
         return ir_tcl_strdup (NULL, &obj->recordElements, 
-                              (*argv[1] ? argv[1] : NULL));
+                              (*argv[2] ? argv[2] : NULL));
+    }
     Tcl_AppendResult (interp, obj->recordElements, NULL);
     return TCL_OK;
 }
