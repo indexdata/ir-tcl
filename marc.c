@@ -5,7 +5,13 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: marc.c,v $
- * Revision 1.4  1995-06-22 13:15:09  adam
+ * Revision 1.5  1995-06-30 12:39:26  adam
+ * Bug fix: loadFile didn't set record type.
+ * The MARC routines are a little less strict in the interpretation.
+ * Script display.tcl replaces the old marc.tcl.
+ * New interactive script: shell.tcl.
+ *
+ * Revision 1.4  1995/06/22  13:15:09  adam
  * Feature: SUTRS. Setting getSutrs implemented.
  * Work on display formats.
  * Preferred record syntax can be set by the user.
@@ -37,12 +43,12 @@ static int atoi_n (const char *buf, int len)
 {
     int val = 0;
 
+    if (!isdigit (buf[len-1]))
+        return 0;
     while (--len >= 0)
     {
         if (isdigit (*buf))
             val = val*10 + (*buf - '0');
-        else if (*buf != ' ')
-            return 0;
 	buf++;
     }
     return val;

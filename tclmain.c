@@ -5,7 +5,13 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: tclmain.c,v $
- * Revision 1.9  1995-06-26 10:20:20  adam
+ * Revision 1.10  1995-06-30 12:39:28  adam
+ * Bug fix: loadFile didn't set record type.
+ * The MARC routines are a little less strict in the interpretation.
+ * Script display.tcl replaces the old marc.tcl.
+ * New interactive script: shell.tcl.
+ *
+ * Revision 1.9  1995/06/26  10:20:20  adam
  * ir-tk works like wish.
  *
  * Revision 1.8  1995/06/21  15:16:44  adam
@@ -207,8 +213,8 @@ void tcl_mainloop (Tcl_Interp *interp, int interactive)
                 Tcl_DStringFree (&command);
                 if (code)
                     printf ("Error: %s\n", interp->result);
-                else
-                    printf ("%s", interp->result);
+                else if (*interp->result)
+                    printf ("%s\n", interp->result);
                 printf ("%% "); fflush (stdout);
             }
         }

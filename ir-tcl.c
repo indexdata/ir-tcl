@@ -5,7 +5,13 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.48  1995-06-27 19:03:50  adam
+ * Revision 1.49  1995-06-30 12:39:21  adam
+ * Bug fix: loadFile didn't set record type.
+ * The MARC routines are a little less strict in the interpretation.
+ * Script display.tcl replaces the old marc.tcl.
+ * New interactive script: shell.tcl.
+ *
+ * Revision 1.48  1995/06/27  19:03:50  adam
  * Bug fix in do_present in ir-tcl.c: p->set_child member weren't set.
  * nextResultSetPosition used instead of setOffset.
  *
@@ -367,7 +373,8 @@ int ir_method (Tcl_Interp *interp, int argc, char **argv, IrTcl_Methods *tab)
 
     if (argc <= 0)
         return TCL_OK;
-    Tcl_AppendResult (interp, "Bad method. Possible methods:", NULL);
+    Tcl_AppendResult (interp, "Bad method: ", argv[1], 
+                      ". Possible methods:", NULL);
     for (tab_i = tab; tab_i->tab; tab_i++)
         for (t = tab_i->tab; t->name; t++)
             Tcl_AppendResult (interp, " ", t->name, NULL);
@@ -993,8 +1000,6 @@ static int do_connect (void *obj, Tcl_Interp *interp,
                 IrTcl_eval (p->interp, p->callback);
         }
     }
-    if (p->hostname)
-        Tcl_AppendElement (interp, p->hostname);
     return TCL_OK;
 }
 
@@ -2168,6 +2173,7 @@ static int do_loadFile (void *o, Tcl_Interp *interp,
         IrTcl_RecordList *rl;
 
         rl = new_IR_record (setobj, no, Z_NamePlusRecord_databaseRecord);
+        rl->u.dbrec.type = VAL_USMARC;
         rl->u.dbrec.buf = buf;
 	rl->u.dbrec.size = size;
         no++;
@@ -2779,9 +2785,8 @@ static void ir_handleRecords (void *o, Z_Records *zrs)
 		rl->u.dbrec.size = zr->u.octet_aligned->len;
 
                 rl->u.dbrec.type = VAL_USMARC;
-                ident = oid_getentbyoid (oe->direct_reference);
-                rl->u.dbrec.type = ident->value;
-
+                if ((ident = oid_getentbyoid (oe->direct_reference)))
+                    rl->u.dbrec.type = ident->value;
                 if (oe->which == ODR_EXTERNAL_octet && rl->u.dbrec.size > 0)
                 {
                     char *buf = (char*) zr->u.octet_aligned->buf;
