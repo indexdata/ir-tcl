@@ -2,7 +2,7 @@
 # (c) Index Data 1995
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.34 1996-06-06 10:45:59 adam Exp $
+# $Id: Makefile.in,v 1.35 1996-06-24 16:24:28 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -79,6 +79,23 @@ libirtcl.a: $(O)
 	rm -f libirtcl.a
 	ar qc libirtcl.a $(O)
 	$(RANLIB) libirtcl.a
+
+install.man:
+	@echo "Installation of man-pages"
+	@if [ ! -d $(MANDIR) ]; then \
+		echo Making $(MANDIR); \
+		mkdir $(MANDIR); \
+	fi
+	@if [ ! -d $(MANDIR)/mann ]; then \
+		echo Making $(MANDIR)/mann; \
+		mkdir $(MANDIR)/mann; \
+	fi
+	@cd doc; if [ -d $(MANDIR)/mann ]; then \
+		for p in *.n; do \
+			echo "Installing $$p"; \
+			$(INSTALL_DATA) $$p $(MANDIR)/mann; \
+		done; \
+	fi
 
 install: ir-tcl
 	@for d in $(IRTCLDIR) $(IRTCLDIR)/formats $(IRTCLDIR)/bitmaps; do \

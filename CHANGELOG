@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.18 1996-06-05 09:26:19 adam Exp $
+$Id: CHANGELOG,v 1.19 1996-06-24 16:24:28 adam Exp $
 
 06/19/95 Release of ir-tcl-1.0b
 ------------------------------------------------------
@@ -86,4 +86,5 @@ $Id: CHANGELOG,v 1.18 1996-06-05 09:26:19 adam Exp $
 05/06/96 Set function getGrs enhanced so that specific elements can be
          extracted by (<tagType>,<tagVal>) - pairs.
 
+24/06/96 Quick reference man pages added: ir-assoc, ir-set and ir-scan.
 
