@@ -2,7 +2,7 @@
 # (c) Index Data 1995
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.3 1995-06-22 07:15:57 adam Exp $
+# $Id: Makefile.in,v 1.4 1995-06-22 13:46:52 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -24,8 +24,8 @@ MOSIDIR=@MOSIDIR@
 LIBS=@LIBS@ -lm
 
 # X11 libraries and include file paths
-XLIB=@XLIB@ -lX11
-XINCLUDE=@XINCLUDE@
+XLIB=@XLIBSW@
+XINCLUDE=@XINCLUDES@
 
 # Tcl/Tk libraries
 TCLLIB=@TCLLIB@
@@ -92,6 +92,19 @@ autoconf:
 	-rm config.cache
 	autoconf
 	configure
+
+distribution:
+	echo "Making distribution version $(VERSION). Did you commit?"
+	autoconf
+	if [ -d tmp ]; then \
+		rm -fr tmp; \
+	fi
+	mkdir tmp; cd tmp; cvs export -f -D now ir-tcl
+	cp configure tmp/ir-tcl
+	cd tmp/ir-tcl/doc; make all
+	cd tmp; mv ir-tcl ir-tcl-$(VERSION)
+	cd tmp; tar zcf ../ir-tcl-$(VERSION).tar.gz ir-tcl-$(VERSION)
+	rm -fr tmp
 
 .c.o:
 	$(CC) -c $(CFLAGS) $(DEFS) $<
