@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.105  1998-04-02 14:31:08  adam
+ * Revision 1.106  1998-05-20 12:25:35  adam
+ * Fixed bug that occurred in rare cases when encoding of incoming
+ * records failed.
+ *
+ * Revision 1.105  1998/04/02 14:31:08  adam
  * This version works with compiled ASN.1 code.
  *
  * Revision 1.104  1998/02/27 14:26:07  adam
@@ -3591,7 +3595,8 @@ static void ir_handleDBRecord (IrTcl_Obj *p, IrTcl_RecordList *rl,
 {
     struct oident *ident;
     Z_ext_typeent *etype;
-                
+
+    logf (LOG_DEBUG, "handleDBRecord size=%d", oe->u.octet_aligned->len);
     rl->u.dbrec.size = oe->u.octet_aligned->len;
     rl->u.dbrec.buf = NULL;
     
@@ -3609,7 +3614,10 @@ static void ir_handleDBRecord (IrTcl_Obj *p, IrTcl_RecordList *rl,
         odr_setbuf (p->odr_in, (char*) oe->u.octet_aligned->buf,
                     oe->u.octet_aligned->len, 0);
         if (!(*etype->fun)(p->odr_in, (char **) &rr, 0))
+        {
+            rl->u.dbrec.type = VAL_NONE;
             return;
+        }
         switch (etype->what)
         {
         case Z_External_sutrs:
