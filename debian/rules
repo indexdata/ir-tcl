@@ -69,7 +69,7 @@ stamp-install: stamp-build
 binary-indep: build install
 	dh_testdir
 	dh_testroot
-	dh_installdocs -p ir-tcl-doc doc/*.html doc/*.txt doc/*.ps
+	dh_installdocs -p ir-tcl-doc doc/*.html doc/*.ps
 	dh_installchangelogs -p ir-tcl-doc
 	dh_link -p ir-tcl-doc
 	dh_strip -p ir-tcl-doc
