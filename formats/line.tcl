@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: line.tcl,v $
-# Revision 1.10  1995-10-17 17:39:46  adam
+# Revision 1.11  1996-01-23 15:24:21  adam
+# Wrore more comments.
+#
+# Revision 1.10  1995/10/17  17:39:46  adam
 # Minor bug fix in call to display-grs-line.
 #
 # Revision 1.9  1995/10/17  14:18:09  adam
@@ -38,6 +41,7 @@
 # as popup windows.
 #
 #
+
 proc display-grs-line {w r i} {
     foreach e $r {
         for {set j 0} {$j < $i} {incr j} {
@@ -57,6 +61,13 @@ proc display-grs-line {w r i} {
     }
 }
 
+# Procedure display-line {sno no w hflag}
+#  sno    result set number (integer)
+#  no     record position (integer)
+#  w      text widget in which the record should be displayed.
+#  hflag  header flag. If true a header showing the record position
+#         should be displayed.
+# This procedure attempts to display records in a line-per-line format.
 proc display-line {sno no w hflag} {
     global monoFlag
     set type [z39.$sno type $no] 

@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: medium.tcl,v $
-# Revision 1.10  1996-01-11 09:31:05  quinn
+# Revision 1.11  1996-01-23 15:24:23  adam
+# Wrore more comments.
+#
+# Revision 1.10  1996/01/11  09:31:05  quinn
 # Small.
 #
 # Revision 1.9  1995/10/17  14:18:10  adam
@@ -54,6 +57,13 @@ proc display-grs-medium {w r i} {
     }
 }
 
+# Procedure display-medium {sno no w hflag}
+#  sno    result set number (integer)
+#  no     record position (integer)
+#  w      text widget in which the record should be displayed
+#  hflag  header flag. If true a header showing the record position
+#         should be displayed.
+# This procedure attempts to display records in a medium-sized format.
 proc display-medium {sno no w hflag} {
     if {$hflag} {
         insertWithTags $w " $no " marc-head

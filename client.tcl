@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.87  1996-01-22 17:13:34  adam
+# Revision 1.88  1996-01-23 15:24:09  adam
+# Wrore more comments.
+#
+# Revision 1.87  1996/01/22  17:13:34  adam
 # Wrote comments.
 #
 # Revision 1.86  1996/01/22  09:29:01  adam
@@ -2997,6 +3000,12 @@ proc query-setup-action {queryNo} {
     index-lines .lines 1 $queryButtonsFind $queryInfoFind activate-index
 }
 
+# Procedure activate-e-index {value no i}
+#   value   menu name
+#   no      query index number
+#   i       menu index (integer)
+# Procedure called when listbutton is activated in the query type edit
+# window. The global $queryButtonsTmp is updated in this operation.
 proc activate-e-index {value no i} {
     global queryButtonsTmp
     global queryIndexTmp
@@ -3006,6 +3015,12 @@ proc activate-e-index {value no i} {
     set queryIndexTmp $i
 }
 
+# Procedure activate-index {value no i}
+#   value   menu name
+#   no      query index number
+#   i       menu index (integer)
+# Procedure called when listbutton is activated in the main query 
+# window. The global $queryButtonsFind is updated in this operation.
 proc activate-index {value no i} {
     global queryButtonsFind
 
@@ -3014,6 +3029,12 @@ proc activate-index {value no i} {
     dputs "queryButtonsFind $queryButtonsFind"
 }
 
+# Procedure update-attr
+# This procedure creates listbuttons for all bib-1 attributes except
+# the use-attribute in the .index-setup window.
+# The globals $relationTmpValue, $positionTmpValue, $structureTmpValue,
+# $truncationTmpValue and $completenessTmpValue are maintainted by the
+# listbuttons.
 proc update-attr {} {
     set w .index-setup
     listbuttonv $w.top.relation.b relationTmpValue\
@@ -3034,6 +3055,12 @@ proc update-attr {} {
             {Incomplete subfield} 1 {Complete subfield} 2 {Complete field} 3}
 }
 
+# Procedure use-attr {init}
+#  init      init flag
+# This procedure creates a listbox with several Bib-1 use attributes.
+# If $init is 1 the listbox is created with the attributes. If $init
+# is 0 the current selection of the listbox is read and the global
+# $useTmpValue is set to the current use-value.
 proc use-attr {init} {
     set attr {
         {None}                           0
@@ -3171,6 +3198,12 @@ proc use-attr {init} {
     }
 }
 
+# Procedure index-setup-action {oldAttr queryNo indexNo}
+#  oldAttr     original attributes (?)
+#  queryNo     query number
+#  indexNo     index number
+# Commits setup of a query index. The mapping from the index to 
+# the Bib-1 attributes are handled by this function.
 proc index-setup-action {oldAttr queryNo indexNo} {
     set attr [lindex $oldAttr 0]
 
@@ -3210,6 +3243,12 @@ proc index-setup-action {oldAttr queryNo indexNo} {
     destroy .index-setup
 }
 
+# Procedure index-setup {attr queryNo indexNo}
+#  attr        original attributes
+#  queryNo     query number
+#  indexNo     index number
+# Makes a window with settings of a given query index which the user
+# may inspect/modify.
 proc index-setup {attr queryNo indexNo} {
     set w .index-setup
 
@@ -3332,6 +3371,10 @@ proc index-setup {attr queryNo indexNo} {
 
 }
 
+# Procedure query-edit-index {queryNo}
+#  queryNo     query number
+# Determines if a selection of an index is active. If one is selected
+# the index-setup dialog is started.
 proc query-edit-index {queryNo} {
     global queryInfoTmp
     set w .query-setup
@@ -3345,6 +3388,10 @@ proc query-edit-index {queryNo} {
     index-setup $attr $queryNo $i
 }
 
+# Procedure query-delete-index {queryNo}
+#  queryNo     query number
+# Determines if a selection of an index is active. If one is selected
+# the index is deleted.
 proc query-delete-index {queryNo} {
     global queryInfoTmp
     global queryButtonsTmp
@@ -3359,6 +3406,9 @@ proc query-delete-index {queryNo} {
     $w.top.index.list delete $i
 }
     
+# Procedure query-setup {queryNo}
+#  queryNo     query number
+# Makes a dialog in which a query type an be customized.
 proc query-setup {queryNo} {
     set w .query-setup
 
@@ -3431,6 +3481,8 @@ proc query-setup {queryNo} {
             Cancel [list destroy $w]] 0
 }
 
+# Procedure index-clear
+# Handler that clears the search entry fields.
 proc index-clear {} {
     global queryButtonsFind
 
@@ -3440,7 +3492,18 @@ proc index-clear {} {
         incr i
     }
 }
-    
+
+# Procedure index-query
+# The purpose of this function is to read the user's query and convert
+# it to the prefix query that IrTcl/YAZ uses to represent an RPN query.
+# Each entry in a search fields takes the form
+#    [relOp][?]term[?]
+#  Here, relOp is an optional relational operator and one of:
+#      >  < >= <=  <>
+#    which sets the Bib-1 relation to greater-than, less-than, etc.
+#  The ? (question-mark) is also optional. A (?) on left-side indicates
+#    left truncation; (?) on right-side indicates right-truncation; (?)
+#    on both sides indicates both-left-and-right truncation.
 proc index-query {} {
     global queryButtonsFind
     global queryInfoFind
@@ -3517,6 +3580,12 @@ proc index-query {} {
     return $qs
 }
 
+# Procedure index-focus-in {w i}
+#  w    index frame
+#  i    index number
+# This procedure handles <FocusIn> events. A red border is drawed
+# around the active search entry field when tk3.6 is used (tk4.X
+# makes a black focus border itself).
 proc index-focus-in {w i} {
     global curIndexEntry
 
@@ -3526,6 +3595,14 @@ proc index-focus-in {w i} {
     set curIndexEntry $i
 }
 
+# Procedure index-lines {w readOp buttonInfo queryInfo handle}
+#  w          search fields entry frame
+#  realOp     if true, search-request bindings are bound to the entries.
+#  buttonInfo query type button information
+#  queryInfo  query type field information
+#  handle     handler called a when a 'listbutton' changes its value
+# Makes one or more search areas - with listbuttons on the left
+# and entries on the right. 
 proc index-lines {w realOp buttonInfo queryInfo handle} {
     set i 0
     foreach b $buttonInfo {
@@ -3584,6 +3661,12 @@ proc index-lines {w realOp buttonInfo queryInfo handle} {
     }
 }
 
+# Procedure search-fields {w buttondefs}
+#  w           search fields entry frame
+#  buttondefs  button definitions
+# Makes search entry fields and listbuttons. 
+# Note: This procedure is not used elsewhere. The index-lines
+#       procedure is used instead.
 proc search-fields {w buttondefs} {
     set i 0
     foreach buttondef $buttondefs {
@@ -3618,6 +3701,8 @@ proc search-fields {w buttondefs} {
     $w.0 configure -background red
 }
 
+# Init: The geometry information for the main window is set if 
+# saved in the windowGeometry - array.
 if {[info exists windowGeometry(.)]} {
     set g $windowGeometry(.)
     if {$g != ""} {
@@ -3625,8 +3710,10 @@ if {[info exists windowGeometry(.)]} {
     }
 }    
 
+# Init: Presentation formats are read.
 read-formats
 
+# Init: The main window is defined.
 frame .top  -border 1 -relief raised
 frame .lines  -border 1 -relief raised
 frame .mid  -border 1 -relief raised
@@ -3636,12 +3723,14 @@ pack .top .lines .mid -side top -fill x
 pack .data -side top -fill both -expand yes
 pack .bot -fill x
 
+# Init: Definition of File menu.
 menubutton .top.file -text "File" -menu .top.file.m
 menu .top.file.m
 .top.file.m add command -label "Save settings" -command {save-settings}
 .top.file.m add separator
 .top.file.m add command -label "Exit" -command {exit-action}
 
+# Init: Definition of Target menu.
 menubutton .top.target -text "Target" -menu .top.target.m
 menu .top.target.m
 .top.target.m add cascade -label "Connect" -menu .top.target.m.clist
@@ -3659,6 +3748,7 @@ menu .top.target.m.clist
 menu .top.target.m.slist
 cascade-target-list
 
+# Init: Definition of Service menu.
 menubutton .top.service -text "Service" -menu .top.service.m
 menu .top.service.m
 .top.service.m add command -label "Database" -command {database-select}
@@ -3678,6 +3768,7 @@ menu .top.rset.m
 .top.rset.m add command -label "Load" -command {load-set}
 .top.rset.m add separator
 
+# Init: Definition of the Options menu.
 menubutton .top.options -text "Options" -menu .top.options.m
 menu .top.options.m
 .top.options.m add cascade -label "Query" -menu .top.options.m.query
@@ -3687,6 +3778,7 @@ menu .top.options.m
 .top.options.m add cascade -label "Elements" -menu .top.options.m.elements
 .top.options.m add radiobutton -label "Debug" -variable debugMode -value 1
 
+# Init: Definition of the Options|Query menu.
 menu .top.options.m.query
 .top.options.m.query add cascade -label "Select" \
         -menu .top.options.m.query.clist
@@ -3702,6 +3794,7 @@ menu .top.options.m.query.clist
 menu .top.options.m.query.dlist
 cascade-query-list
 
+# Init: Definition of the Options|Formats menu.
 menu .top.options.m.formats
 set i 0
 foreach f $displayFormats {
@@ -3710,6 +3803,7 @@ foreach f $displayFormats {
     incr i
 }
 
+# Init: Definition of the Options|Wrap menu.
 menu .top.options.m.wrap
 .top.options.m.wrap add radiobutton -label "Character" \
         -value char -variable textWrap -command {set-wrap char}
@@ -3718,6 +3812,7 @@ menu .top.options.m.wrap
 .top.options.m.wrap add radiobutton -label "None" \
         -value none -variable textWrap -command {set-wrap none}
 
+# Init: Definition of the Options|Syntax menu.
 menu .top.options.m.syntax
 .top.options.m.syntax add radiobutton -label "None" \
         -value None -variable recordSyntax
@@ -3743,6 +3838,7 @@ menu .top.options.m.syntax
 .top.options.m.syntax add radiobutton -label "GRS1" \
         -value GRS1 -variable recordSyntax
 
+# Init: Definition of the Options|Elements menu.
 menu .top.options.m.elements
 .top.options.m.elements add radiobutton -label "Unspecified" \
         -value None -variable elementSetNames
@@ -3751,6 +3847,7 @@ menu .top.options.m.elements
 .top.options.m.elements add radiobutton -label "Brief" \
         -value B -variable elementSetNames
 
+# Init: Definition of Help menu.
 menubutton .top.help -text "Help" -menu .top.help.m
 menu .top.help.m
 
@@ -3758,9 +3855,11 @@ menu .top.help.m
         -command {tkerror "Help on help not available. Sorry"}
 .top.help.m add command -label "About" -command {about-origin}
 
+# Init: Pack menu bar items.
 pack .top.file .top.target .top.service .top.rset .top.options -side left
 pack .top.help -side right
 
+# Init: Define query area.
 index-lines .lines 1 $queryButtonsFind [lindex $queryInfo 0] activate-index
 
 button .mid.search -text Search -command {search-request 0} \
@@ -3774,6 +3873,7 @@ button .mid.clear -text Clear -command index-clear
 pack .mid.search .mid.scan .mid.present .mid.clear -side left \
         -fill y -pady 1
 
+# Init: Define record area in main window.
 text .data.record -height 2 -width 20 -wrap none -borderwidth 0 -relief flat \
         -yscrollcommand [list .data.scroll set] -wrap $textWrap
 scrollbar .data.scroll -command [list .data.record yview]
@@ -3785,6 +3885,8 @@ pack .data.scroll -side right -fill y
 pack .data.record -expand yes -fill both
 initBindings
 
+# Init: Define standards tags. These are used in the display
+# format procedures.
 if {! $monoFlag} {
     .data.record tag configure marc-tag -foreground blue
     .data.record tag configure marc-id -foreground red
@@ -3807,10 +3909,12 @@ if {! $monoFlag} {
         -font -Adobe-Times-Medium-I-Normal-*-140-* \
         -foreground black
 
+# Init: Define logo.
 button .bot.logo -bitmap @${libdir}/bitmaps/book1 -command cancel-operation
 if {[tk4]} {
     .bot.logo configure -takefocus 0
 }
+# Init: Define status information fields at the bottom.
 frame .bot.a
 pack .bot.a -side left -fill x
 pack .bot.logo -side right -padx 2 -pady 2 -ipadx 1
@@ -3828,6 +3932,8 @@ pack .bot.a.target -side top -anchor nw -padx 2 -pady 2
 pack .bot.a.status .bot.a.set .bot.a.message \
         -side left -padx 2 -pady 2 -ipadx 1 -ipady 1
 
+# Init: Determine if the IrTcl extension is already there. If
+#  not, then dynamically load the IrTcl extension.
 if {[catch {ir z39}]} {
     set e [info sharedlibextension]
     puts -nonewline "Loading irtcl$e ..."
@@ -3835,11 +3941,16 @@ if {[catch {ir z39}]} {
     ir z39
     puts "ok"
 }
-#z39 logLevel all {} mylog
 
+# Init: Uncomment this line if you wan't to enable logging.
+#z39 logLevel all {} irtcl.log
+
+# Init: If hostid is a valid target, a new connection will be established
+# immediately.
 if {$hostid != "Default"} {
     catch {open-target $hostid $hostbase}
 }
 
+# Init: Enable the logo.
 show-logo 1
 

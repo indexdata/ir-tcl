@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: raw.tcl,v $
-# Revision 1.9  1995-10-17 14:18:10  adam
+# Revision 1.10  1996-01-23 15:24:24  adam
+# Wrore more comments.
+#
+# Revision 1.9  1995/10/17  14:18:10  adam
 # Minor changes in presentation formats.
 #
 # Revision 1.8  1995/10/17  10:58:09  adam
@@ -50,6 +53,13 @@ proc display-grs-raw {w r i} {
     }
 }
 
+# Procedure display-raw {sno no w flag}
+#  sno    result set number (integer)
+#  no     record position (integer)
+#  w      text widget in which the record should be displayed.
+#  hflag  header flag. If true a header showing the record position
+#         should be displayed.
+# This procedure attempts to display records in a raw format.
 proc display-raw {sno no w hflag} {
     if {$hflag} {
         insertWithTags $w " $no " marc-head
