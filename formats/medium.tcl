@@ -4,7 +4,11 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: medium.tcl,v $
-# Revision 1.2  1995-06-12 15:18:10  adam
+# Revision 1.3  1995-06-13 14:39:06  adam
+# Fix: if {$var != ""} doesn't work if var is a large numerical!
+# Highlight when line format is used.
+#
+# Revision 1.2  1995/06/12  15:18:10  adam
 # Work on presentation formats. These are used in the main window as well
 # as popup windows.
 #
@@ -17,21 +21,21 @@ proc display-medium {sno no w hflag} {
         $w delete 0.0 end
     }
     set i [z39.$sno getMarc $no field 245 * a]
-    if {$i != ""} {
+    if {"x$i" != "x"} {
         set i [lindex $i 0]
         insertWithTags $w "Title:      " marc-tag
         insertWithTags $w $i marc-data
         set i [z39.$sno getMarc $no field 245 * b]
-        if {$i != ""} {
+        if {"x$i" != "x"} {
             insertWithTags $w [lindex $i 0] marc-data
         }
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 700 * a]
-    if {$i == ""} {
+    if {"x$i" == "x"} {
         set i [z39.$sno getMarc $no field 100 * a]
     }
-    if {$i != ""} {
+    if {"x$i" != "x"} {
         if {[llength $i] > 1} {
             insertWithTags $w "Authors:    " marc-tag
         } else {
@@ -43,7 +47,7 @@ proc display-medium {sno no w hflag} {
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 110 * *]
-    if {$i != ""} {
+    if {"x$i" != "x"} {
         insertWithTags $w "Co-Author:  " marc-tag
         foreach x $i {
             insertWithTags $w $x marc-data
@@ -52,7 +56,7 @@ proc display-medium {sno no w hflag} {
     }
 
     set i [z39.$sno getMarc $no field 650 * *]
-    if {$i != ""} {
+    if {"x$i" != "x"} {
         set n 0
         insertWithTags $w "Keywords:   " marc-tag
         foreach x $i {
@@ -66,7 +70,7 @@ proc display-medium {sno no w hflag} {
     }
     set i [concat [z39.$sno getMarc $no field 260 * a] \
             [z39.$sno getMarc $no field 260 * b]]
-    if {$i != ""} {
+    if {"x$i" != "x"} {
         insertWithTags $w "Publisher:  " marc-tag
         foreach x $i {
             insertWithTags $w $x marc-data
@@ -74,7 +78,7 @@ proc display-medium {sno no w hflag} {
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 020 * a]
-    if {$i != ""} {
+    if {"x$i" != "x"} {
         insertWithTags $w "ISBN:       " marc-tag
         foreach x $i {
             insertWithTags $w $x marc-data
@@ -82,7 +86,7 @@ proc display-medium {sno no w hflag} {
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 022 * a]
-    if {$i != ""} {
+    if {"x$i" != "x"} {
         insertWithTags $w "ISSN:       " marc-tag
         foreach x $i {
             insertWithTags $w $x marc-data
@@ -90,7 +94,7 @@ proc display-medium {sno no w hflag} {
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 030 * a]
-    if {$i != ""} {
+    if {"x$i" != "x"} {
         insertWithTags $w "CODEN:      " marc-tag
         foreach x $i {
             insertWithTags $w $x marc-data
@@ -98,7 +102,7 @@ proc display-medium {sno no w hflag} {
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 015 * a]
-    if {$i != ""} {
+    if {"x$i" != "x"} {
         insertWithTags $w "Ctl number: " marc-tag
         foreach x $i {
             insertWithTags $w $x marc-data
@@ -106,7 +110,7 @@ proc display-medium {sno no w hflag} {
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 010 * a]
-    if {$i != ""} {
+    if {"x$i" != "x"} {
         insertWithTags $w "LC number:  " marc-tag
         foreach x $i {
             insertWithTags $w $x marc-data

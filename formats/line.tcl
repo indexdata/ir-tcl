@@ -4,15 +4,24 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: line.tcl,v $
-# Revision 1.1  1995-06-12 15:18:10  adam
+# Revision 1.2  1995-06-13 14:39:06  adam
+# Fix: if {$var != ""} doesn't work if var is a large numerical!
+# Highlight when line format is used.
+#
+# Revision 1.1  1995/06/12  15:18:10  adam
 # Work on presentation formats. These are used in the main window as well
 # as popup windows.
 #
 #
 
 proc display-line {sno no w hflag} {
-    set type [z39.$sno type $no]
-    if {! $hflag} {
+    set type [z39.$sno type $no] 
+    if {$hflag} {
+        $w tag bind r$no <Any-Enter> \
+                [list $w tag configure r$no -background gray80]
+        $w tag bind r$no <Any-Leave> \
+                [list $w tag configure r$no -background {}]
+    } else {
         $w delete 0.0 end
     }
     if {$type == "DB"} {
