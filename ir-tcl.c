@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.74  1996-02-05 17:58:03  adam
+ * Revision 1.75  1996-02-19 15:41:53  adam
+ * Better log messages.
+ * Minor improvement of connect method.
+ *
+ * Revision 1.74  1996/02/05  17:58:03  adam
  * Ported ir-tcl to use the beta releases of tcl7.5/tk4.1.
  *
  * Revision 1.73  1996/01/29  11:35:19  adam
@@ -1022,8 +1026,6 @@ static int do_connect (void *obj, Tcl_Interp *interp,
             interp->result = "already connected";
             return TCL_ERROR;
         }
-        if (ir_tcl_strdup (interp, &p->hostname, argv[2]) == TCL_ERROR)
-            return TCL_ERROR;
         if (!strcmp (p->comstackType, "tcpip"))
         {
             p->cs_link = cs_create (tcpip_type, CS_BLOCK, p->protocol_type);
@@ -1057,6 +1059,8 @@ static int do_connect (void *obj, Tcl_Interp *interp,
                               p->comstackType, NULL);
             return TCL_ERROR;
         }
+        if (ir_tcl_strdup (interp, &p->hostname, argv[2]) == TCL_ERROR)
+            return TCL_ERROR;
 #if IRTCL_GENERIC_FILES
 #ifdef WINDOWS
         p->csFile = Tcl_GetFile (cs_fileno(p->cs_link), TCL_WIN_SOCKET);
@@ -1070,7 +1074,8 @@ static int do_connect (void *obj, Tcl_Interp *interp,
             do_disconnect (p, NULL, 2, NULL);
             return TCL_ERROR;
         }
-	logf(LOG_DEBUG, "cs_connect() returned %d", r);
+	logf(LOG_DEBUG, "cs_connect() returned %d fd=%d", r,
+             cs_fileno(p->cs_link));
         p->eventType = "connect";
 #if IRTCL_GENERIC_FILES
         ir_select_add (p->csFile, p);
@@ -1119,6 +1124,7 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
     }
     if (p->hostname)
     {
+	logf(LOG_DEBUG, "Closing connection to %s", p->hostname);
         free (p->hostname);
         p->hostname = NULL;
 #if IRTCL_GENERIC_FILES
@@ -1132,7 +1138,6 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
         odr_reset (p->odr_in);
 
         assert (p->cs_link);
-	logf(LOG_DEBUG, "Closing connection");
         cs_close (p->cs_link);
         p->cs_link = NULL;
 #if IRTCL_GENERIC_FILES
@@ -1772,7 +1777,7 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
     }
 #endif
 
-    logf (LOG_DEBUG, "ir object create");
+    logf (LOG_DEBUG, "ir object create %s", argv[1]);
     obj->odr_in = odr_createmem (ODR_DECODE);
     obj->odr_out = odr_createmem (ODR_ENCODE);
     obj->odr_pr = odr_createmem (ODR_PRINT);
@@ -3375,7 +3380,7 @@ void ir_select_read (ClientData clientData)
     Tcl_CmdInfo cmd_info;
     const char *apdu_call;
 
-    logf(LOG_DEBUG, "Read handler");
+    logf(LOG_DEBUG, "Read handler fd=%d", cs_fileno(p->cs_link));
     if (p->state == IR_TCL_R_Connecting)
     {
 	logf(LOG_DEBUG, "Connect handler");
@@ -3545,7 +3550,7 @@ void ir_select_write (ClientData clientData)
     int r;
     IrTcl_Request *rq;
 
-    logf (LOG_DEBUG, "Write handler");
+    logf (LOG_DEBUG, "Write handler fd=%d", cs_fileno(p->cs_link));
     if (p->state == IR_TCL_R_Connecting)
     {
 	logf(LOG_DEBUG, "Connect handler");

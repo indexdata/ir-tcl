@@ -24,7 +24,11 @@
  * OF THIS SOFTWARE.
  *
  * $Log: ir-tcl.h,v $
- * Revision 1.12  1996-02-05 17:58:04  adam
+ * Revision 1.13  1996-02-19 15:41:54  adam
+ * Better log messages.
+ * Minor improvement of connect method.
+ *
+ * Revision 1.12  1996/02/05  17:58:04  adam
  * Ported ir-tcl to use the beta releases of tcl7.5/tk4.1.
  *
  * Revision 1.11  1995/09/21  13:11:52  adam
@@ -63,7 +67,7 @@
 #ifndef IR_TCL_H
 #define IR_TCL_H
 
-#if TCL_MAJOR_VERSION > 7 || (TCL_MAJOR_VERSION == 7 && TCL_MINOR_VERSION >= 5)
+#if 0
 #define IRTCL_GENERIC_FILES 1
 #else
 #define IRTCL_GENERIC_FILES 0

@@ -6,7 +6,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: queue.c,v $
- * Revision 1.6  1996-02-06 09:22:54  adam
+ * Revision 1.7  1996-02-19 15:41:55  adam
+ * Better log messages.
+ * Minor improvement of connect method.
+ *
+ * Revision 1.6  1996/02/06  09:22:54  adam
  * Ported ir-tcl to use beta releases of tcl7.5/tk4.1.
  *
  * Revision 1.5  1995/11/28  13:53:40  quinn
@@ -95,7 +99,8 @@ int ir_tcl_send_q (IrTcl_Obj *p, IrTcl_Request *rp, const char *msg)
     }
     else
     {
-        logf (LOG_DEBUG, "Send %s (%d bytes)", msg, rp->len_out);
+        logf (LOG_DEBUG, "Send %s (%d bytes) fd=%d", msg, rp->len_out,
+              cs_fileno(p->cs_link));
         p->state = IR_TCL_R_Waiting;
         free (rp->buf_out);
         rp->buf_out = NULL;
