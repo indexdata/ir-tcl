@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: medium.tcl,v $
-# Revision 1.9  1995-10-17 14:18:10  adam
+# Revision 1.10  1996-01-11 09:31:05  quinn
+# Small.
+#
+# Revision 1.9  1995/10/17  14:18:10  adam
 # Minor changes in presentation formats.
 #
 # Revision 1.8  1995/10/17  10:58:09  adam
@@ -175,6 +178,14 @@ proc display-medium {sno no w hflag} {
     set i [z39.$sno getMarc $no field 010 * a]
     if {"x$i" != "x"} {
         insertWithTags $w "LC number " marc-pref
+        foreach x $i {
+            insertWithTags $w $x marc-text
+        }
+        $w insert end "\n"
+    }
+    set i [z39.$sno getMarc $no field 710 * a]
+    if {"x$i" != "x"} {
+        insertWithTags $w "Corporate name " marc-pref
         foreach x $i {
             insertWithTags $w $x marc-text
         }
