@@ -3,13 +3,9 @@
  * See the file LICENSE for details.
  * Sebastian Hammer, Adam Dickmeiss
 
-$Revision: 1.6 $
+$Revision: 1.7 $
 
-Documentation can be found in the doc directory.
-
-   ir-tcl.txt  - ascii version
-   ir-tcl.ps   - postscript
-   ir-tcl.html - HTML.
+Documentation: read ir-tcl.ps/ir-tcl.txt. Download the Gzipped versions now!
 
 To get more information or assistance, send mail to yaz-help@index.ping.dk.
 
