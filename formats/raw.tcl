@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: raw.tcl,v $
-# Revision 1.11  1996-03-29 16:05:37  adam
+# Revision 1.12  1996-04-12 13:45:50  adam
+# Minor changes.
+#
+# Revision 1.11  1996/03/29  16:05:37  adam
 # Bug fix: GRS records wasn't recognized.
 #
 # Revision 1.10  1996/01/23  15:24:24  adam
@@ -42,7 +45,7 @@ proc display-grs-raw {w r i} {
         for {set j 0} {$j < $i} {incr j} {
             insertWithTags $w "  " {}
         }
-        insertWithTags $w "([lindex $e 0]:[lindex $e 2])" marc-tag
+        insertWithTags $w "([lindex $e 0],[lindex $e 2])" marc-tag
         if {[lindex $e 3] == "string"} {
             insertWithTags $w [lindex $e 4] {}
             insertWithTags $w "\n" {}
