@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: line.tcl,v $
-# Revision 1.13  1996-04-12 12:25:27  adam
+# Revision 1.14  1997-11-19 11:22:10  adam
+# Object identifiers can be accessed in GRS-1 records.
+#
+# Revision 1.13  1996/04/12 12:25:27  adam
 # Modified display of GRS-1 records to include headings for standard
 # tag sets.
 #
@@ -62,16 +65,21 @@ proc display-grs-line {w r i} {
         }
         set ttype [lindex $e 0]
         set tval [lindex $e 2]
-        if {[info exists tagSet($ttype,$tval)]} {
-            insertWithTags $w "$tagSet($ttype,$tval) " marc-pref
-        } else {
-            insertWithTags $w "$tval " marc-pref
-        }
-        if {[lindex $e 3] == "string"} {
-            insertWithTags $w [lindex $e 4] marc-text
+	if {$ttype == 2 && $tval == 1} {
+	    if {[lindex $e 3] == "subtree"} {
+		set f [lindex $e 4]
+		foreach e $f {
+		    if {[lindex $e 0] == 1 && [lindex $e 2] == 19} {
+			break
+		    }
+		}
+	    }
+	    if {[lindex $e 3] == "string"} {
+		insertWithTags $w [lindex $e 4] marc-text
+	    }
             insertWithTags $w "\n"
             break
-        }
+	}
     }
     if {[tk4]} {
         $w tag configure indent$i \

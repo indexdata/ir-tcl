@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.35  1997-09-09 10:19:54  adam
+ * Revision 1.36  1997-11-19 11:22:09  adam
+ * Object identifiers can be accessed in GRS-1 records.
+ *
+ * Revision 1.35  1997/09/09 10:19:54  adam
  * New MSV5.0 port with fewer warnings.
  *
  * Revision 1.34  1996/08/16 15:07:47  adam
@@ -280,6 +283,7 @@ struct GRS_Record_entry {
         } octets;
         int num;
         int bool;
+	Odr_oid *oid;
     } tagData;
 };
 

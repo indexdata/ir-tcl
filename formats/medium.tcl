@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: medium.tcl,v $
-# Revision 1.14  1996-04-12 13:45:49  adam
+# Revision 1.15  1997-11-19 11:22:10  adam
+# Object identifiers can be accessed in GRS-1 records.
+#
+# Revision 1.14  1996/04/12 13:45:49  adam
 # Minor changes.
 #
 # Revision 1.13  1996/04/12  12:25:27  adam
@@ -75,7 +78,7 @@ proc display-grs-medium {w r i} {
             insertWithTags $w "\n"
         } else {
             insertWithTags $w [lindex $e 4] {}
-            insertWithTags $w " ?\n" {}
+            insertWithTags $w " \n" {}
         }
         if {[tk4]} {
             $w tag configure indent$i \
@@ -130,7 +133,7 @@ proc display-medium {sno no w hflag} {
         insertWithTags $w "Unknown record type: $rtype\n" marc-id
         return
     }
-    if {"x$i" != "x"} {
+    if {[llength $i]} {
         insertWithTags $w "Title " marc-pref
         insertWithTags $w [string trimright [lindex $i 0] /] marc-text
         set i [z39.$sno getMarc $no field 245 * b]
@@ -140,10 +143,10 @@ proc display-medium {sno no w hflag} {
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 700 * a]
-    if {"x$i" == "x"} {
+    if {![llength $i]} {
         set i [z39.$sno getMarc $no field 100 * a]
     }
-    if {"x$i" != "x"} {
+    if {[llength $i]} {
         if {[llength $i] > 1} {
             insertWithTags $w "Authors " marc-pref
         } else {
@@ -155,7 +158,7 @@ proc display-medium {sno no w hflag} {
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 110 * *]
-    if {"x$i" != "x"} {
+    if {[llength $i]} {
         insertWithTags $w "Co-Author " marc-pref
         foreach x $i {
             insertWithTags $w $x marc-text
@@ -164,7 +167,7 @@ proc display-medium {sno no w hflag} {
     }
 
     set i [z39.$sno getMarc $no field 650 * *]
-    if {"x$i" != "x"} {
+    if {[llength $i]} {
         set n 0
         insertWithTags $w "Keywords " marc-pref
         foreach x $i {
@@ -178,7 +181,7 @@ proc display-medium {sno no w hflag} {
     }
     set i [concat [z39.$sno getMarc $no field 260 * a] \
             [z39.$sno getMarc $no field 260 * b]]
-    if {"x$i" != "x"} {
+    if {[llength $i]} {
         insertWithTags $w "Publisher " marc-pref
         foreach x $i {
             insertWithTags $w $x marc-text
@@ -186,7 +189,7 @@ proc display-medium {sno no w hflag} {
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 020 * a]
-    if {"x$i" != "x"} {
+    if {[llength $i]} {
         insertWithTags $w "ISBN " marc-pref
         foreach x $i {
             insertWithTags $w $x marc-text
@@ -194,7 +197,7 @@ proc display-medium {sno no w hflag} {
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 022 * a]
-    if {"x$i" != "x"} {
+    if {[llength $i]} {
         insertWithTags $w "ISSN " marc-pref
         foreach x $i {
             insertWithTags $w $x marc-text
@@ -202,7 +205,7 @@ proc display-medium {sno no w hflag} {
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 030 * a]
-    if {"x$i" != "x"} {
+    if {[llength $i]} {
         insertWithTags $w "CODEN " marc-pref
         foreach x $i {
             insertWithTags $w $x marc-text
@@ -210,7 +213,7 @@ proc display-medium {sno no w hflag} {
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 015 * a]
-    if {"x$i" != "x"} {
+    if {[llength $i]} {
         insertWithTags $w "Ctl number " marc-pref
         foreach x $i {
             insertWithTags $w $x marc-text
@@ -218,7 +221,7 @@ proc display-medium {sno no w hflag} {
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 010 * a]
-    if {"x$i" != "x"} {
+    if {[llength $i]} {
         insertWithTags $w "LC number " marc-pref
         foreach x $i {
             insertWithTags $w $x marc-text
@@ -226,7 +229,7 @@ proc display-medium {sno no w hflag} {
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 710 * a]
-    if {"x$i" != "x"} {
+    if {[llength $i]} {
         insertWithTags $w "Corporate name " marc-pref
         foreach x $i {
             insertWithTags $w $x marc-text

@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: grs.c,v $
- * Revision 1.10  1997-09-09 10:19:52  adam
+ * Revision 1.11  1997-11-19 11:22:09  adam
+ * Object identifiers can be accessed in GRS-1 records.
+ *
+ * Revision 1.10  1997/09/09 10:19:52  adam
  * New MSV5.0 port with fewer warnings.
  *
  * Revision 1.9  1996/08/16 15:07:44  adam
@@ -87,6 +90,8 @@ void ir_tcl_grs_del (IrTcl_GRS_Record **grs_record)
             break;
         case Z_ElementData_trueOrFalse:
         case Z_ElementData_oid:
+	    xfree (e->tagData.oid);
+	    break;
         case Z_ElementData_intUnit:
         case Z_ElementData_elementNotThere:
         case Z_ElementData_elementEmpty:
@@ -122,6 +127,7 @@ void ir_tcl_grs_mk (Z_GenericRecord *r, IrTcl_GRS_Record **grs_record)
     for (i = 0; i < r->num_elements; i++, e++)
     {
         Z_TaggedElement *t;
+	int len;
 
         t = r->elements[i];
         if (t->tagType)
@@ -158,6 +164,10 @@ void ir_tcl_grs_mk (Z_GenericRecord *r, IrTcl_GRS_Record **grs_record)
             e->tagData.bool = *t->content->u.trueOrFalse;
             break;
         case Z_ElementData_oid:
+	    len = 1+oid_oidlen (t->content->u.oid);
+	    e->tagData.oid = ir_tcl_malloc (len * sizeof(*e->tagData.oid));
+	    memcpy (e->tagData.oid, t->content->u.oid,
+		    len * sizeof(*e->tagData.oid));
             break;
         case Z_ElementData_intUnit:
             break;
@@ -258,7 +268,20 @@ static int ir_tcl_get_grs_r (Tcl_Interp *interp, IrTcl_GRS_Record *grs_record,
                               e->tagData.bool ? "1" : "0", " ", NULL);
             break;
         case Z_ElementData_oid:
-            Tcl_AppendResult (interp, " oid {} ", NULL);
+            Tcl_AppendResult (interp, " oid", NULL);
+	    if (!e->tagData.oid)
+		Tcl_AppendResult (interp, "{}", NULL);
+	    else
+	    {
+		int i;
+		int sep = ' ';
+		for (i = 0; e->tagData.oid[i] >= 0; i++)
+		{
+		    sprintf (tmpbuf, "%c%d", sep, e->tagData.oid[i]);
+		    Tcl_AppendResult (interp, tmpbuf, NULL);
+		    sep = '.';
+		}
+	    }
             break;
         case Z_ElementData_intUnit:
             Tcl_AppendResult (interp, " intUnit {} ", NULL);

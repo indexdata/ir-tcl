@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: raw.tcl,v $
-# Revision 1.12  1996-04-12 13:45:50  adam
+# Revision 1.13  1997-11-19 11:22:10  adam
+# Object identifiers can be accessed in GRS-1 records.
+#
+# Revision 1.12  1996/04/12 13:45:50  adam
 # Minor changes.
 #
 # Revision 1.11  1996/03/29  16:05:37  adam
@@ -54,7 +57,7 @@ proc display-grs-raw {w r i} {
             display-grs-raw $w [lindex $e 4] [expr $i+1]
         } else {
             insertWithTags $w [lindex $e 4] {}
-            insertWithTags $w " ?\n" {}
+            insertWithTags $w "\n" {}
         }
     }
 }

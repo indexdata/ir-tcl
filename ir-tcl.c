@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.102  1997-09-17 12:22:40  adam
+ * Revision 1.103  1997-11-19 11:22:10  adam
+ * Object identifiers can be accessed in GRS-1 records.
+ *
+ * Revision 1.102  1997/09/17 12:22:40  adam
  * Changed to use YAZ version 1.4. The new comstack utility, cs_straddr,
  * is used.
  *
@@ -504,8 +507,9 @@ int ir_tcl_eval (Tcl_Interp *interp, const char *command)
     r = Tcl_Eval (interp, tmp);
     if (r == TCL_ERROR)
     {
-        logf (LOG_WARN, "Tcl error in line %d: %s", interp->errorLine, 
-              interp->result);
+	const char *errorInfo = Tcl_GetVar (interp, "errorInfo", 0);
+        logf (LOG_WARN, "Tcl error in line %d: %s\n%s", interp->errorLine, 
+              interp->result, errorInfo ? errorInfo : "<null>");
     }
     Tcl_FreeResult (interp);
     xfree (tmp);
@@ -3469,7 +3473,7 @@ static int ir_log_proc (ClientData clientData, Tcl_Interp *interp,
         return TCL_OK;
     }
     mask = log_mask_str_x (argv[1], 0);
-    logf (mask, "%s", argv[1], mask, argv[2]);
+    logf (LOG_DEBUG, "%s", argv[2]);
     return TCL_OK;
 }
 
@@ -3657,10 +3661,12 @@ static void ir_handleZRecords (void *o, Z_Records *zrs, IrTcl_SetObj *setobj,
                     &setobj->nonSurrogateDiagnosticNum);
     if (zrs->which == Z_Records_DBOSD)
     {
-        setobj->numberOfRecordsReturned = 
-            zrs->u.databaseOrSurDiagnostics->num_records;
-        logf (LOG_DEBUG, "Got %d records", setobj->numberOfRecordsReturned);
-        for (offset = 0; offset < setobj->numberOfRecordsReturned; offset++)
+	int num_rec = setobj->numberOfRecordsReturned;
+
+	if (num_rec > zrs->u.databaseOrSurDiagnostics->num_records)
+	    num_rec = zrs->u.databaseOrSurDiagnostics->num_records;
+        logf (LOG_DEBUG, "Got %d records", num_rec);
+        for (offset = 0; offset < num_rec; offset++)
         {
             Z_NamePlusRecord *znpr = zrs->u.databaseOrSurDiagnostics->
                 records[offset];
@@ -3726,10 +3732,14 @@ static void ir_searchResponse (void *o, Z_SearchResponse *searchrs,
             es = setobj->set_inher.smallSetElementSetNames;
         else 
             es = setobj->set_inher.mediumSetElementSetNames;
+	setobj->numberOfRecordsReturned = *searchrs->numberOfRecordsReturned;
         ir_handleZRecords (o, zrs, setobj, es);
     }
     else
+    {
+	setobj->numberOfRecordsReturned = 0;
         setobj->recordFlag = 0;
+    }
 }
 
 
@@ -3748,9 +3758,13 @@ static void ir_presentResponse (void *o, Z_PresentResponse *presrs,
     get_referenceId (&setobj->set_inher.referenceId, presrs->referenceId);
     setobj->nextResultSetPosition = *presrs->nextResultSetPosition;
     if (zrs)
+    {
+	setobj->numberOfRecordsReturned = *presrs->numberOfRecordsReturned;
         ir_handleZRecords (o, zrs, setobj, setobj->set_inher.elementSetNames);
+    }
     else
     {
+	setobj->numberOfRecordsReturned = 0;
         setobj->recordFlag = 0;
         logf (LOG_DEBUG, "No records!");
     }
@@ -4137,6 +4151,7 @@ EXPORT (int,Irtcl_Init) (Tcl_Interp *interp)
                        (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
     Tcl_CreateCommand (interp, "ir-log", ir_log_proc,
                        (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
+    nmem_init ();
     return TCL_OK;
 }
 
