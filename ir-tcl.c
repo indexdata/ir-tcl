@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.98  1997-04-13 18:57:20  adam
+ * Revision 1.99  1997-04-30 07:24:47  adam
+ * Spell fix of an error message.
+ *
+ * Revision 1.98  1997/04/13 18:57:20  adam
  * Better error reporting and aligned with Tcl/Tk style.
  * Rework of notifier code with Tcl_File handles.
  *
@@ -1200,7 +1203,7 @@ static int do_connect (void *obj, Tcl_Interp *interp,
         if ((r=cs_connect (p->cs_link, addr)) < 0)
         {
             ir_tcl_disconnect (p);
-            Tcl_AppendResult (interp, "conncet fail", NULL);
+            Tcl_AppendResult (interp, "connect fail", NULL);
             return ir_tcl_error_exec (interp, argc, argv);
         }
         ir_select_add (cs_fileno (p->cs_link), p);
