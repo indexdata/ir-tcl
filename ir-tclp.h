@@ -5,7 +5,12 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tclp.h,v $
- * Revision 1.9  1995-06-14 15:08:01  adam
+ * Revision 1.10  1995-06-16 12:28:20  adam
+ * Implemented preferredRecordSyntax.
+ * Minor changes in diagnostic handling.
+ * Record list deleted when connection closes.
+ *
+ * Revision 1.9  1995/06/14  15:08:01  adam
  * Bug fix in cascade-target-list. Uses yaz-version.h.
  *
  * Revision 1.8  1995/06/14  13:37:18  adam
@@ -69,8 +74,8 @@
 typedef struct {
     char      **databaseNames;
     int         num_databaseNames;
-
     char       *queryType;
+    enum oid_value *preferredRecordSyntax;
     int         replaceIndicator;
     char       *referenceId;
 
@@ -83,7 +88,7 @@ typedef struct {
     int         ref_count;
 
     char       *cs_type;
-    char       *protocol_type;
+    int         protocol_type;
     int         connectFlag;
     COMSTACK    cs_link;
 
@@ -132,6 +137,11 @@ typedef struct {
     IrTcl_SetCObj   set_inher;
 } IrTcl_Obj;
 
+typedef struct {
+    int condition;
+    char *addinfo;
+} IrTcl_Diagnostic;
+
 typedef struct IrTcl_RecordList_ {
     int no;
     int which;
@@ -142,9 +152,9 @@ typedef struct IrTcl_RecordList_ {
             enum oid_value type;
         } dbrec;
         struct {
-            int  condition;
-            char *addinfo;
-        } diag;
+            int num;
+            IrTcl_Diagnostic *list;
+        } surrogateDiagnostics;
     } u;
     struct IrTcl_RecordList_ *next;
 } IrTcl_RecordList;
@@ -161,8 +171,8 @@ typedef struct IrTcl_SetObj_ {
     char       *setName;
     int         recordFlag;
     int         which;
-    int         condition;
-    char       *addinfo;
+    int         nonSurrogateDiagnosticNum;
+    IrTcl_Diagnostic *nonSurrogateDiagnosticList;
     IrTcl_RecordList *record_list;
     IrTcl_SetCObj set_inher;
 } IrTcl_SetObj;
@@ -175,15 +185,11 @@ typedef struct IrTcl_ScanEntry_ {
 	    int  globalOccurrences;
 	} term;
 	struct {
-	    int  condition;
-	    char *addinfo;
+            IrTcl_Diagnostic *list;
+            int num;
 	} diag;
     } u;
 } IrTcl_ScanEntry;
-
-typedef struct IrTcl_ScanDiag_ {
-    int         dummy;
-} IrTcl_ScanDiag;
 
 typedef struct IrTcl_ScanObj_ {
     IrTcl_Obj   *parent;
@@ -202,7 +208,8 @@ typedef struct IrTcl_ScanObj_ {
     int         num_diagRecs;
 
     IrTcl_ScanEntry *entries;
-    IrTcl_ScanDiag  *nonSurrogateDiagnostics;
+    IrTcl_Diagnostic  *nonSurrogateDiagnosticList;
+    int         nonSurrogateDiagnosticNum;
 } IrTcl_ScanObj;
 
 struct ir_named_entry {

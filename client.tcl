@@ -4,7 +4,12 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.41  1995-06-14 15:07:59  adam
+# Revision 1.42  1995-06-16 12:28:13  adam
+# Implemented preferredRecordSyntax.
+# Minor changes in diagnostic handling.
+# Record list deleted when connection closes.
+#
+# Revision 1.41  1995/06/14  15:07:59  adam
 # Bug fix in cascade-target-list. Uses yaz-version.h.
 #
 # Revision 1.40  1995/06/14  13:37:17  adam
@@ -155,8 +160,10 @@ set setNo 0
 set lastSetNo 0
 set cancelFlag 0
 set searchEnable 0
+set scanEnable 0
 set fullMarcSeq 0
 set displayFormat 1
+set popupMarcdf 0
 set textWrap word
 
 set queryTypes {Simple}
@@ -164,6 +171,9 @@ set queryButtons { { {I 0} {I 1} {I 2} } }
 set queryInfo { { {Title {1=4 4=1}} {Author {1=1}} \
         {Subject {1=21}} {Any {1=1016}} } }
 wm minsize . 0 0
+
+set setOffset 0
+set setMax 0
 
 proc read-formats {} {
     global displayFormats
@@ -185,15 +195,20 @@ proc set-wrap {m} {
 proc set-display-format {f} {
     global displayFormat
     global setNo
+    global busy
 
     set displayFormat $f
     if {$setNo == 0} {
         return
     }
-    .bot.a.status configure -text "Reformatting"
+    if {!$busy} {
+        .bot.a.status configure -text "Reformatting"
+    }
     update idletasks
     add-title-lines 0 10000 1
-    .bot.a.status configure -text "Done"
+    if {!$busy} {
+        .bot.a.status configure -text "Ready"
+    }
 }
 
 proc initBindings {} {
@@ -217,6 +232,16 @@ proc initBindings {} {
     set w Listbox
     bind $w <B1-Motion> {}
     bind $w <Shift-B1-Motion> {}
+
+    set w Entry
+}
+
+proc post-menu {wbutton wmenu} {
+    $wmenu activate none
+    focus $wmenu
+    $wmenu post [winfo rootx $wbutton] \
+            [expr [winfo rooty $wbutton]+[winfo height $wbutton]]
+
 }
 
 proc destroyGW {w} {
@@ -301,7 +326,7 @@ proc cancel-operation {} {
 
     set cancelFlag 1
     if {$busy} {
-        show-status Cancelled 0 {}
+        show-status Canceling 0 {}
     }
 }
 
@@ -333,6 +358,9 @@ proc show-logo {v1} {
 proc show-status {status b sb} {
     global busy
     global searchEnable
+    global scanEnable
+    global setOffset
+    global setMax
 
     .bot.a.status configure -text "$status"
     if {$b == 1} {
@@ -346,8 +374,15 @@ proc show-status {status b sb} {
     if {$sb} {
         .top.service configure -state normal
         .mid.search configure -state normal
-        .mid.scan configure -state normal
-        .mid.present configure -state normal
+        if {$scanEnable} {
+            .mid.scan configure -state normal
+        }
+        if {$setOffset > 0 && $setOffset <= $setMax} {
+            .top.service.m enable 1
+            .mid.present configure -state normal
+        } else {
+            .top.service.m disable 1
+        }
         if {[winfo exists .scan-window]} {
             .scan-window.bot.2 configure -state normal
             .scan-window.bot.4 configure -state normal
@@ -504,11 +539,7 @@ proc popup-marc {sno no b df} {
         set df $popupMarcdf
     } else {
         set w .full-marc
-        if {[info exists popupMarcdf]} {
-            set df $popupMarcdf
-        } else {
-            set popupMarcdf $df
-        }
+        set df $popupMarcdf
     }
     if {[winfo exists $w]} {
         set new 0
@@ -684,12 +715,16 @@ proc open-target {target base} {
 proc close-target {} {
     global hostid
     global cancelFlag
+    global setNo
 
     set cancelFlag 0
+    set setNo 0
+    .bot.a.set configure -text ""
     set hostid Default
     z39 disconnect
     show-target {}
     show-status {Not connected} 0 0
+    init-title-lines
     show-message {}
     .top.target.m disable 1
     .top.target.m disable 2
@@ -753,16 +788,24 @@ proc init-request {} {
 
 proc init-response {} {
     global cancelFlag
+    global scanEnable
 
     if {$cancelFlag} {
         close-target
         return
     }
-    show-status {Ready} 0 1
     if {![z39 initResult]} {
+        show-status {Ready} 0 1
         set u [z39 userInformationField]
         close-target
         tkerror "Connection rejected by target: $u"
+    } else {
+        if {[lsearch [z39 options] scan] >= 0} {
+            set scanEnable 1
+        } else {
+            set scanEnable 0
+        }
+        show-status {Ready} 0 1
     }
 }
 
@@ -785,6 +828,7 @@ proc search-request {} {
     }
     incr setNo
     ir-set z39.$setNo z39
+    z39.$setNo preferredRecordSyntax SUTRS
 
     if {[lindex $profile($target) 10] == 1} {
         z39.$setNo setName $setNo
@@ -801,7 +845,7 @@ proc search-request {} {
     }
     z39 callback {search-response}
     z39.$setNo search $query
-    show-status {Search} 1 0
+    show-status {Searching} 1 0
 }
 
 proc scan-request {} {
@@ -862,7 +906,7 @@ proc scan-request {} {
     z39.scan preferredPositionInResponse 1
     z39.scan scan "${attr} 0"
     
-    show-status {Scan} 1 0
+    show-status {Scanning} 1 0
 }
 
 proc scan-term-h {attr} {
@@ -887,7 +931,7 @@ proc scan-term-h {attr} {
     } else {
         z39.scan scan "${attr} \{${scanTerm}\}"
     }
-    show-status {Scan} 1 0
+    show-status {Scanning} 1 0
 }
 
 proc scan-response {attr start toget} {
@@ -920,7 +964,7 @@ proc scan-response {attr start toget} {
         } else {
             z39.scan scan "${attr} \{${scanTerm}\}"
         }
-        show-status {Scan} 1 0
+        show-status {Scanning} 1 0
         return
     }
     set status [z39.scan scanStatus]
@@ -999,7 +1043,7 @@ proc scan-down {attr} {
         puts "down: $q"
         z39.scan numberOfTermsRequested 10
         z39.scan preferredPositionInResponse 1
-        show-status {Scan} 1 0
+        show-status {Scanning} 1 0
         puts "${attr} \{$q\}"
         z39.scan scan "${attr} \{$q\}"
         return
@@ -1018,7 +1062,7 @@ proc scan-up {attr} {
         puts "up: $q"
         z39.scan numberOfTermsRequested 10
         z39.scan preferredPositionInResponse 11
-        show-status {Scan} 1 0
+        show-status {Scanning} 1 0
         z39.scan scan "${attr} \{$q\}"
         return
     }
@@ -1034,13 +1078,13 @@ proc search-response {} {
 
     puts "In search-response"
     init-title-lines
-    show-status {Ready} 0 1
     set setMax [z39.$setNo resultCount]
     show-message "${setMax} hits"
     set l [format "%-4d %7d" $setNo $setMax]
     .top.rset.m add command -label $l \
             -command [list add-title-lines $setNo 10000 1]
     if {$setMax <= 0} {
+        show-status {Ready} 0 1
         set status [z39.$setNo responseStatus]
         if {[lindex $status 0] == "NSD"} {
             set code [lindex $status 1]
@@ -1054,13 +1098,14 @@ proc search-response {} {
         set setMax 20
     }
     set setOffset 1
+    show-status {Ready} 0 1
     if {$cancelFlag} {
         set cancelFlag 0
         return
     }
     z39 callback {present-response}
     z39.$setNo present $setOffset 1
-    show-status {Retrieve} 1 0
+    show-status {Retrieving} 1 0
 }
 
 proc present-more {number} {
@@ -1098,7 +1143,7 @@ proc present-more {number} {
         set toGet 3
     } 
     z39.$setNo present $setOffset $toGet
-    show-status {Retrieve} 1 0
+    show-status {Retrieving} 1 0
 }
 
 proc init-title-lines {} {
@@ -1175,7 +1220,7 @@ proc present-response {} {
         }
         z39.$setNo present $setOffset $toGet
     } else {
-        show-status {Finished} 0 1
+        show-status {Ready} 0 1
     }
 }
 
@@ -1674,6 +1719,7 @@ proc save-geometry {} {
     global hotTargets
     global textWrap
     global displayFormat
+    global popupMarcdf
     
     set windowGeometry(.) [wm geometry .]
 
@@ -1682,6 +1728,7 @@ proc save-geometry {} {
     puts $f "set hotTargets \{ $hotTargets \}"
     puts $f "set textWrap $textWrap"
     puts $f "set displayFormat $displayFormat"
+    puts $f "set popupMarcdf $popupMarcdf"
     foreach n [array names windowGeometry] {
         puts -nonewline $f "set \{windowGeometry($n)\} \{"
         puts -nonewline $f $windowGeometry($n)
@@ -1833,7 +1880,7 @@ proc query-add-index-action {queryNo} {
 
     set newI [.query-add-index.top.index.entry get]
     lappend queryInfoTmp [list $newI {}]
-    $w.top.index insert end $newI
+    $w.top.index.list insert end $newI
     destroy .query-add-index
     #destroy $w.top.lines
     #frame $w.top.lines -relief ridge -border 2
@@ -1890,6 +1937,9 @@ proc query-setup-action {queryNo} {
     global queryInfo
     global queryButtonsTmp
     global queryInfoTmp
+    global queryButtonsFind
+    global queryInfoFind
+    
     global settingsChanged 
 
     set settingsChanged 1
@@ -1898,7 +1948,11 @@ proc query-setup-action {queryNo} {
             $queryInfoTmp]
     set queryButtons [lreplace $queryButtons $queryNo $queryNo \
             $queryButtonsTmp]
+    set queryInfoFind $queryInfoTmp
+    set queryButtonsFind $queryButtonsTmp
+
     destroy .query-setup
+    index-lines .lines 1 $queryButtonsFind $queryInfoFind activate-index
 }
 
 proc activate-e-index {value no i} {
@@ -2465,13 +2519,13 @@ pack .top .lines .mid -side top -fill x
 pack .data -side top -fill both -expand yes
 pack .bot -fill x
 
-menubutton .top.file -text "File" -underline 0 -menu .top.file.m
+menubutton .top.file -text "File" -menu .top.file.m
 menu .top.file.m
 .top.file.m add command -label "Save settings" -command {save-settings}
 .top.file.m add separator
 .top.file.m add command -label "Exit" -command {exit-action}
 
-menubutton .top.target -text "Target" -underline 0 -menu .top.target.m
+menubutton .top.target -text "Target" -menu .top.target.m
 menu .top.target.m
 .top.target.m add cascade -label "Connect" -menu .top.target.m.clist
 .top.target.m add command -label "Disconnect" -command {close-target}
@@ -2488,7 +2542,7 @@ menu .top.target.m.clist
 menu .top.target.m.slist
 cascade-target-list
 
-menubutton .top.service -text "Service" -underline 0 -menu .top.service.m
+menubutton .top.service -text "Service" -menu .top.service.m
 menu .top.service.m
 .top.service.m add command -label "Database" -command {database-select}
 .top.service.m add cascade -label "Present" -menu .top.service.m.present
@@ -2507,7 +2561,7 @@ menu .top.rset.m
 .top.rset.m add command -label "Load" -command {load-set}
 .top.rset.m add separator
 
-menubutton .top.options -text "Options" -underline 0 -menu .top.options.m
+menubutton .top.options -text "Options" -menu .top.options.m
 menu .top.options.m
 .top.options.m add cascade -label "Query" -menu .top.options.m.query
 .top.options.m add cascade -label "Format" -menu .top.options.m.formats

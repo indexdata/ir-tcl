@@ -5,7 +5,12 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.40  1995-06-14 13:37:18  adam
+ * Revision 1.41  1995-06-16 12:28:16  adam
+ * Implemented preferredRecordSyntax.
+ * Minor changes in diagnostic handling.
+ * Record list deleted when connection closes.
+ *
+ * Revision 1.40  1995/06/14  13:37:18  adam
  * Setting recordType implemented.
  * Setting implementationVersion implemented.
  * Settings implementationId / implementationName edited.
@@ -153,6 +158,7 @@ typedef struct {
     IrTcl_Method *tab;
 } IrTcl_Methods;
 
+static void ir_deleteDiags (IrTcl_Diagnostic **dst_list, int *dst_num);
 static int do_disconnect (void *obj, Tcl_Interp *interp, 
                           int argc, char **argv);
 
@@ -172,8 +178,8 @@ static IrTcl_RecordList *new_IR_record (IrTcl_SetObj *setobj,
 		rl->u.dbrec.buf = NULL;
                 break;
             case Z_NamePlusRecord_surrogateDiagnostic:
-                free (rl->u.diag.addinfo);
-                rl->u.diag.addinfo = NULL;
+                ir_deleteDiags (&rl->u.surrogateDiagnostics.list,
+                                &rl->u.surrogateDiagnostics.num);
                 break;
             }
             break;
@@ -189,6 +195,72 @@ static IrTcl_RecordList *new_IR_record (IrTcl_SetObj *setobj,
     }
     rl->which = which;
     return rl;
+}
+
+static struct {
+    enum oid_value value;
+    const char *name;
+} IrTcl_recordSyntaxTab[] = { 
+{ VAL_UNIMARC,    "UNIMARC" },
+{ VAL_INTERMARC,  "INTERMARC" },
+{ VAL_CCF,        "CCF" },
+{ VAL_USMARC,     "USMARC" },
+{ VAL_UKMARC,     "UKMARC" },
+{ VAL_NORMARC,    "NORMARC" },
+{ VAL_LIBRISMARC, "LIBRISMARC" },
+{ VAL_DANMARC,    "DANMARC" },
+{ VAL_FINMARC,    "FINMARC" },
+{ VAL_MAB,        "MAB" },
+{ VAL_CANMARC,    "CANMARC" },
+{ VAL_SBN,        "SBN" },
+{ VAL_PICAMARC,   "PICAMARC" },
+{ VAL_AUSMARC,    "AUSMARC" },
+{ VAL_IBERMARC,   "IBERMARC" },
+{ VAL_SUTRS,      "SUTRS" },
+{ 0, NULL }
+};
+
+/* 
+ * IrTcl_eval
+ */
+int IrTcl_eval (Tcl_Interp *interp, const char *command)
+{
+    char *tmp = malloc (strlen(command)+1);
+    int r;
+
+    if (!tmp)
+    {
+        logf (LOG_FATAL, "Out of memory in IrTcl_eval");
+        exit (1);
+    }
+    strcpy (tmp, command);
+    r = Tcl_Eval (interp, tmp);
+    free (tmp);
+    return r;
+}
+
+/*
+ * IrTcl_getRecordSyntaxStr: Return record syntax name of object id
+ */
+static const char *IrTcl_getRecordSyntaxStr (enum oid_value value)
+{
+    int i;
+    for (i = 0; IrTcl_recordSyntaxTab[i].name; i++) 
+        if (IrTcl_recordSyntaxTab[i].value == value)
+            return IrTcl_recordSyntaxTab[i].name;
+    return "USMARC";
+}
+
+/*
+ * IrTcl_getRecordSyntaxVal: Return record syntax value of string
+ */
+static enum oid_value IrTcl_getRecordSyntaxVal (const char *name)
+{
+    int i;
+    for (i = 0; IrTcl_recordSyntaxTab[i].name; i++) 
+        if (!strcmp (IrTcl_recordSyntaxTab[i].name, name))
+            return IrTcl_recordSyntaxTab[i].value;
+    return 0;
 }
 
 static IrTcl_RecordList *find_IR_record (IrTcl_SetObj *setobj, int no)
@@ -213,7 +285,8 @@ static void delete_IR_records (IrTcl_SetObj *setobj)
 	    free (rl->u.dbrec.buf);
             break;
         case Z_NamePlusRecord_surrogateDiagnostic:
-            free (rl->u.diag.addinfo);
+            ir_deleteDiags (&rl->u.surrogateDiagnostics.list,
+                            &rl->u.surrogateDiagnostics.num);
             break;
 	}
 	rl1 = rl->next;
@@ -223,7 +296,7 @@ static void delete_IR_records (IrTcl_SetObj *setobj)
 }
 
 /*
- * getsetint: Set/get integer value
+ * get_set_int: Set/get integer value
  */
 static int get_set_int (int *val, Tcl_Interp *interp, int argc, char **argv)
 {
@@ -236,30 +309,6 @@ static int get_set_int (int *val, Tcl_Interp *interp, int argc, char **argv)
     }
     sprintf (buf, "%d", *val);
     Tcl_AppendResult (interp, buf, NULL);
-    return TCL_OK;
-}
-
-/*
- * mk_nonSurrogateDiagnostics: Make Tcl result with diagnostic info
- */
-static int mk_nonSurrogateDiagnostics (Tcl_Interp *interp, 
-                                       int condition, const char *addinfo)
-{
-    char buf[20];
-    const char *cp;
-
-    Tcl_AppendElement (interp, "NSD");
-    sprintf (buf, "%d", condition);
-    Tcl_AppendElement (interp, buf);
-    cp = diagbib1_str (condition);
-    if (cp)
-        Tcl_AppendElement (interp, (char*) cp);
-    else
-        Tcl_AppendElement (interp, "");
-    if (addinfo)
-        Tcl_AppendElement (interp, (char*) addinfo);
-    else
-        Tcl_AppendElement (interp, "");
     return TCL_OK;
 }
 
@@ -427,9 +476,9 @@ static void get_referenceId (char **dst, Z_ReferenceId *src)
 static int do_init_request (void *obj, Tcl_Interp *interp,
                             int argc, char **argv)
 {
-    Z_APDU apdu, *apdup = &apdu;
+    Z_APDU *apdu;
     IrTcl_Obj *p = obj;
-    Z_InitRequest req;
+    Z_InitRequest *req;
     int r;
 
     if (argc <= 0)
@@ -440,12 +489,14 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
         return TCL_ERROR;
     }
     odr_reset (p->odr_out);
+    apdu = zget_APDU (p->odr_out, Z_APDU_initRequest);
+    req = apdu->u.initRequest;
 
-    set_referenceId (p->odr_out, &req.referenceId, p->set_inher.referenceId);
-    req.options = &p->options;
-    req.protocolVersion = &p->protocolVersion;
-    req.preferredMessageSize = &p->preferredMessageSize;
-    req.maximumRecordSize = &p->maximumRecordSize;
+    set_referenceId (p->odr_out, &req->referenceId, p->set_inher.referenceId);
+    req->options = &p->options;
+    req->protocolVersion = &p->protocolVersion;
+    req->preferredMessageSize = &p->preferredMessageSize;
+    req->maximumRecordSize = &p->maximumRecordSize;
 
     if (p->idAuthenticationGroupId)
     {
@@ -466,27 +517,24 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
             pass->password = p->idAuthenticationPassword;
         else
             pass->password = NULL;
-        req.idAuthentication = auth;
+        req->idAuthentication = auth;
     }
     else if (!p->idAuthenticationOpen || !*p->idAuthenticationOpen)
-        req.idAuthentication = NULL;
+        req->idAuthentication = NULL;
     else
     {
         Z_IdAuthentication *auth = odr_malloc (p->odr_out, sizeof(*auth));
 
         auth->which = Z_IdAuthentication_open;
         auth->u.open = p->idAuthenticationOpen;
-        req.idAuthentication = auth;
+        req->idAuthentication = auth;
     }
-    req.implementationId = p->implementationId;
-    req.implementationName = p->implementationName;
-    req.implementationVersion = p->implementationVersion;
-    req.userInformationField = 0;
+    req->implementationId = p->implementationId;
+    req->implementationName = p->implementationName;
+    req->implementationVersion = p->implementationVersion;
+    req->userInformationField = 0;
 
-    apdu.u.initRequest = &req;
-    apdu.which = Z_APDU_initRequest;
-
-    if (!z_APDU (p->odr_out, &apdup, 0))
+    if (!z_APDU (p->odr_out, &apdu, 0))
     {
         Tcl_AppendResult (interp, odr_errlist [odr_geterror (p->odr_out)],
                           NULL);
@@ -667,9 +715,6 @@ static int do_implementationVersion (void *obj, Tcl_Interp *interp,
 {
     IrTcl_Obj *p = obj;
 
-#ifndef YAZ_VERSION
-#define YAZ_VERSION "0unknown"
-#endif
     if (argc == 0)
         return ir_strdup (interp, &p->implementationVersion, YAZ_VERSION);
     else if (argc == -1)
@@ -800,7 +845,6 @@ static int do_connect (void *obj, Tcl_Interp *interp,
     void *addr;
     IrTcl_Obj *p = obj;
     int r;
-    int protocol_type = PROTO_Z3950;
 
     if (argc <= 0)
         return TCL_OK;
@@ -811,18 +855,9 @@ static int do_connect (void *obj, Tcl_Interp *interp,
             interp->result = "already connected";
             return TCL_ERROR;
         }
-        if (!strcmp (p->protocol_type, "Z3950"))
-            protocol_type = PROTO_Z3950;
-        else if (!strcmp (p->protocol_type, "SR"))
-            protocol_type = PROTO_SR;
-        else
-        {
-            interp->result = "bad protocol type";
-            return TCL_ERROR;
-        }
         if (!strcmp (p->cs_type, "tcpip"))
         {
-            p->cs_link = cs_create (tcpip_type, CS_BLOCK, protocol_type);
+            p->cs_link = cs_create (tcpip_type, CS_BLOCK, p->protocol_type);
             addr = tcpip_strtoaddr (argv[2]);
             if (!addr)
             {
@@ -831,10 +866,10 @@ static int do_connect (void *obj, Tcl_Interp *interp,
             }
             logf (LOG_DEBUG, "tcp/ip connect %s", argv[2]);
         }
-#if MOSI
         else if (!strcmp (p->cs_type, "mosi"))
         {
-            p->cs_link = cs_create (mosi_type, CS_BLOCK, protocol_type);
+#if MOSI
+            p->cs_link = cs_create (mosi_type, CS_BLOCK, p->protocol_type);
             addr = mosi_strtoaddr (argv[2]);
             if (!addr)
             {
@@ -842,11 +877,15 @@ static int do_connect (void *obj, Tcl_Interp *interp,
                 return TCL_ERROR;
             }
             logf (LOG_DEBUG, "mosi connect %s", argv[2]);
-        }
+#else
+            interp->result = "MOSI support not there";
+            return TCL_ERROR;
 #endif
+        }
         else 
         {
-            interp->result = "unknown comstack type";
+            Tcl_AppendResult (interp, "Bad comstack type: ", 
+                              p->cs_type, NULL);
             return TCL_ERROR;
         }
         if (ir_strdup (interp, &p->hostname, argv[2]) == TCL_ERROR)
@@ -867,7 +906,7 @@ static int do_connect (void *obj, Tcl_Interp *interp,
         {
             p->connectFlag = 0;
             if (p->callback)
-                Tcl_Eval (p->interp, p->callback);
+                IrTcl_eval (p->interp, p->callback);
         }
     }
     if (p->hostname)
@@ -900,6 +939,12 @@ static int do_disconnect (void *obj, Tcl_Interp *interp,
         assert (p->cs_link);
         cs_close (p->cs_link);
         p->cs_link = NULL;
+
+        ODR_MASK_ZERO (&p->options);
+	ODR_MASK_SET (&p->options, 0);
+	ODR_MASK_SET (&p->options, 1);
+	ODR_MASK_SET (&p->options, 7);
+	ODR_MASK_SET (&p->options, 14);
     }
     assert (!p->cs_link);
     return TCL_OK;
@@ -927,27 +972,6 @@ static int do_comstack (void *o, Tcl_Interp *interp,
     return TCL_OK;
 }
 
-/*
- * do_protocol: Set/get protocol method on IR object
- */
-static int do_protocol (void *o, Tcl_Interp *interp,
-		        int argc, char **argv)
-{
-    IrTcl_Obj *obj = o;
-
-    if (argc == 0)
-        return ir_strdup (interp, &obj->protocol_type, "Z3950");
-    else if (argc == -1)
-        return ir_strdel (interp, &obj->protocol_type);
-    else if (argc == 3)
-    {
-        free (obj->protocol_type);
-        if (ir_strdup (interp, &obj->protocol_type, argv[2]) == TCL_ERROR)
-            return TCL_ERROR;
-    }
-    Tcl_AppendElement (interp, obj->protocol_type);
-    return TCL_OK;
-}
 
 /*
  * do_callback: add callback
@@ -1010,10 +1034,47 @@ static int do_failback (void *obj, Tcl_Interp *interp,
 }
 
 /*
+ * do_protocol: Set/get protocol method on IR object
+ */
+static int do_protocol (void *o, Tcl_Interp *interp, int argc, char **argv)
+{
+    IrTcl_Obj *p = o;
+
+    if (argc <= 0)
+    {
+        p->protocol_type = PROTO_Z3950;
+        return TCL_OK;
+    }
+    else if (argc == 3)
+    {
+        if (!strcmp (argv[2], "Z3950"))
+            p->protocol_type = PROTO_Z3950;
+        else if (!strcmp (argv[2], "SR"))
+            p->protocol_type = PROTO_SR;
+        else
+        {
+            Tcl_AppendResult (interp, "Bad protocol: ", argv[2], NULL);
+            return TCL_ERROR;
+        }
+        return TCL_OK;
+    }
+    switch (p->protocol_type)
+    {
+    case PROTO_Z3950:
+        Tcl_AppendElement (interp, "Z3950");
+        break;
+    case PROTO_SR:
+        Tcl_AppendElement (interp, "SR");
+        break;
+    }
+    return TCL_OK;
+}
+
+/*
  * do_databaseNames: specify database names
  */
 static int do_databaseNames (void *obj, Tcl_Interp *interp,
-                          int argc, char **argv)
+                             int argc, char **argv)
 {
     int i;
     IrTcl_SetCObj *p = obj;
@@ -1169,7 +1230,10 @@ static int do_referenceId (void *obj, Tcl_Interp *interp,
     IrTcl_SetCObj *p = obj;
 
     if (argc == 0)
+    {
         p->referenceId = NULL;
+        return TCL_OK;
+    }
     else if (argc == -1)
         return ir_strdel (interp, &p->referenceId);
     if (argc == 3)
@@ -1182,6 +1246,36 @@ static int do_referenceId (void *obj, Tcl_Interp *interp,
     return TCL_OK;
 }
 
+/*
+ * do_preferredRecordSyntax: Set/get preferred record syntax
+ */
+static int do_preferredRecordSyntax (void *obj, Tcl_Interp *interp,
+                                     int argc, char **argv)
+{
+    IrTcl_SetCObj *p = obj;
+
+    if (argc == 0)
+    {
+        p->preferredRecordSyntax = NULL;
+        return TCL_OK;
+    }
+    else if (argc == -1)
+    {
+        free (p->preferredRecordSyntax);
+        p->preferredRecordSyntax = NULL;
+        return TCL_OK;
+    }
+    if (argc == 3)
+    {
+        free (p->preferredRecordSyntax);
+        p->preferredRecordSyntax = NULL;
+        if (argv[2][0] && (p->preferredRecordSyntax = 
+                           malloc (sizeof(*p->preferredRecordSyntax))))
+            *p->preferredRecordSyntax = IrTcl_getRecordSyntaxVal (argv[2]);
+    }
+    return TCL_OK;
+            
+}
 static IrTcl_Method ir_method_tab[] = {
 { 1, "comstack",                    do_comstack },
 { 1, "protocol",                    do_protocol },
@@ -1211,6 +1305,7 @@ static IrTcl_Method ir_set_c_method_tab[] = {
 { 0, "databaseNames",               do_databaseNames},
 { 0, "replaceIndicator",            do_replaceIndicator},
 { 0, "queryType",                   do_queryType },
+{ 0, "preferredRecordSyntax",       do_preferredRecordSyntax },
 { 0, "smallSetUpperBound",          do_smallSetUpperBound},
 { 0, "largeSetLowerBound",          do_largeSetLowerBound},
 { 0, "mediumSetPresentNumber",      do_mediumSetPresentNumber},
@@ -1326,12 +1421,11 @@ static int ir_obj_mk (ClientData clientData, Tcl_Interp *interp,
 /*
  * do_search: Do search request
  */
-static int do_search (void *o, Tcl_Interp *interp,
-		       int argc, char **argv)
+static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
 {
-    Z_SearchRequest req;
+    Z_SearchRequest *req;
     Z_Query query;
-    Z_APDU apdu, *apdup = &apdu;
+    Z_APDU *apdu;
     Odr_oct ccl_query;
     IrTcl_SetObj *obj = o;
     IrTcl_Obj *p = obj->parent;
@@ -1358,29 +1452,41 @@ static int do_search (void *o, Tcl_Interp *interp,
         return TCL_ERROR;
     }
     odr_reset (p->odr_out);
-    apdu.which = Z_APDU_searchRequest;
-    apdu.u.searchRequest = &req;
-    
-    bib1.proto = PROTO_Z3950;
+    apdu = zget_APDU (p->odr_out, Z_APDU_searchRequest);
+    req = apdu->u.searchRequest;
+
+    bib1.proto = p->protocol_type;
     bib1.class = CLASS_ATTSET;
     bib1.value = VAL_BIB1;
 
-    set_referenceId (p->odr_out, &req.referenceId, obj->set_inher.referenceId);
+    set_referenceId (p->odr_out, &req->referenceId,
+                     obj->set_inher.referenceId);
 
-    req.smallSetUpperBound = &obj->set_inher.smallSetUpperBound;
-    req.largeSetLowerBound = &obj->set_inher.largeSetLowerBound;
-    req.mediumSetPresentNumber = &obj->set_inher.mediumSetPresentNumber;
-    req.replaceIndicator = &obj->set_inher.replaceIndicator;
-    req.resultSetName = obj->setName ? obj->setName : "Default";
-    logf (LOG_DEBUG, "Search, resultSetName %s", req.resultSetName);
-    req.num_databaseNames = obj->set_inher.num_databaseNames;
-    req.databaseNames = obj->set_inher.databaseNames;
+    req->smallSetUpperBound = &obj->set_inher.smallSetUpperBound;
+    req->largeSetLowerBound = &obj->set_inher.largeSetLowerBound;
+    req->mediumSetPresentNumber = &obj->set_inher.mediumSetPresentNumber;
+    req->replaceIndicator = &obj->set_inher.replaceIndicator;
+    req->resultSetName = obj->setName ? obj->setName : "Default";
+    logf (LOG_DEBUG, "Search, resultSetName %s", req->resultSetName);
+    req->num_databaseNames = obj->set_inher.num_databaseNames;
+    req->databaseNames = obj->set_inher.databaseNames;
     for (r=0; r < obj->set_inher.num_databaseNames; r++)
         logf (LOG_DEBUG, " Database %s", obj->set_inher.databaseNames[r]);
-    req.smallSetElementSetNames = 0;
-    req.mediumSetElementSetNames = 0;
-    req.preferredRecordSyntax = 0;
-    req.query = &query;
+    req->smallSetElementSetNames = 0;
+    req->mediumSetElementSetNames = 0;
+    if (obj->set_inher.preferredRecordSyntax)
+    {
+        struct oident ident;
+
+        ident.proto = p->protocol_type;
+        ident.class = CLASS_RECSYN;
+        ident.value = *obj->set_inher.preferredRecordSyntax;
+        req->preferredRecordSyntax = odr_oiddup (p->odr_out, 
+                                                 oid_getoidbyent (&ident));
+    }
+    else
+        req->preferredRecordSyntax = 0;
+    req->query = &query;
 
     if (!strcmp (obj->set_inher.queryType, "rpn"))
     {
@@ -1434,7 +1540,7 @@ static int do_search (void *o, Tcl_Interp *interp,
         interp->result = "unknown query method";
         return TCL_ERROR;
     }
-    if (!z_APDU (p->odr_out, &apdup, 0))
+    if (!z_APDU (p->odr_out, &apdu, 0))
     {
         interp->result = odr_errlist [odr_geterror (p->odr_out)];
         odr_reset (p->odr_out);
@@ -1542,8 +1648,11 @@ static int do_numberOfRecordsReturned (void *o, Tcl_Interp *interp,
 {
     IrTcl_SetObj *obj = o;
 
-    if (argc < 0)
+    if (argc <= 0)
+    {
+        obj->numberOfRecordsReturned = 0;
         return TCL_OK;
+    }
     return get_set_int (&obj->numberOfRecordsReturned, interp, argc, argv);
 }
 
@@ -1588,6 +1697,7 @@ static int do_type (void *o, Tcl_Interp *interp, int argc, char **argv)
     return TCL_OK;
 }
 
+
 /*
  * do_recordType: Return record type (if any) at position.
  */
@@ -1596,7 +1706,6 @@ static int do_recordType (void *o, Tcl_Interp *interp, int argc, char **argv)
     IrTcl_SetObj *obj = o;
     int offset;
     IrTcl_RecordList *rl;
-    char *cp;
 
     if (argc == 0)
     {
@@ -1621,60 +1730,35 @@ static int do_recordType (void *o, Tcl_Interp *interp, int argc, char **argv)
         Tcl_AppendResult (interp, "No DB record at #", argv[2], NULL);
         return TCL_ERROR;
     }
-    switch (rl->u.dbrec.type)
+    Tcl_AppendElement (interp, (char*)
+                       IrTcl_getRecordSyntaxStr (rl->u.dbrec.type));
+    return TCL_OK;
+}
+
+/*
+ * ir_diagResult 
+ */
+static int ir_diagResult (Tcl_Interp *interp, IrTcl_Diagnostic *list, int num)
+{
+    char buf[20];
+    int i;
+    const char *cp;
+
+    for (i = 0; i<num; i++)
     {
-    case VAL_UNIMARC:
-        cp = "UNIMARC";
-        break;
-    case VAL_INTERMARC:
-        cp = "INTERMARC";
-        break;
-    case VAL_CCF:
-        cp = "CCF";
-        break;
-    case VAL_USMARC:
-        cp = "USMARC";
-        break;
-    case VAL_UKMARC:
-        cp = "UKMARC";
-        break;
-    case VAL_NORMARC:
-        cp = "NORMARC";
-        break;
-    case VAL_LIBRISMARC:
-        cp = "LIBRISMARC";
-        break;
-    case VAL_DANMARC:
-        cp = "DANMARC";
-        break;
-    case VAL_FINMARC:
-        cp = "FINMARC";
-        break;
-    case VAL_MAB:
-        cp = "MAB";
-        break;
-    case VAL_CANMARC:
-        cp = "CANMARC";
-        break;
-    case VAL_SBN:
-        cp = "SBN";
-        break;
-    case VAL_PICAMARC:
-        cp = "PICAMARC";
-        break;
-    case VAL_AUSMARC:
-        cp = "AUSMARC";
-        break;
-    case VAL_IBERMARC:
-        cp = "IBERMARC";
-        break;
-    case VAL_SUTRS:
-        cp = "SUTRS";
-        break;
-    default:
-        cp = "";
+        logf (LOG_DEBUG, "Diagnostic, code %d", list[i].condition);
+        sprintf (buf, "%d", list[i].condition);
+        Tcl_AppendElement (interp, buf);
+        cp = diagbib1_str (list[i].condition);
+        if (cp)
+            Tcl_AppendElement (interp, (char*) cp);
+        else
+            Tcl_AppendElement (interp, "");
+        if (list[i].addinfo)
+            Tcl_AppendElement (interp, (char*) list[i].addinfo);
+        else
+            Tcl_AppendElement (interp, "");
     }
-    Tcl_AppendElement (interp, cp);
     return TCL_OK;
 }
 
@@ -1686,8 +1770,6 @@ static int do_diag (void *o, Tcl_Interp *interp, int argc, char **argv)
     IrTcl_SetObj *obj = o;
     int offset;
     IrTcl_RecordList *rl;
-    char buf[20];
-    const char *cp;
 
     if (argc <= 0)
         return TCL_OK;
@@ -1709,19 +1791,8 @@ static int do_diag (void *o, Tcl_Interp *interp, int argc, char **argv)
         Tcl_AppendResult (interp, "No Diagnostic record at #", argv[2], NULL);
         return TCL_ERROR;
     }
-
-    sprintf (buf, "%d", rl->u.diag.condition);
-    Tcl_AppendElement (interp, buf);
-    cp = diagbib1_str (rl->u.diag.condition);
-    if (cp)
-        Tcl_AppendElement (interp, (char*) cp);
-    else
-        Tcl_AppendElement (interp, "");
-    if (rl->u.diag.addinfo)
-        Tcl_AppendElement (interp, (char*) rl->u.diag.addinfo);
-    else
-        Tcl_AppendElement (interp, "");
-    return TCL_OK;
+    return ir_diagResult (interp, rl->u.surrogateDiagnostics.list,
+                          rl->u.surrogateDiagnostics.num);
 }
 
 /*
@@ -1768,11 +1839,16 @@ static int do_responseStatus (void *o, Tcl_Interp *interp,
     if (argc == 0)
     {
         obj->recordFlag = 0;
-	obj->addinfo = NULL;
+        obj->nonSurrogateDiagnosticNum = 0;
+        obj->nonSurrogateDiagnosticList = NULL;
 	return TCL_OK;
     }
     else if (argc == -1)
-        return ir_strdel (interp, &obj->addinfo);
+    {
+        ir_deleteDiags (&obj->nonSurrogateDiagnosticList,
+                        &obj->nonSurrogateDiagnosticNum);
+        return TCL_OK;
+    }
     if (!obj->recordFlag)
     {
         Tcl_AppendElement (interp, "OK");
@@ -1784,8 +1860,9 @@ static int do_responseStatus (void *o, Tcl_Interp *interp,
     	Tcl_AppendElement (interp, "DBOSD");
         break;
     case Z_Records_NSD:
-        return mk_nonSurrogateDiagnostics (interp, obj->condition, 
-	                                   obj->addinfo);
+        Tcl_AppendElement (interp, "NSD");
+        return ir_diagResult (interp, obj->nonSurrogateDiagnosticList,
+                              obj->nonSurrogateDiagnosticNum);
     }
     return TCL_OK;
 }
@@ -1799,8 +1876,8 @@ static int do_present (void *o, Tcl_Interp *interp,
 {
     IrTcl_SetObj *obj = o;
     IrTcl_Obj *p = obj->parent;
-    Z_APDU apdu, *apdup = &apdu;
-    Z_PresentRequest req;
+    Z_APDU *apdu;
+    Z_PresentRequest *req;
     int start;
     int number;
     int r;
@@ -1830,19 +1907,19 @@ static int do_present (void *o, Tcl_Interp *interp,
     obj->start = start;
     obj->number = number;
 
-    apdu.which = Z_APDU_presentRequest;
-    apdu.u.presentRequest = &req;
+    apdu = zget_APDU (p->odr_out, Z_APDU_presentRequest);
+    req = apdu->u.presentRequest;
 
-    set_referenceId (p->odr_out, &req.referenceId, obj->set_inher.referenceId);
+    set_referenceId (p->odr_out, &req->referenceId,
+                     obj->set_inher.referenceId);
 
-    req.resultSetId = obj->setName ? obj->setName : "Default";
+    req->resultSetId = obj->setName ? obj->setName : "Default";
     
-    req.resultSetStartPoint = &start;
-    req.numberOfRecordsRequested = &number;
-    req.elementSetNames = 0;
-    req.preferredRecordSyntax = 0;
+    req->resultSetStartPoint = &start;
+    req->numberOfRecordsRequested = &number;
+    req->preferredRecordSyntax = 0;
 
-    if (!z_APDU (p->odr_out, &apdup, 0))
+    if (!z_APDU (p->odr_out, &apdu, 0))
     {
         interp->result = odr_errlist [odr_geterror (p->odr_out)];
         odr_reset (p->odr_out);
@@ -2019,7 +2096,13 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
         if (ir_strdup (interp, &dst->referenceId, src->referenceId)
             == TCL_ERROR)
             return TCL_ERROR;
-        
+
+        if (src->preferredRecordSyntax && 
+            (dst->preferredRecordSyntax 
+             = malloc (sizeof(*dst->preferredRecordSyntax))))
+            *dst->preferredRecordSyntax = *src->preferredRecordSyntax;
+        else
+            dst->preferredRecordSyntax = NULL;
         dst->replaceIndicator = src->replaceIndicator;
         dst->smallSetUpperBound = src->smallSetUpperBound;
         dst->largeSetLowerBound = src->largeSetLowerBound;
@@ -2047,8 +2130,8 @@ static int ir_set_obj_mk (ClientData clientData, Tcl_Interp *interp,
  */
 static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
 {
-    Z_ScanRequest req;
-    Z_APDU apdu, *apdup = &apdu;
+    Z_ScanRequest *req;
+    Z_APDU *apdu;
     IrTcl_ScanObj *obj = o;
     IrTcl_Obj *p = obj->parent;
     int r;
@@ -2078,19 +2161,20 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     odr_reset (p->odr_out);
 
-    bib1.proto = PROTO_Z3950;
+    bib1.proto = p->protocol_type;
     bib1.class = CLASS_ATTSET;
     bib1.value = VAL_BIB1;
 
-    apdu.which = Z_APDU_scanRequest;
-    apdu.u.scanRequest = &req;
-    set_referenceId (p->odr_out, &req.referenceId, p->set_inher.referenceId);
-    req.num_databaseNames = p->set_inher.num_databaseNames;
-    req.databaseNames = p->set_inher.databaseNames;
-    req.attributeSet = oid_getoidbyent (&bib1);
+    apdu = zget_APDU (p->odr_out, Z_APDU_scanRequest);
+    req = apdu->u.scanRequest;
+
+    set_referenceId (p->odr_out, &req->referenceId, p->set_inher.referenceId);
+    req->num_databaseNames = p->set_inher.num_databaseNames;
+    req->databaseNames = p->set_inher.databaseNames;
+    req->attributeSet = oid_getoidbyent (&bib1);
 
 #if !CCL2RPN
-    if (!(req.termListAndStartPoint = p_query_scan (p->odr_out, argv[2])))
+    if (!(req->termListAndStartPoint = p_query_scan (p->odr_out, argv[2])))
     {
         Tcl_AppendResult (interp, "Syntax error in query", NULL);
 	return TCL_ERROR;
@@ -2104,19 +2188,19 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     ccl_pr_tree (rpn, stderr);
     fprintf (stderr, "\n");
-    if (!(req.termListAndStartPoint = ccl_scan_query (rpn)))
+    if (!(req->termListAndStartPoint = ccl_scan_query (rpn)))
         return TCL_ERROR;
 #endif
-    req.stepSize = &obj->stepSize;
-    req.numberOfTermsRequested = &obj->numberOfTermsRequested;
-    req.preferredPositionInResponse = &obj->preferredPositionInResponse;
-    logf (LOG_DEBUG, "stepSize=%d", *req.stepSize);
+    req->stepSize = &obj->stepSize;
+    req->numberOfTermsRequested = &obj->numberOfTermsRequested;
+    req->preferredPositionInResponse = &obj->preferredPositionInResponse;
+    logf (LOG_DEBUG, "stepSize=%d", *req->stepSize);
     logf (LOG_DEBUG, "numberOfTermsRequested=%d",
-          *req.numberOfTermsRequested);
+          *req->numberOfTermsRequested);
     logf (LOG_DEBUG, "preferredPositionInResponse=%d",
-          *req.preferredPositionInResponse);
+          *req->preferredPositionInResponse);
 
-    if (!z_APDU (p->odr_out, &apdup, 0))
+    if (!z_APDU (p->odr_out, &apdu, 0))
     {
         interp->result = odr_errlist [odr_geterror (p->odr_out)];
         odr_reset (p->odr_out);
@@ -2240,16 +2324,18 @@ static int do_scanLine (void *obj, Tcl_Interp *interp, int argc, char **argv)
     {
         p->entries_flag = 0;
 	p->entries = NULL;
-	p->nonSurrogateDiagnostics = NULL;
+	p->nonSurrogateDiagnosticNum = 0;
+        p->nonSurrogateDiagnosticList = 0;
 	return TCL_OK;
     }
     else if (argc == -1)
     {
         p->entries_flag = 0;
 	/* release entries */
-	p->entries = NULL;
-	/* release non diagnostics */
-	p->nonSurrogateDiagnostics = NULL;
+        p->entries = NULL;
+
+        ir_deleteDiags (&p->nonSurrogateDiagnosticList, 
+                        &p->nonSurrogateDiagnosticNum);
 	return TCL_OK;
     }
     if (argc != 3)
@@ -2274,9 +2360,9 @@ static int do_scanLine (void *obj, Tcl_Interp *interp, int argc, char **argv)
 	Tcl_AppendElement (interp, numstr);
 	break;
     case Z_Entry_surrogateDiagnostic:
-        return 
-	    mk_nonSurrogateDiagnostics (interp, p->entries[i].u.diag.condition,
-	                                p->entries[i].u.diag.addinfo);
+        Tcl_AppendElement (interp, "SD");
+        return ir_diagResult (interp, p->entries[i].u.diag.list,
+                              p->entries[i].u.diag.num);
 	break;
     }
     return TCL_OK;
@@ -2416,34 +2502,62 @@ static void ir_initResponse (void *obj, Z_InitResponse *initrs)
     }
 }
 
+static void ir_deleteDiags (IrTcl_Diagnostic **dst_list, int *dst_num)
+{
+    int i;
+    for (i = 0; i<*dst_num; i++)
+        free (dst_list[i]->addinfo);
+    free (*dst_list);
+    *dst_list = NULL;
+    *dst_num = 0;
+}
+
+static void ir_handleDiags (IrTcl_Diagnostic **dst_list, int *dst_num,
+                    Z_DiagRec **list, int num)
+{
+    int i;
+    char *addinfo;
+
+    *dst_num = num;
+    *dst_list = malloc (sizeof(**dst_list) * num);
+    if (!*dst_list) 
+    {
+        *dst_num = 0;
+        return;
+    }
+    for (i = 0; i<num; i++)
+    {
+        switch (list[i]->which)
+        {
+        case Z_DiagRec_defaultFormat:
+            (*dst_list)[i].condition = *list[i]->u.defaultFormat->condition;
+            addinfo = list[i]->u.defaultFormat->addinfo;
+            if (addinfo && 
+                ((*dst_list)[i].addinfo = malloc (strlen(addinfo)+1)))
+                strcpy ((*dst_list)[i].addinfo, addinfo);
+            break;
+        default:
+            (*dst_list)[i].addinfo = NULL;
+            (*dst_list)[i].condition = 0;
+        }
+    }
+}
+
 static void ir_handleRecords (void *o, Z_Records *zrs)
 {
     IrTcl_Obj *p = o;
     IrTcl_SetObj *setobj = p->set_child;
 
+    int offset;
+    IrTcl_RecordList *rl;
+
     setobj->which = zrs->which;
     setobj->recordFlag = 1;
-    if (zrs->which == Z_Records_NSD)
+    
+    ir_deleteDiags (&setobj->nonSurrogateDiagnosticList,
+                    &setobj->nonSurrogateDiagnosticNum);
+    if (zrs->which == Z_Records_DBOSD)
     {
-        const char *addinfo;
-        
-        setobj->numberOfRecordsReturned = 0;
-        setobj->condition = *zrs->u.nonSurrogateDiagnostic->condition;
-        free (setobj->addinfo);
-        setobj->addinfo = NULL;
-        addinfo = zrs->u.nonSurrogateDiagnostic->addinfo;
-        if (addinfo && (setobj->addinfo = malloc (strlen(addinfo) + 1)))
-            strcpy (setobj->addinfo, addinfo);
-        logf (LOG_DEBUG, "Diagnostic response. %s (%d): %s",
-              diagbib1_str (setobj->condition),
-              setobj->condition,
-              setobj->addinfo ? setobj->addinfo : "");
-    }
-    else
-    {
-        int offset;
-        IrTcl_RecordList *rl;
-        
         setobj->numberOfRecordsReturned = 
             zrs->u.databaseOrSurDiagnostics->num_records;
         logf (LOG_DEBUG, "Got %d records", setobj->numberOfRecordsReturned);
@@ -2454,16 +2568,12 @@ static void ir_handleRecords (void *o, Z_Records *zrs)
                                 records[offset]->which);
             if (rl->which == Z_NamePlusRecord_surrogateDiagnostic)
             {
-                Z_DiagRec *diagrec;
-                
-                diagrec = zrs->u.databaseOrSurDiagnostics->
-                    records[offset]->u.surrogateDiagnostic;
-                
-                rl->u.diag.condition = *diagrec->condition;
-                if (diagrec->addinfo && (rl->u.diag.addinfo =
-                                         malloc (strlen (diagrec->addinfo)+1)))
-                    strcpy (rl->u.diag.addinfo, diagrec->addinfo);
-            }
+                ir_handleDiags (&rl->u.surrogateDiagnostics.list,
+                                &rl->u.surrogateDiagnostics.num,
+                                &zrs->u.databaseOrSurDiagnostics->
+                                records[offset]->u.surrogateDiagnostic,
+                                1);
+            } 
             else
             {
                 Z_DatabaseRecord *zr; 
@@ -2490,6 +2600,25 @@ static void ir_handleRecords (void *o, Z_Records *zrs)
                     rl->u.dbrec.buf = NULL;
             }
         }
+    }
+    else if (zrs->which == Z_Records_multipleNSD)
+    {
+        logf (LOG_DEBUG, "multipleNonSurrogateDiagnostic %d",
+              zrs->u.multipleNonSurDiagnostics->num_diagRecs);
+        setobj->numberOfRecordsReturned = 0;
+        ir_handleDiags (&setobj->nonSurrogateDiagnosticList,
+                        &setobj->nonSurrogateDiagnosticNum,
+                        zrs->u.multipleNonSurDiagnostics->diagRecs,
+                        zrs->u.multipleNonSurDiagnostics->num_diagRecs);
+    }
+    else
+    {
+        logf (LOG_DEBUG, "NonSurrogateDiagnostic");
+        setobj->numberOfRecordsReturned = 0;
+        ir_handleDiags (&setobj->nonSurrogateDiagnosticList,
+                        &setobj->nonSurrogateDiagnosticNum,
+                        &zrs->u.nonSurrogateDiagnostic,
+                        1);
     }
 }
 
@@ -2573,9 +2702,9 @@ static void ir_scanResponse (void *o, Z_ScanResponse *scanrs)
 
     free (scanobj->entries);
     scanobj->entries = NULL;
-    free (scanobj->nonSurrogateDiagnostics);
-    scanobj->nonSurrogateDiagnostics = NULL;
 
+    ir_deleteDiags (&scanobj->nonSurrogateDiagnosticList,
+                    &scanobj->nonSurrogateDiagnosticNum);
     if (scanrs->entries)
     {
         int i;
@@ -2614,22 +2743,21 @@ static void ir_scanResponse (void *o, Z_ScanResponse *scanrs)
 		        scanobj->entries[i].u.term.globalOccurrences = 0;
                     break;
 		case Z_Entry_surrogateDiagnostic:
-		    scanobj->entries[i].u.diag.addinfo = 
-		            malloc (1+strlen(ze->u.surrogateDiagnostic->
-			                     addinfo));
-                    strcpy (scanobj->entries[i].u.diag.addinfo,
-		            ze->u.surrogateDiagnostic->addinfo);
-		    scanobj->entries[i].u.diag.condition = 
-		        *ze->u.surrogateDiagnostic->condition;
+                    ir_handleDiags (&scanobj->entries[i].u.diag.list,
+                                    &scanobj->entries[i].u.diag.num,
+                                    &ze->u.surrogateDiagnostic,
+                                    1);
 		    break;
 		}
 	    }
             break;
 	case Z_ListEntries_nonSurrogateDiagnostics:
-	    scanobj->num_diagRecs = scanrs->entries->
-	                          u.nonSurrogateDiagnostics->num_diagRecs;
-	    scanobj->nonSurrogateDiagnostics = malloc (scanobj->num_diagRecs *
-	                          sizeof(*scanobj->nonSurrogateDiagnostics));
+            ir_handleDiags (&scanobj->nonSurrogateDiagnosticList,
+                            &scanobj->nonSurrogateDiagnosticNum,
+                            scanrs->entries->u.nonSurrogateDiagnostics->
+                            diagRecs,
+                            scanrs->entries->u.nonSurrogateDiagnostics->
+                            num_diagRecs);
             break;
 	}
     }
@@ -2657,12 +2785,12 @@ void ir_select_read (ClientData clientData)
         {
             logf (LOG_DEBUG, "cs_rcvconnect error");
             if (p->failback)
-                Tcl_Eval (p->interp, p->failback);
+                IrTcl_eval (p->interp, p->failback);
             do_disconnect (p, NULL, 2, NULL);
             return;
         }
         if (p->callback)
-	    Tcl_Eval (p->interp, p->callback);
+	    IrTcl_eval (p->interp, p->callback);
         return;
     }
     do
@@ -2675,7 +2803,7 @@ void ir_select_read (ClientData clientData)
             logf (LOG_DEBUG, "cs_get failed, code %d", r);
             ir_select_remove (cs_fileno (p->cs_link), p);
             if (p->failback)
-                Tcl_Eval (p->interp, p->failback);
+                IrTcl_eval (p->interp, p->failback);
             do_disconnect (p, NULL, 2, NULL);
 
 	    /* relase ir object now if callback deleted it */
@@ -2690,10 +2818,10 @@ void ir_select_read (ClientData clientData)
         {
             logf (LOG_DEBUG, "%s", odr_errlist [odr_geterror (p->odr_in)]);
             if (p->failback)
-                Tcl_Eval (p->interp, p->failback);
+                IrTcl_eval (p->interp, p->failback);
             do_disconnect (p, NULL, 2, NULL);
 
-	    /* release ir object now if callback deleted it */
+	    /* release ir object now if failback deleted it */
 	    ir_obj_delete (p);
             return;
         }
@@ -2714,12 +2842,12 @@ void ir_select_read (ClientData clientData)
         default:
             logf (LOG_WARN, "Received unknown APDU type (%d)", apdu->which);
             if (p->failback)
-                Tcl_Eval (p->interp, p->failback);
+                IrTcl_eval (p->interp, p->failback);
             do_disconnect (p, NULL, 2, NULL);
         }
         odr_reset (p->odr_in);
         if (p->callback)
-	    Tcl_Eval (p->interp, p->callback);
+	    IrTcl_eval (p->interp, p->callback);
 	if (p->ref_count == 1)
 	{
 	    ir_obj_delete (p);
@@ -2749,20 +2877,20 @@ void ir_select_write (ClientData clientData)
             logf (LOG_DEBUG, "cs_rcvconnect error");
             ir_select_remove_write (cs_fileno (p->cs_link), p);
             if (p->failback)
-                Tcl_Eval (p->interp, p->failback);
+                IrTcl_eval (p->interp, p->failback);
             do_disconnect (p, NULL, 2, NULL);
             return;
         }
         ir_select_remove_write (cs_fileno (p->cs_link), p);
         if (p->callback)
-	    Tcl_Eval (p->interp, p->callback);
+	    IrTcl_eval (p->interp, p->callback);
         return;
     }
     if ((r=cs_put (p->cs_link, p->sbuf, p->slen)) < 0)
     {   
         logf (LOG_DEBUG, "select write fail");
         if (p->failback)
-            Tcl_Eval (p->interp, p->failback);
+            IrTcl_eval (p->interp, p->failback);
         do_disconnect (p, NULL, 2, NULL);
     }
     else if (r == 0)            /* remove select bit */
