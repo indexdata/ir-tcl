@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: medium.tcl,v $
-# Revision 1.6  1995-09-20 11:37:06  adam
+# Revision 1.7  1995-10-16 17:01:03  adam
+# Medium presentation format looks better.
+#
+# Revision 1.6  1995/09/20  11:37:06  adam
 # Work on GRS.
 #
 # Revision 1.5  1995/06/22  13:16:29  adam
@@ -76,11 +79,11 @@ proc display-medium {sno no w hflag} {
         return
     }
     if {"x$i" != "x"} {
-        insertWithTags $w "Title:      " marc-tag
-        insertWithTags $w [string trimright [lindex $i 0] /] marc-data
+        insertWithTags $w "Title " marc-pref
+        insertWithTags $w [string trimright [lindex $i 0] /] marc-text
         set i [z39.$sno getMarc $no field 245 * b]
         if {"x$i" != "x"} {
-            insertWithTags $w [string trimright [lindex $i 0] /] marc-data
+            insertWithTags $w [string trimright [lindex $i 0] /] marc-text
         }
         $w insert end "\n"
     }
@@ -90,20 +93,20 @@ proc display-medium {sno no w hflag} {
     }
     if {"x$i" != "x"} {
         if {[llength $i] > 1} {
-            insertWithTags $w "Authors:    " marc-tag
+            insertWithTags $w "Authors " marc-pref
         } else {
-            insertWithTags $w "Author:     " marc-tag
+            insertWithTags $w "Author " marc-pref
         }
         foreach x $i {
-            insertWithTags $w $x marc-data
+            insertWithTags $w $x marc-it
         }
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 110 * *]
     if {"x$i" != "x"} {
-        insertWithTags $w "Co-Author:  " marc-tag
+        insertWithTags $w "Co-Author " marc-pref
         foreach x $i {
-            insertWithTags $w $x marc-data
+            insertWithTags $w $x marc-text
         }
         $w insert end "\n"
     }
@@ -111,12 +114,12 @@ proc display-medium {sno no w hflag} {
     set i [z39.$sno getMarc $no field 650 * *]
     if {"x$i" != "x"} {
         set n 0
-        insertWithTags $w "Keywords:   " marc-tag
+        insertWithTags $w "Keywords " marc-pref
         foreach x $i {
             if {$n > 0} {
                 $w insert end ", "
             }
-            insertWithTags $w $x marc-data
+            insertWithTags $w $x marc-it
             incr n
         }
         $w insert end "\n"
@@ -124,49 +127,49 @@ proc display-medium {sno no w hflag} {
     set i [concat [z39.$sno getMarc $no field 260 * a] \
             [z39.$sno getMarc $no field 260 * b]]
     if {"x$i" != "x"} {
-        insertWithTags $w "Publisher:  " marc-tag
+        insertWithTags $w "Publisher " marc-pref
         foreach x $i {
-            insertWithTags $w $x marc-data
+            insertWithTags $w $x marc-text
         }
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 020 * a]
     if {"x$i" != "x"} {
-        insertWithTags $w "ISBN:       " marc-tag
+        insertWithTags $w "ISBN " marc-pref
         foreach x $i {
-            insertWithTags $w $x marc-data
+            insertWithTags $w $x marc-text
         }
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 022 * a]
     if {"x$i" != "x"} {
-        insertWithTags $w "ISSN:       " marc-tag
+        insertWithTags $w "ISSN " marc-pref
         foreach x $i {
-            insertWithTags $w $x marc-data
+            insertWithTags $w $x marc-text
         }
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 030 * a]
     if {"x$i" != "x"} {
-        insertWithTags $w "CODEN:      " marc-tag
+        insertWithTags $w "CODEN " marc-pref
         foreach x $i {
-            insertWithTags $w $x marc-data
+            insertWithTags $w $x marc-text
         }
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 015 * a]
     if {"x$i" != "x"} {
-        insertWithTags $w "Ctl number: " marc-tag
+        insertWithTags $w "Ctl number " marc-pref
         foreach x $i {
-            insertWithTags $w $x marc-data
+            insertWithTags $w $x marc-text
         }
         $w insert end "\n"
     }
     set i [z39.$sno getMarc $no field 010 * a]
     if {"x$i" != "x"} {
-        insertWithTags $w "LC number:  " marc-tag
+        insertWithTags $w "LC number " marc-pref
         foreach x $i {
-            insertWithTags $w $x marc-data
+            insertWithTags $w $x marc-text
         }
         $w insert end "\n"
     }
