@@ -1,15 +1,15 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.2 1995-05-30 08:09:27 adam Exp $
+  $Id: ir-tcl.sgml,v 1.3 1995-05-30 09:44:22 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference
 <author>Index Data, <tt/info@index.ping.dk/
-<date>May 1995
+<date>$Date: 1995-05-30 09:44:22 $
 <abstract>
-This document describes IrTcl - an information retrieval toolkit for
+This document describes IrTcl &mdash an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
 </abstract>
 
@@ -21,24 +21,24 @@ Tcl and Tk that provides access to the Z39.50/SR protocol.
 This document describes the <sf/IrTcl/ information retrieval toolkit,
 which offers a high-level, client interface to the Z39.50 and SR protocols.
 The toolkit is based on the Tcl/Tk toolkit developed by Prof. John
-K. Ousterhout at the University of California [ref 1]. 
+K. Ousterhout at the University of California &lsqb;ref 1&rsqb;. 
 Tcl is a simple, somewhat shell-like, interpreted language. What
 makes Tcl attractive is that it also offers a C API, which makes
 extensions to the language possible. The most important Tcl extension is
-probably Tk --- A Motif look-and-feel interface to the X window
+probably Tk &mdash A Motif look-and-feel interface to the X window
 system.
 
-To interface the Z39.50/SR protocol <sf/IrTcl/ uses <bf/YAZ.
+To interface the Z39.50/SR protocol <sf/IrTcl/ uses <bf/YAZ/.
 <bf/YAZ/ offers two transport types: RFC1729/BER on TCP/IP and the mOSI
 protocol stack.
 However, the mOSI transport is only an option, and hence it is not
 needed unless you wish to communicate within an OSI environment.
-See [ref 2] for more information about the XTI/mOSI implementation.
+See &lsqb;ref 2&rsqb; for more information about the XTI/mOSI implementation.
 
 <sf/IrTcl/ provides two system environments:
 
 <itemize>
-<item> A simple command line shell --- useful for
+<item> A simple command line shell &mdash useful for
 testing purposes.
 <item> A system which operates within the Tk environment which
 makes it very easy to implement GUI clients.
@@ -71,17 +71,17 @@ example, there is such no such thing as inheritance.
 We are now ready to present the three commands introduced to Tcl by
 <sf/IrTcl/:
 
-<itemize>
-<item> ir: The ir object represents a connection to a target. More
+<descrip>
+<tag/ir/ The ir object represents a connection to a target. More
 precisely it describes a Z-association. 
-<item> ir-set: The ir-set describes a result set, which is
+<tag/ir-set/ The ir-set describes a result set, which is
 conceptually a collection of records returned by the target.
 The ir-set object may retrieve records from a target by means of
 the ir object; it may read/write records from/to a local file or it may be
 updated with a user-edited record. 
-<item> ir-scan: The scan object represents a list of scan lines
+<tag/ir-scan/ The scan object represents a list of scan lines
 retrieved from a target.
-</itemize>
+</descrip>
 
 <bf/Example/
 
@@ -122,17 +122,17 @@ The method is similar to the one used in Tk to capture X events.
 
 For each SR/Z39.50 request there is a corresponding object action. The most
 important actions are:
-<itemize>
-<item> connect Establishes connection with a target
-<item> init Sends an initialize request.
-<item> search Sends a search request.
-<item> present Sends a present request.
-<item> scan Sends a scan request.
-</itemize>
+<descrip>
+<tag/connect/ Establishes connection with a target
+<tag/init/ Sends an initialize request.
+<tag/search/ Sends a search request.
+<tag/present/ Sends a present request.
+<tag/scan/ Sends a scan request.
+</descrip>
 
 <bf/Example/
-This example shows a complete
-connect - init - search - present scenario. 
+
+This example shows a complete connect - init - search - present scenario. 
 
 First an IR object, called <tt/z/, is created.
 Also a result set <tt/z.1/ is introduced by the <tt/ir-set/ 
@@ -140,10 +140,14 @@ and it is specified that the result set uses <tt/z/ as its association.
 
 The setting <tt/databaseNames/ is set to the 
 database <tt/books/ to which the following searches are directed.
-A connection is established to <tt/fake.com/ by the <tt/connect/ action.
-A callback is then defined <em/before/ the init request is executed. 
+A callback is then defined and a connection is established to
+<tt/fake.com/ by the <tt/connect/ action.
+If the connect succeeds the <tt/connect-response/ is called.
+
+In the Tcl procedure, <tt/connect-response/, a callback is defined
+<em/before/ the init request is executed. 
 The Tcl procedure <tt/init-response/ is called when a 
-init-response is returned from the target.
+init response is returned from the target.
 
 The <tt/init-response/ procedure sets up a <tt/search-response/ 
 callback handler and sends a search-request by using a query which
@@ -152,18 +156,22 @@ consists of a single word <tt/science/.
 When the <tt/search-response/ procedure is called it defines
 a variable <tt/hits/ and sets it to the value of the setting
 <tt/resultCount/. If <tt/hits/ is positive a present-request is
-sent --- asking for 5 records from position 1. 
+sent &mdash asking for 5 records from position 1. 
 
-Finally, a present-response is received and the number of records
+Finally, a present response is received and the number of records
 returned is stored in the variable <tt/ret/.
 
 <tscreen><verb>
 ir z
 ir-set z.1 z
 z databaseNames books
+z callback {connect-response}
 z connect fake.com
-z callback {init-response}
-z init
+
+proc connect-response {} {
+    z callback {init-response}
+    z init
+}
 
 proc init-response {} {
     z.1 callback {search-response}
@@ -205,25 +213,30 @@ connected to a target yet.
 
 <p>
 A connection is established by the <tt/connect/ action which is
-immediately followed by a hostname. Table ref{tab:irconnect} lists the
-settings that affect the <tt/connect/ action. 
-Obviously, these settings should be set <bf/before/ connecting.
+immediately followed by a hostname. Obviously, these settings should
+be set <bf/before/ connecting.
+The settings that affect the <tt/connect/ action are:
 
 <descrip>
 <tag><tt>comstack </tt><tt>mosi|tcpip</tt></tag>
  Comstack type
 <tag><tt>protocol </tt><tt>Z3950|SR</tt></tag>
  ANSI/NISO Z39.50 or ISO SR
+<tag><tt>callback </tt><em>list</em></tag>
+ Tcl script called when the connection is established
 <tag><tt>failback </tt><em>list</em></tag>
  Fatal error Tcl script. Called on protocol errors or if target
  closes connection
 </descrip>
 
+If the connect is unsuccessful either the connect action itself
+will return an error code or the failback handler is invoked.
+
 <sect1>Init
 
 <p>
 If the connect operation succeeds the <tt/init/ action should be used. 
-Table ref{tab:irinit} lists the init related settings.
+The init related settings are:
 
 <descrip>
 <tag><tt>preferredMessageSize </tt><em>integer</em></tag>
@@ -247,8 +260,8 @@ are set.
  General response Tcl script. Only used if initResponse is not specified
 </descrip>
 
-The init-response handler should inspect some of the settings in table
-ref{tab:irinitresponse}
+The init-response handler should inspect some of the settings shown
+below:
 
 <descrip>
 <tag><tt>initResult </tt><em>boolean</em></tag>
@@ -272,6 +285,7 @@ ref{tab:irinitresponse}
 </descrip>
 
 <bf/Example/
+
 Consider a client with the ability to access multiple targets.
 
 We define a list of targets that we wish to connect to.
@@ -296,7 +310,11 @@ targets in <tt/targetList/:
     $assoc comstack [lindex $target 1]
     $assoc protocol [lindex $target 2]
     $assoc failback [list fail-response $assoc]
+    $assoc callback [list connect-response $assoc]
     $assoc connect [lindex $target 3]
+}
+
+proc connect-response {assoc} {
     $assoc initResponse [list init-response $assoc]
     $assoc init
 }
@@ -317,7 +335,8 @@ proc init-response {assoc} {
 <tt/target/ is bound to each item in the list of targets.
 The <tt/assoc/ is set to the ir object name.
 Then, the comstack, protocol and failback are set for the <tt/assoc/ object.
-The ir object name is argument to the <tt/fail-response/ routine. 
+The ir object name is argument to the <tt/fail-response/ and 
+<tt/connect-response/ routines. 
 Note the use of the Tcl <tt/list/ command which 
 is necessary here because the argument contains variables 
 (<tt/assoc/) that should be substituted before the handler is defined.
@@ -343,7 +362,7 @@ presents are handled.
 A search operation and a result set is described by the ir set object.
 The ir set object is defined by the <tt/ir-set/ command which
 has two parameters. The first is the name of the new ir set object, and
-the second, which is optional, is the name of an assocation --- an ir
+the second, which is optional, is the name of an assocation &mdash an ir
 object. The second argument is required if the ir set object should be able
 to perform searches and presents. However, it is not required if
 only ``local'' operations is done with the ir set object.
@@ -370,7 +389,7 @@ actually support the CCL query and the interpretation of
 the standard may vary.
 
 The prefix query notation (which is converted to RPN) offer a few
-operators, shown in table ref{tab:prefixop}.
+operators. They are:
 
 <descrip>
 <tag><tt>@attr </tt><em>list op</em></tag>
@@ -383,6 +402,8 @@ operators, shown in table ref{tab:prefixop}.
  Boolean <em/not/ on op1 and op2
 <tag><tt>@prox </tt><em>list op1 op2</em></tag>
  Proximity operation on op1 and op2 
+<tag><tt>@set </tt><em>name</em></tag>
+ Result set reference
 </descrip>
 
 It is simple to build RPN queries in <sf/IrTcl/. Search terms
@@ -417,9 +438,7 @@ term is right truncated:
 <sect1>Search
 
 <p>
-Table ref{tab:irsearchrequest} lists settings that affect the search.
-Setting the <tt/databaseNames/ is mandatory. All other settings
-have reasonable defaults.
+The settings that affect the search are listed below:
 
 <descrip>
 <tag><tt>databaseNames </tt><em>list</em></tag>
@@ -437,8 +456,7 @@ have reasonable defaults.
 <tag><tt>queryType rpn|ccl</tt></tag>
  query type-1 or query type-2 
 <tag><tt>preferredRecordSyntax </tt><em>string</em></tag>
- preferred record syntax. See table ref{tab:recordtypes} on page 
- pageref{tab:recordtypes} 
+ preferred record syntax &mdash UNIMARC, USMARC, etc. 
 <tag><tt>smallSetElementSetNames </tt><em>string</em></tag>
  small-set-element-set names 
 <tag><tt>mediumSetElementSetNames </tt><em>string</em></tag>
@@ -449,9 +467,11 @@ have reasonable defaults.
  General response Tcl script. Only used if searchResponse is not specified 
 </descrip>
 
+Setting the <tt/databaseNames/ is mandatory. All other settings
+have reasonable defaults.
 The search-response handler, specified by the <tt/callback/ - or
 the <tt/searchResponse/ setting, 
-should read some of the settings shown in table ref{tab:irsearchresponse}.
+should read some of the settings shown below:
 
 <descrip>
 <tag><tt>searchStatus </tt><em>boolean</em></tag>
@@ -480,11 +500,12 @@ empty if no additional information was returned by the target.
 target has returned one or more records. Each record may be
 either a database record or a surrogate diagnostic.
 
-<tag><tt>OK</tt></tag> indicates a successful operation - no records are
+<tag><tt>OK</tt></tag> indicates a successful operation &mdash no records are
 returned from the target. 
 </descrip>
 
 <bf/Example/
+
 We continue with the multiple-targets example. 
 The <tt/init-response/ procedure will attempt to make searches:
 
@@ -555,15 +576,14 @@ are common to both situations.
 <p>
 The <tt/present/ action sends a present request. The <tt/present/ is
 followed by two optional integers. The first integer is the 
-result-set starting position --- defaults to 1. The second integer 
-is the number of records requested --- defaults to 10. 
+result-set starting position &mdash defaults to 1. The second integer 
+is the number of records requested &mdash defaults to 10. 
 The settings which could be modified before a <tt/present/
-action are shown in table ref{tab:irpresentrequest}.
+action are:
 
 <descrip>
 <tag><tt>preferredRecordSyntax </tt><em>string</em></tag>
- preferred record syntax. See table ref{tab:recordtypes} on page 
- pageref{tab:recordtypes} 
+ preferred record syntax &mdash UNIMARC, USMARC, etc.
 <tag><tt>elementSetElementSetNames </tt><em>string</em></tag>
  element-set names 
 <tag><tt>presentResponse </tt><em>list</em></tag>
@@ -604,35 +624,36 @@ inspected.
 The action <tt/Type/ followed by an integer returns information 
 about a given position in an ir set. There are three possiblities:
 
-<itemize>
-<item> SD The item is a surrogate diagnostic.
-<item> DB The item is a database record.
-<item> <em/empty/ There is no record at the specified position.
-</itemize>
+<descrip>
+<tag><tt/SD/</tag> The item is a surrogate diagnostic record.
+<tag><tt/DB/</tag> The item is a database record.
+<tag><em/empty/</tag> There is no record at the specified position.
+</descrip>
 
-To handle the first case, surrogate diagnostic, the
+To handle the first case, surrogate diagnostic record, the
 <tt/Diag/ action should be used. It returns three
 items: error code (integer), text representation in plain english
 (string), and additional information (string, possibly empty).
 
 In the second case, database record, the <tt/recordType/ action should
 be used. It returns the record type at the given position.
-Some record types are shown in table ref{tab:recordtypes}.
+Some record types are:
 
-<descrip>
-<tag>UNIMARC</tag> UNIMARC
-<tag>INTERMARC</tag> INTERMARC
-<tag>CCF </tag> CCF
-<tag>USMARC</tag> USMARC
-<tag>UKMARC</tag> UKMARK
-<tag>NORMARC</tag> NORMARC
-<tag>LIBRISMARC</tag> LIBRISMARC
-<tag>DANMARC</tag> DANMARC
-<tag>FINMARC</tag> FINMARC
-<tag>SUTRS</tag> SUBTRS
-</descrip>
+<tscreen>
+UNIMARC
+INTERMARC
+CCF
+USMARC
+UKMARC
+NORMARC
+LIBRISMARC
+DANMARC
+FINMARC
+SUTRS
+</tscreen>
 
 <bf/Example/
+
 We continue our search-response example. In the case,
 <tt/DBOSD/, we should inspect the result set items. 
 Recall that the ir set name was passed to the
@@ -656,7 +677,7 @@ search-response handler as argument <tt/rset/.
         }
     }
 </verb></tscreen>
-Each item in the result-set is examined. 
+Each item in the result set is examined. 
 If an item is a diagnostic message it is displayed; otherwise
 if it's a database record its type is displayed.
 <bf/End of example/
@@ -681,7 +702,7 @@ that matches the mask specification. Only the content of fields
 is returned.
 
 The <tt/line/ type, on the other hand, returns a Tcl list that
-completely describe the layout of the MARC record --- including
+completely describe the layout of the MARC record &mdash including
 tags, fields, etc.
 
 The <tt/field/ type is sufficient and efficient in the case, where only a
@@ -689,10 +710,11 @@ small number of fields are extracted, and in the case where no
 further processing (in Tcl) is necessary.
 
 However, if the MARC record is to be edited or altered in any way, the
-<tt/line/ extraction is more powerful --- only limited by the Tcl
+<tt/line/ extraction is more powerful &mdash only limited by the Tcl
 language itself.
 
 <bf/Example/
+
 Consider the record below:
 <tscreen><verb>
 001       11224466 
@@ -749,6 +771,7 @@ giving:
 <bf/End of example/
 
 <bf/Example/
+
 This example demonstrates how Tcl can be used to examine
 a MARC record in the list notation.
 
@@ -806,15 +829,15 @@ record.
 
 <p>
 
-<itemize>
-<item> <bf/Ousterhout, John K./:
+<descrip>
+<tag>1 Ousterhout, John K.:</tag>
 Tcl and the Tk Toolkit. Addison-Wesley Company Inc (ISBN
 0-201-63337-X). Source and documentation
-can be found in <tt/URL:ftp://ftp.cs.berkeley.edu/pub/tcl/
+can be found in <tt>URL:ftp://ftp.cs.berkeley.edu/pub/tcl</tt>
 and mirrors.
-<item> <bf/Furniss, Peter/:
+<tag>2 Furniss, Peter:</tag>
 RFC 1698: Octet Sequences for Upper-Layer OSI to Support
 Basic Communications Applications.
-</itemize>
+</descrip>
 
 </article>
