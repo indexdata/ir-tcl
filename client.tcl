@@ -4,7 +4,11 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.52  1995-06-22 13:14:59  adam
+# Revision 1.53  1995-06-26 12:40:09  adam
+# Client defines its own tkerror.
+# User may specify 'no preferredRecordSyntax'.
+#
+# Revision 1.52  1995/06/22  13:14:59  adam
 # Feature: SUTRS. Setting getSutrs implemented.
 # Work on display formats.
 # Preferred record syntax can be set by the user.
@@ -204,7 +208,7 @@ set fullMarcSeq 0
 set displayFormat 1
 set popupMarcdf 0
 set textWrap word
-set recordSyntax USMARC
+set recordSyntax None
 set delayRequest {}
 
 set queryTypes {Simple}
@@ -215,6 +219,26 @@ wm minsize . 0 0
 
 set setOffset 0
 set setMax 0
+
+proc tkerror err {
+    set w .tkerrorw
+
+    if {[winfo exists $w]} {
+        destroy $w
+    }
+    toplevel $w
+    wm title $w "Error"
+
+    place-force $w .
+    top-down-window $w
+
+    label $w.top.b -bitmap error
+    message $w.top.t -aspect 300 -text "Error: $err" \
+            -font -Adobe-Helvetica-Bold-R-Normal-*-240-*
+    pack $w.top.b $w.top.t -side left -padx 10 -pady 10
+
+    bottom-buttons $w [list {Close} [list destroy $w]] 0
+}
 
 proc read-formats {} {
     global displayFormats
@@ -947,7 +971,11 @@ proc search-request {bflag} {
     }
     dputs Setting
     dputs $recordSyntax
-    z39.$setNo preferredRecordSyntax $recordSyntax
+    if {$recordSyntax == "None" } {
+        z39.$setNo preferredRecordSyntax {}
+    } else {
+        z39.$setNo preferredRecordSyntax $recordSyntax
+    }
     z39 callback {search-response}
     z39.$setNo search $query
     show-status {Searching} 1 0
@@ -2806,6 +2834,9 @@ menu .top.options.m.wrap
         -value none -variable textWrap -command {set-wrap none}
 
 menu .top.options.m.syntax
+.top.options.m.syntax add radiobutton -label "None" \
+        -value None -variable recordSyntax
+.top.options.m.syntax add separator
 .top.options.m.syntax add radiobutton -label "USMARC" \
         -value USMARC -variable recordSyntax
 .top.options.m.syntax add radiobutton -label "UNIMARC" \
