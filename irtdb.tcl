@@ -358,9 +358,12 @@ set profile(LOC,queryRPN) 1
 set profile(LOC,recentNews) {}
 set profile(LOC,smallSetUpperBound) 0
 set profile(LOC,targetInfoName) {}
+set profile(LOC,targetMaxResultSets) {}
+set profile(LOC,targetMaxResultSize) {}
+set profile(LOC,targetMaxTerms) {}
 set profile(LOC,timeDefine) 983197488
 set profile(LOC,timeLastExplain) {}
-set profile(LOC,timeLastInit) 983197499
+set profile(LOC,timeLastInit) 1030712459
 set profile(LOC,welcomeMessage) {}
 set profile(LOC,windowNumber) 7
 set {profile(OCLC First Search,authentication)} {}
@@ -588,5 +591,5 @@ set profile(localhost,timeLastInit) 1007339370
 set profile(localhost,welcomeMessage) {}
 set profile(localhost,windowNumber) 13
 set queryTypes Simple
-set queryButtons {{ {I 0} {I 1} {I 2} }}
-set queryInfo {{{Title {1=4}} {Author {1=1003}}  {Subject {1=21}} {Any {1=1016}} {Abstract {1=62}}}}
+set queryButtons {{{I 0} {I 1} {I 2}}}
+set queryInfo {{{Title {1=4}} {Author 1=1003} {Subject 1=21} {Any {1=1016}} {Abstract {1=62}}}}

@@ -1,7 +1,7 @@
 dnl IR toolkit for tcl/tk
 dnl (c) Index Data 1996-2001
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.33 2001-12-03 19:23:07 adam Exp $
+dnl $Id: configure.in,v 1.34 2002-08-30 13:01:40 adam Exp $
 AC_INIT(ir-tcl.h)
 dnl ------ Substitutions
 AC_SUBST(CC)
@@ -55,6 +55,15 @@ if test "x$tclconfig" = xNONE; then
         tclconfig=${prefix}/lib
         IRCLIENT_SHELL=${prefix}/bin/wish
         prefix=${saveprefix}
+        if test ! -r ${tclconfig}/tclConfig.sh; then
+                # Not found, try search for Tcl on Debian systems.
+                for d in /usr/lib/tcl*; do
+                        if test -d $d; then
+                                tclconfig=$d
+        			IRCLIENT_SHELL=/usr/bin/wish
+                        fi
+                done
+        fi
 else
         IRCLIENT_SHELL=/usr/bin/wish
 fi
