@@ -1,7 +1,7 @@
 # Setup file
 set {profile(zserver)} {Zserver localhost 8889 {} 90000 90000 tcpip {esdd Default} 1 {} 1 Z39 28}
 set {profile(Penn)} {{Penn State's Library} 128.118.88.200 210 {} 16384 8192 tcpip CATALOG 1 {} {} Z39 2}
-set {profile(ztest)} {{test server} localhost 210 {} 60000 60000 tcpip dummy 1 {} 1 Z39 3}
+set {profile(ztest)} {{test server} feast 9999 {} 60000 60000 tcpip dummy 1 {} 1 Z39 3 {} {} {} {}}
 set {profile(madison)} {{University of Wisconsin-Madison} z3950.adp.wisc.edu 210 {} 16384 8192 tcpip madison 1 {} {} Z39 22}
 set {profile(arca-test)} {{} signore2.cnuce.cnr.it 5002 {} 50000 30000 tcpip CNRCP 1 {} {} Z39 29 2 0 0 4}
 set {profile(bibsys)} {{BIBSYS Target (YAZ-based)} z3950.bibsys.no 2100 {} 16384 8192 tcpip BIBSYS 1 {} 1 Z39 27}
