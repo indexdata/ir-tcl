@@ -2,7 +2,7 @@
 # (c) Index Data 1995-1998
 # See the file LICENSE for details.
 # Sebastian Hammer, Adam Dickmeiss
-# $Id: Makefile.in,v 1.47 1998-01-30 13:30:49 adam Exp $
+# $Id: Makefile.in,v 1.48 1998-11-26 13:01:06 adam Exp $
 SHELL=/bin/sh
 
 # IrTcl Version
@@ -48,7 +48,7 @@ MOSIINC=@MOSIINC@
 YAZLIB=$(YAZDIR)/lib/libyaz.a $(MOSILIB)
 
 # All include paths
-INCLUDE=-I. -I$(YAZDIR)/include $(TKINC) $(TCLINC) $(MOSIINC)
+INCLUDE=-I. -I$(YAZDIR)/z39.50 -I$(YAZDIR)/include $(TKINC) $(TCLINC) $(MOSIINC)
 
 # All command line options except CFLAGS
 DEFS=-DCCL2RPN=0 @DEFS@ -DMOSI=$(MOSI) -DIRTCLDIR=\"$(IRTCLDIR)\" \
