@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.87  1996-05-29 06:37:51  adam
+ * Revision 1.88  1996-06-03 09:04:22  adam
+ * Changed a few logf calls.
+ *
+ * Revision 1.87  1996/05/29  06:37:51  adam
  * Function ir_tcl_get_grs_r enhanced so that specific elements can be
  * extracted.
  *
@@ -599,6 +602,7 @@ static int do_init_request (void *obj, Tcl_Interp *interp,
 
     if (argc <= 0)
         return TCL_OK;
+    logf (LOG_DEBUG, "init %s", *argv);
     if (!p->cs_link)
     {
         interp->result = "init: not connected";
@@ -1050,6 +1054,7 @@ static int do_connect (void *obj, Tcl_Interp *interp,
         return TCL_OK;
     if (argc == 3)
     {
+        logf (LOG_DEBUG, "connect %s %s", *argv, argv[2]);
         if (p->hostname)
         {
             interp->result = "already connected";
@@ -1096,17 +1101,17 @@ static int do_connect (void *obj, Tcl_Interp *interp,
             ir_tcl_disconnect (p);
             return TCL_ERROR;
         }
-        logf(LOG_DEBUG, "cs_connect() returned %d fd=%d", r,
-             cs_fileno(p->cs_link));
         p->eventType = "connect";
         ir_select_add (cs_fileno (p->cs_link), p);
         if (r == 1)
         {
+            logf (LOG_DEBUG, "connect pending fd=%d", cs_fileno(p->cs_link));
             ir_select_add_write (cs_fileno (p->cs_link), p);
             p->state = IR_TCL_R_Connecting;
         }
         else
         {
+            logf (LOG_DEBUG, "connect ok fd=%d", cs_fileno(p->cs_link));
             p->state = IR_TCL_R_Idle;
             if (p->callback)
                 ir_tcl_eval (p->interp, p->callback);
@@ -1868,9 +1873,11 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
     p = obj->parent;
     if (argc != 3)
     {
+        logf (LOG_DEBUG, "search %s", *argv);
         interp->result = "wrong # args";
         return TCL_ERROR;
     }
+    logf (LOG_DEBUG, "search %s %s", *argv, argv[2]);
     if (!obj->set_inher.num_databaseNames)
     {
         interp->result = "no databaseNames";
@@ -1938,7 +1945,8 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
         req->mediumSetElementSetNames = NULL; 
     
     req->query = &query;
-    
+   
+    logf (LOG_DEBUG, "queryType %s", obj->set_inher.queryType);
     if (!strcmp (obj->set_inher.queryType, "rpn"))
     {
         Z_RPNQuery *RPNquery;
@@ -1951,7 +1959,6 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
         }
         query.which = Z_Query_type_1;
         query.u.type_1 = RPNquery;
-        logf (LOG_DEBUG, "RPN");
     }
 #if CCL2RPN
     else if (!strcmp (obj->set_inher.queryType, "cclrpn"))
@@ -1973,13 +1980,14 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
                               ccl_err_msg(error), NULL);
             return TCL_ERROR;
         }
+#if 0
         ccl_pr_tree (rpn, stderr);
         fprintf (stderr, "\n");
+#endif
         assert((RPNquery = ccl_rpn_query(rpn)));
         RPNquery->attributeSetId = oid_getoidbyent (&bib1);
         query.which = Z_Query_type_1;
         query.u.type_1 = RPNquery;
-        logf (LOG_DEBUG, "CCLRPN");
     }
 #endif
     else if (!strcmp (obj->set_inher.queryType, "ccl"))
@@ -1988,7 +1996,6 @@ static int do_search (void *o, Tcl_Interp *interp, int argc, char **argv)
         query.u.type_2 = &ccl_query;
         ccl_query.buf = (unsigned char *) argv[2];
         ccl_query.len = strlen (argv[2]);
-        logf (LOG_DEBUG, "CCL");
     }
     else
     {
@@ -2281,7 +2288,6 @@ static int ir_diagResult (Tcl_Interp *interp, IrTcl_Diagnostic *list, int num)
 
     for (i = 0; i<num; i++)
     {
-        logf (LOG_DEBUG, "Diagnostic, code %d", list[i].condition);
         sprintf (buf, "%d", list[i].condition);
         Tcl_AppendElement (interp, buf);
         cp = diagbib1_str (list[i].condition);
@@ -2501,6 +2507,7 @@ static int do_present (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     else 
         number = 10;
+    logf (LOG_DEBUG, "present %s %d %d", *argv, start, number);
     p = obj->parent;
     if (!p->cs_link)
     {
@@ -2678,7 +2685,7 @@ static int ir_set_obj_init (ClientData clientData, Tcl_Interp *interp,
         return TCL_ERROR;
     }
     obj = ir_tcl_malloc (sizeof(*obj));
-    logf (LOG_DEBUG, "ir set create");
+    logf (LOG_DEBUG, "ir set create %s", argv[1]);
     if (parentData)
     {
         int i;
@@ -2809,6 +2816,7 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
         interp->result = "wrong # args";
         return TCL_ERROR;
     }
+    logf (LOG_DEBUG, "scan %s %s", *argv, argv[2]);
     if (!p->set_inher.num_databaseNames)
     {
         interp->result = "no databaseNames";
@@ -2847,8 +2855,6 @@ static int do_scan (void *o, Tcl_Interp *interp, int argc, char **argv)
     bib1.value = VAL_BIB1;
 
     req->attributeSet = oid_getoidbyent (&bib1);
-    ccl_pr_tree (rpn, stderr);
-    fprintf (stderr, "\n");
     if (!(req->termListAndStartPoint = ccl_scan_query (rpn)))
         return TCL_ERROR;
 #endif
@@ -3106,6 +3112,7 @@ static int ir_scan_obj_mk (ClientData clientData, Tcl_Interp *interp,
         interp->result = "wrong # args";
         return TCL_ERROR;
     }
+    logf (LOG_DEBUG, "ir scan create %s", argv[1]);
     if (!Tcl_GetCommandInfo (interp, argv[2], &parent_info))
     {
         interp->result = "No parent";
@@ -3195,6 +3202,7 @@ static void ir_handleDiags (IrTcl_Diagnostic **dst_list, int *dst_num,
     *dst_list = ir_tcl_malloc (sizeof(**dst_list) * num);
     for (i = 0; i<num; i++)
     {
+        const char *cp;
         switch (list[i]->which)
         {
         case Z_DiagRec_defaultFormat:
@@ -3203,6 +3211,9 @@ static void ir_handleDiags (IrTcl_Diagnostic **dst_list, int *dst_num,
             if (addinfo && 
                 ((*dst_list)[i].addinfo = ir_tcl_malloc (strlen(addinfo)+1)))
                 strcpy ((*dst_list)[i].addinfo, addinfo);
+            cp = diagbib1_str ((*dst_list)[i].condition);
+            logf (LOG_DEBUG, "Diag %d %s %s", (*dst_list)[i].condition,
+                  cp ? cp : "", addinfo ? addinfo : "");
             break;
         default:
             (*dst_list)[i].addinfo = NULL;
@@ -3329,7 +3340,7 @@ static void ir_searchResponse (void *o, Z_SearchResponse *searchrs,
     if (searchrs->nextResultSetPosition)
         setobj->nextResultSetPosition = *searchrs->nextResultSetPosition;
 
-    logf (LOG_DEBUG, "Search response %d, %d hits", 
+    logf (LOG_DEBUG, "status %d hits %d", 
           setobj->searchStatus, setobj->resultCount);
     if (zrs)
     {
@@ -3551,7 +3562,6 @@ static void ir_select_read (ClientData clientData)
             ir_obj_delete (p);
             return;
         }
-        logf(LOG_DEBUG, "Decoded ok");
         /* handle APDU and invoke callback */
         rq = p->request_queue;
         if (!rq)
@@ -3560,7 +3570,7 @@ static void ir_select_read (ClientData clientData)
             exit (1);
         }
         object_name = rq->object_name;
-        logf (LOG_DEBUG, "getCommandInfo (%s)", object_name);
+        logf (LOG_DEBUG, "Object %s", object_name);
         apdu_call = NULL;
         if (Tcl_GetCommandInfo (p->interp, object_name, &cmd_info))
         {

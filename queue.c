@@ -6,7 +6,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: queue.c,v $
- * Revision 1.9  1996-03-20 13:54:05  adam
+ * Revision 1.10  1996-06-03 09:04:24  adam
+ * Changed a few logf calls.
+ *
+ * Revision 1.9  1996/03/20  13:54:05  adam
  * The Tcl_File structure is only manipulated in the Tk-event interface
  * in tkinit.c.
  *
@@ -81,7 +84,7 @@ int ir_tcl_send_APDU (Tcl_Interp *interp, IrTcl_Obj *p, Z_APDU *apdu,
     odr_reset (p->odr_out);
     if (p->state == IR_TCL_R_Idle)
     {
-        logf (LOG_DEBUG, "send_apdu. Sending %s", msg);
+        logf (LOG_DEBUG, "APDU send %s", msg);
         if (ir_tcl_send_q (p, p->request_queue, msg) == TCL_ERROR)
         {
             if (p->failback)
@@ -99,7 +102,7 @@ int ir_tcl_send_APDU (Tcl_Interp *interp, IrTcl_Obj *p, Z_APDU *apdu,
         } 
     }
     else
-        logf (LOG_DEBUG, "send_apdu. Not idle (%s)", msg);
+        logf (LOG_DEBUG, "APDU pending %s", msg);
     return TCL_OK;
 }
 
