@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.50  1995-06-21 11:04:48  adam
+# Revision 1.51  1995-06-21 11:11:00  adam
+# Bug fix: libdir undefined in about-origin.
+#
+# Revision 1.50  1995/06/21  11:04:48  adam
 # Uses GNU autoconf 2.3.
 # Install procedure implemented.
 # boook bitmaps moved to sub directory bitmaps.
@@ -548,6 +551,7 @@ proc about-origin-logo {n} {
 
 proc about-origin {} {
     set w .about-origin-w
+    global libdir
     
     if {[winfo exists $w]} {
         destroy $w
