@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: marc.c,v $
- * Revision 1.7  1995-11-09 15:24:02  adam
+ * Revision 1.8  1995-11-14 16:48:00  adam
+ * Bug fix: record extraction in line mode merged lines with same tag.
+ *
+ * Revision 1.7  1995/11/09  15:24:02  adam
  * Allow charsets [..] in record match.
  *
  * Revision 1.6  1995/08/28  12:21:22  adam
@@ -134,7 +137,6 @@ int ir_tcl_get_marc (Tcl_Interp *interp, const char *buf,
     char ptag[4];
     int mode = 0;
 
-    *ptag = '\0';
     if (!strcmp (argv[3], "field"))
         mode = 'f';
     else if (!strcmp (argv[3], "line"))
@@ -176,6 +178,7 @@ int ir_tcl_get_marc (Tcl_Interp *interp, const char *buf,
 	char indicator[128];
 	char identifier[128];
 
+        *ptag = '\0';
         memcpy (tag, buf+entry_p, 3);
 	entry_p += 3;
         tag[3] = '\0';
@@ -249,13 +252,13 @@ int ir_tcl_get_marc (Tcl_Interp *interp, const char *buf,
                 free (data);
             }
 	}
+        if (mode == 'l' && *ptag)
+            Tcl_AppendResult (interp, "}} ", NULL);
 	if (i < end_offset)
             logf (LOG_WARN, "MARC: separator but not at end of field");
 	if (buf[i] != ISO2709_RS && buf[i] != ISO2709_FS)
             logf (LOG_WARN, "MARC: no separator at end of field");
     }
-    if (mode == 'l' && *ptag)
-        Tcl_AppendResult (interp, "}} ", NULL);
     return TCL_OK;
 }
 
