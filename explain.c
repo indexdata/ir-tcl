@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: explain.c,v $
- * Revision 1.5  1996-08-23 11:59:47  adam
+ * Revision 1.6  1997-05-14 06:57:14  adam
+ * Adopted to use YAZ with C++ support.
+ *
+ * Revision 1.5  1996/08/23 11:59:47  adam
  * Bug fix: infinite look in ir_oid.
  *
  * Revision 1.4  1996/08/22  13:39:31  adam
@@ -1280,7 +1283,7 @@ static int ir_QueryTypeDetails (IrExpArg *iea,
 
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_choice (iea, arm, &p->which, p->u.private, argi);
+    ir_choice (iea, arm, &p->which, p->u.zprivate, argi);
     return ir_match_end (name, iea, argi);
 }
 
@@ -1354,7 +1357,7 @@ static int ir_ProxSupportUnit (IrExpArg *iea,
         { NULL, 0, NULL }};
     if (!ir_match_start (name, p, iea, ++argi))
         return TCL_OK;
-    ir_choice (iea, arm, &p->which, p->u.private, argi);
+    ir_choice (iea, arm, &p->which, p->u.zprivate, argi);
     return ir_match_end (name, iea, argi);
 }
 
