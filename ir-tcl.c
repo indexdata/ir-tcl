@@ -5,7 +5,10 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.106  1998-05-20 12:25:35  adam
+ * Revision 1.107  1998-06-10 13:00:46  adam
+ * Added ir-version command.
+ *
+ * Revision 1.106  1998/05/20 12:25:35  adam
  * Fixed bug that occurred in rare cases when encoding of incoming
  * records failed.
  *
@@ -657,13 +660,14 @@ int ir_tcl_named_bits (struct ir_named_entry *tab, Odr_bitmask *ob,
         ODR_MASK_ZERO (ob);
         for (no = 0; no < argc; no++)
         {
+	    int ok = 0;
             for (ti = tab; ti->name; ti++)
-                if (!strcmp (argv[no], ti->name))
+                if (!strcmp(argv[no], "@all") || !strcmp (argv[no], ti->name))
                 {
                     ODR_MASK_SET (ob, ti->pos);
-                    break;
+                    ok = 1;
                 }
-            if (!ti->name)
+            if (!ok)
             {
                 Tcl_AppendResult (interp, "bad bit mask ", argv[no], NULL);
                 return ir_tcl_error_exec (interp, argc, argv);
@@ -3489,6 +3493,18 @@ static int ir_log_proc (ClientData clientData, Tcl_Interp *interp,
 }
 
 
+/* 
+ * ir_version: log ir version
+ */
+static int ir_version (ClientData clientData, Tcl_Interp *interp,
+                        int argc, char **argv)
+{
+    Tcl_AppendElement (interp, IR_TCL_VERSION);
+    Tcl_AppendElement (interp, YAZ_VERSION);
+    return TCL_OK;
+}
+
+
 /* ------------------------------------------------------- */
 static void ir_initResponse (void *obj, Z_InitResponse *initrs)
 {
@@ -4203,6 +4219,8 @@ EXPORT (int,Irtcl_Init) (Tcl_Interp *interp)
                        (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
     Tcl_CreateCommand (interp, "ir-log", ir_log_proc,
                        (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
+    Tcl_CreateCommand (interp, "ir-version", ir_version, (ClientData) NULL,
+                       (Tcl_CmdDeleteProc *) NULL);
     nmem_init ();
     return TCL_OK;
 }

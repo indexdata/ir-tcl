@@ -52,7 +52,7 @@ set {profile(Bell Laboratories Library Network,timeDefine)} 878567355
 set {profile(Bell Laboratories Library Network,timeLastExplain)} 891519770
 set {profile(Bell Laboratories Library Network,timeLastInit)} 891519770
 set {profile(Bell Laboratories Library Network,welcomeMessage)} {Salutations - this is Lucent Technologies experimental Z39.50 server. No guarentees, but free and unlimited access!}
-set {profile(Bell Laboratories Library Network,windowNumber)} 16
+set {profile(Bell Laboratories Library Network,windowNumber)} 17
 set {profile(Bibliothèque Nationale du Québec,authentication)} {}
 set {profile(Bibliothèque Nationale du Québec,comstack)} tcpip
 set {profile(Bibliothèque Nationale du Québec,databases)} IRIS
@@ -79,7 +79,7 @@ set {profile(Bibliothèque Nationale du Québec,timeDefine)} 878567355
 set {profile(Bibliothèque Nationale du Québec,timeLastExplain)} {}
 set {profile(Bibliothèque Nationale du Québec,timeLastInit)} 887288466
 set {profile(Bibliothèque Nationale du Québec,welcomeMessage)} {}
-set {profile(Bibliothèque Nationale du Québec,windowNumber)} 7
+set {profile(Bibliothèque Nationale du Québec,windowNumber)} 8
 set {profile(British Library,authentication)} {}
 set {profile(British Library,comstack)} tcpip
 set {profile(British Library,databases)} {EXPLAIN MAR SRI}
@@ -137,7 +137,7 @@ set profile(DanBib,timeDefine) 878567355
 set profile(DanBib,timeLastExplain) 893854494
 set profile(DanBib,timeLastInit) 893854061
 set profile(DanBib,welcomeMessage) {}
-set profile(DanBib,windowNumber) 4
+set profile(DanBib,windowNumber) 5
 set profile(Default,authentication) {}
 set profile(Default,comstack) tcpip
 set profile(Default,description) {}
@@ -163,7 +163,7 @@ set profile(Default,timeDefine) {}
 set profile(Default,timeLastExplain) {}
 set profile(Default,timeLastInit) {}
 set profile(Default,welcomeMessage) {}
-set profile(Default,windowNumber) 20
+set profile(Default,windowNumber) 21
 set profile(LOC,authentication) {}
 set profile(LOC,comstack) tcpip
 set profile(LOC,databases) {BOOKS NAMES AUTH MAPS MUSIC BIB SERIALS SUBJECTS}
@@ -194,7 +194,7 @@ set profile(LOC,timeDefine) 878567355
 set profile(LOC,timeLastExplain) {}
 set profile(LOC,timeLastInit) 891519824
 set profile(LOC,welcomeMessage) {}
-set profile(LOC,windowNumber) 11
+set profile(LOC,windowNumber) 12
 set {profile(OCLC FirstSearch,authentication)} {}
 set {profile(OCLC FirstSearch,comstack)} tcpip
 set {profile(OCLC FirstSearch,databases)} {AGRICOLA MEDLINE}
@@ -225,7 +225,7 @@ set {profile(OCLC FirstSearch,timeDefine)} {}
 set {profile(OCLC FirstSearch,timeLastExplain)} {}
 set {profile(OCLC FirstSearch,timeLastInit)} 886167890
 set {profile(OCLC FirstSearch,welcomeMessage)} {}
-set {profile(OCLC FirstSearch,windowNumber)} 15
+set {profile(OCLC FirstSearch,windowNumber)} 16
 set profile(Penn,authentication) {}
 set profile(Penn,comstack) tcpip
 set profile(Penn,databases) CATALOG
@@ -256,7 +256,7 @@ set profile(Penn,timeDefine) 878567355
 set profile(Penn,timeLastExplain) {}
 set profile(Penn,timeLastInit) 887289434
 set profile(Penn,welcomeMessage) {}
-set profile(Penn,windowNumber) 19
+set profile(Penn,windowNumber) 20
 set profile(Stein,authentication) {}
 set profile(Stein,comstack) tcpip
 set profile(Stein,databases) {lbopac miopac}
@@ -283,9 +283,9 @@ set profile(Stein,smallSetUpperBound) 0
 set profile(Stein,targetInfoName) {LB Z39.50-server}
 set profile(Stein,timeDefine) {}
 set profile(Stein,timeLastExplain) 893857722
-set profile(Stein,timeLastInit) 893857722
+set profile(Stein,timeLastInit) 897482265
 set profile(Stein,welcomeMessage) {Welcome to the Z39.50 target of Steiermaerkische Landesbibliothek, Graz, Austria.}
-set profile(Stein,windowNumber) 12
+set profile(Stein,windowNumber) 13
 set profile(arcatarget,authentication) {}
 set profile(arcatarget,comstack) tcpip
 set profile(arcatarget,databases) {IEI-books IR-Explain-1}
@@ -316,7 +316,7 @@ set profile(arcatarget,timeDefine) 878567355
 set profile(arcatarget,timeLastExplain) 887289477
 set profile(arcatarget,timeLastInit) 887289477
 set profile(arcatarget,welcomeMessage) {buon lavoro}
-set profile(arcatarget,windowNumber) 8
+set profile(arcatarget,windowNumber) 9
 set profile(author,authentication) {}
 set profile(author,comstack) tcpip
 set profile(author,databases) {spain portugal france england belgium}
@@ -344,7 +344,35 @@ set profile(author,timeDefine) 878567355
 set profile(author,timeLastExplain) {}
 set profile(author,timeLastInit) 891519833
 set profile(author,welcomeMessage) {}
-set profile(author,windowNumber) 18
+set profile(author,windowNumber) 19
+set profile(bagel.indexdata.dk,authentication) {}
+set profile(bagel.indexdata.dk,comstack) tcpip
+set profile(bagel.indexdata.dk,databases) {dranet.dra.com IR-Explain-1 gils marc}
+set profile(bagel.indexdata.dk,description) {}
+set profile(bagel.indexdata.dk,host) bagel.indexdata.dk
+set profile(bagel.indexdata.dk,idAuthentication) {}
+set profile(bagel.indexdata.dk,largeSetLowerBound) 2
+set profile(bagel.indexdata.dk,maxResultSets) {}
+set profile(bagel.indexdata.dk,maxResultSize) {}
+set profile(bagel.indexdata.dk,maxTerms) {}
+set profile(bagel.indexdata.dk,maximumRecordSize) 50000
+set profile(bagel.indexdata.dk,mediumSetPresentNumber) 0
+set profile(bagel.indexdata.dk,multipleDatabases) 1
+set profile(bagel.indexdata.dk,namedResultSets) 1
+set profile(bagel.indexdata.dk,port) 210
+set profile(bagel.indexdata.dk,preferredMessageSize) 30000
+set profile(bagel.indexdata.dk,presentChunk) 4
+set profile(bagel.indexdata.dk,protocol) Z39
+set profile(bagel.indexdata.dk,queryCCL) 0
+set profile(bagel.indexdata.dk,queryRPN) 1
+set profile(bagel.indexdata.dk,recentNews) {}
+set profile(bagel.indexdata.dk,smallSetUpperBound) 0
+set profile(bagel.indexdata.dk,targetInfoName) Zebra
+set profile(bagel.indexdata.dk,timeDefine) {}
+set profile(bagel.indexdata.dk,timeLastExplain) 897483464
+set profile(bagel.indexdata.dk,timeLastInit) 897483464
+set profile(bagel.indexdata.dk,welcomeMessage) {}
+set profile(bagel.indexdata.dk,windowNumber) 4
 set profile(bagel9999,authentication) {}
 set profile(bagel9999,comstack) tcpip
 set profile(bagel9999,databases) Default
@@ -372,7 +400,7 @@ set profile(bagel9999,timeDefine) {}
 set profile(bagel9999,timeLastExplain) {}
 set profile(bagel9999,timeLastInit) 891524781
 set profile(bagel9999,welcomeMessage) {}
-set profile(bagel9999,windowNumber) 9
+set profile(bagel9999,windowNumber) 10
 set profile(dranet,authentication) {}
 set profile(dranet,comstack) tcpip
 set profile(dranet,databases) drewdb
@@ -403,7 +431,7 @@ set profile(dranet,timeDefine) 878567355
 set profile(dranet,timeLastExplain) {}
 set profile(dranet,timeLastInit) 887289573
 set profile(dranet,welcomeMessage) {}
-set profile(dranet,windowNumber) 6
+set profile(dranet,windowNumber) 7
 set profile(libris,authentication) {}
 set profile(libris,comstack) tcpip
 set profile(libris,databases) libr
@@ -430,7 +458,7 @@ set profile(libris,timeDefine) 878567355
 set profile(libris,timeLastExplain) {}
 set profile(libris,timeLastInit) 887285394
 set profile(libris,welcomeMessage) {}
-set profile(libris,windowNumber) 5
+set profile(libris,windowNumber) 6
 set profile(madison,authentication) {}
 set profile(madison,comstack) tcpip
 set profile(madison,databases) madison
@@ -457,7 +485,7 @@ set profile(madison,timeDefine) 878567355
 set profile(madison,timeLastExplain) {}
 set profile(madison,timeLastInit) 887289602
 set profile(madison,welcomeMessage) {}
-set profile(madison,windowNumber) 10
+set profile(madison,windowNumber) 11
 set profile(pica,authentication) {}
 set profile(pica,comstack) tcpip
 set profile(pica,databases) {IR-Explain-1 NCC-IBL OLC}
@@ -513,21 +541,21 @@ set profile(zno,timeDefine) {}
 set profile(zno,timeLastExplain) {}
 set profile(zno,timeLastInit) 891593773
 set profile(zno,welcomeMessage) {}
-set profile(zno,windowNumber) 13
+set profile(zno,windowNumber) 14
 set profile(ztest9999,authentication) {}
 set profile(ztest9999,comstack) tcpip
-set profile(ztest9999,databases) {books gils}
+set profile(ztest9999,databases) {Default IR-Explain-1}
 set profile(ztest9999,description) {YAZ server on localhost}
 set profile(ztest9999,descripton) {This target is not a target with real bibliographic record - it just illustrates how Explain data might look like.}
 set profile(ztest9999,host) localhost
 set profile(ztest9999,idAuthentication) {}
 set profile(ztest9999,largeSetLowerBound) 2
-set profile(ztest9999,maxResultSets) 100
-set profile(ztest9999,maxResultSize) 100000
-set profile(ztest9999,maxTerms) 50
+set profile(ztest9999,maxResultSets) {}
+set profile(ztest9999,maxResultSize) {}
+set profile(ztest9999,maxTerms) {}
 set profile(ztest9999,maximumRecordSize) 50000
 set profile(ztest9999,mediumSetPresentNumber) 0
-set profile(ztest9999,multipleDatabases) 0
+set profile(ztest9999,multipleDatabases) 1
 set profile(ztest9999,namedResultSets) 1
 set profile(ztest9999,port) 9999
 set profile(ztest9999,preferredMessageSize) 30000
@@ -535,14 +563,14 @@ set profile(ztest9999,presentChunk) 4
 set profile(ztest9999,protocol) Z39
 set profile(ztest9999,queryCCL) 0
 set profile(ztest9999,queryRPN) 1
-set profile(ztest9999,recentNews) {strings { language {text {We've just added targetInfo, databaseInfo and attributeDetails}} } }
+set profile(ztest9999,recentNews) {}
 set profile(ztest9999,smallSetUpperBound) 0
-set profile(ztest9999,targetInfoName) {Zebra server Explain test}
+set profile(ztest9999,targetInfoName) Zebra
 set profile(ztest9999,timeDefine) 878567355
-set profile(ztest9999,timeLastExplain) 891651588
-set profile(ztest9999,timeLastInit) 891651588
-set profile(ztest9999,welcomeMessage) Welcome!
-set profile(ztest9999,windowNumber) 14
+set profile(ztest9999,timeLastExplain) 897392133
+set profile(ztest9999,timeLastInit) 897392253
+set profile(ztest9999,welcomeMessage) {}
+set profile(ztest9999,windowNumber) 15
 set queryTypes {Simple phrase}
 set queryButtons {{{I 3} {I 0} {I 0}} {{I 0} {I 1} {I 0}}}
 set queryInfo {{{Title {1=4}} {Author {1=1}} {Subject {1=21}} {Any {1=1016}} {Query 1=1016 2=102} {Title-rank 1=4 2=102} {Date/time 1=1012} {Title-regular 1=4 2=3 4=2 5=102} {Ranked 1=1016 2=102 3=3 4=1 6=1}} {{Title 1=4 4=1 6=2} {Author 1=1003 4=1 6=2} {ISBN 1=7} {ISSN 1=8} {Year 1=30 4=4 6=2} {Any {}}}}

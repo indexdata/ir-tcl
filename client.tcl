@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.104  1998-02-12 13:32:41  adam
+# Revision 1.105  1998-06-10 13:00:45  adam
+# Added ir-version command.
+#
+# Revision 1.104  1998/02/12 13:32:41  adam
 # Updated configuration system.
 #
 # Revision 1.103  1998/01/30 13:30:50  adam
@@ -355,6 +358,7 @@
 # First presentRequest attempts. Hot-target list.
 #
 #
+
 
 # Procedure tk4 is defined - returns 0 if tk 3.6 - returns 1 otherwise
 if {$tk_version == "3.6"} {
@@ -743,6 +747,21 @@ proc post-menu {wbutton wmenu} {
 
 }
 
+# Procedure place-force {window parent}
+#  window      new top level widget
+#  parent      parent widget used as base
+# Sets geometry of $window relative to $parent window.
+proc place-force {window parent} {
+    set g [wm geometry $parent]
+
+    set p1 [string first + $g]
+    set p2 [string last + $g]
+
+    set x [expr 40+[string range $g [expr $p1 +1] [expr $p2 -1]]]
+    set y [expr 60+[string range $g [expr $p2 +1] end]]
+    wm geometry $window +${x}+${y}
+}
+
 # Procedure destroyGW {w}
 #   w     top level widget
 # Saves geometry of widget w in windowGeometry array. This
@@ -782,6 +801,25 @@ proc top-down-window {w} {
     pack  $w.top -side top -fill both -expand yes
     pack  $w.bot -fill both
 }
+
+# Init: The geometry information for the main window is set - either
+# to a default value or to the value in windowGeometry(.)
+if {[catch {set g $windowGeometry(.)}]} {
+    wm geometry . 420x340+20+20
+} else {
+    wm geometry . $g
+}
+
+# Init: The geometry information for the main window is set - either
+# to a default value or to the value in windowGeometry(.)
+toplevelG .init
+place-force .init .
+message .init.top -text "IrTcl" -relief raised -border 1 -font $font(bb,normal)
+text .init.msg -width 30 -height 4
+pack .init.top -side top -fill x -expand yes
+pack .init.msg -side bottom -fill both -expand yes
+wm iconify .
+update
 
 # Procedure top-down-ok-cancel {w ok-action g}
 #  w          top level widget with $w.bot-frame
@@ -1087,17 +1125,12 @@ proc about-origin {} {
     label $w.top.a.logo -bitmap @${libdir}/bitmaps/book1 
     pack $w.top.a.irtcl $w.top.a.logo -side left -expand yes
 
-    set i unknown
-    catch {set i [z39 implementationName]}
-    label $w.top.p.in -text "Implementation name: $i"
-    catch {set i [z39 implementationId]}
-    label $w.top.p.ii -text "Implementation id: $i"
-    catch {set i [z39 implementationVersion]}
-    label $w.top.p.iv -text "Implementation version: $i"
-    set i $tk_version
-    label $w.top.p.tk -text "Tk version: $i"
+    label $w.top.p.irtcl -text "IrTcl version: [lindex [ir-version] 0]"
+    label $w.top.p.yaz -text "Yaz version: [lindex [ir-version] 1]"
 
-    pack $w.top.p.in $w.top.p.ii $w.top.p.iv $w.top.p.tk -side top -anchor nw
+    label $w.top.p.tk -text "Tk version: $tk_version"
+
+    pack $w.top.p.irtcl $w.top.p.yaz $w.top.p.tk -side top -anchor nw
 
     about-origin-logo 1
     bottom-buttons $w [list {Close} [list destroy $w] \
@@ -2339,21 +2372,6 @@ proc protocol-setup-action {target w} {
     cascade-target-list
     delete-target-hotlist $target
     destroy $w
-}
-
-# Procedure place-force {window parent}
-#  window      new top level widget
-#  parent      parent widget used as base
-# Sets geometry of $window relative to $parent window.
-proc place-force {window parent} {
-    set g [wm geometry $parent]
-
-    set p1 [string first + $g]
-    set p2 [string last + $g]
-
-    set x [expr 40+[string range $g [expr $p1 +1] [expr $p2 -1]]]
-    set y [expr 60+[string range $g [expr $p2 +1] end]]
-    wm geometry $window +${x}+${y}
 }
 
 # Procedure add-database-action {target w}
@@ -3908,14 +3926,6 @@ proc search-fields {w buttondefs} {
     $w.0 configure -background red
 }
 
-# Init: The geometry information for the main window is set - either
-# to a default value or to the value in windowGeometry(.)
-if {[catch {set g $windowGeometry(.)}]} {
-    wm geometry . 420x340
-} else {
-    wm geometry . $g
-}
-
 # Init: Presentation formats are read.
 read-formats
 
@@ -4143,13 +4153,22 @@ pack .bot.a.status .bot.a.set .bot.a.message \
 
 # Init: Determine if the IrTcl extension is already there. If
 #  not, then dynamically load the IrTcl extension.
-if {[catch {ir z39}]} {
+set logLevel all
+if {[catch {ir-version}]} {
     set e [info sharedlibextension]
-    puts -nonewline "Loading irtcl$e ..."
+    .init.msg insert end "Loading irtcl$e.\n"
     load ${libdir}/irtcl$e irtcl
-    ir z39
-    puts "ok"
+    if {[catch {ir-version}]} {
+	load irtcl$e irtcl
+    }
 }
+
+.init.msg insert end "IrTcl version [lindex [ir-version] 0]\n"
+.init.msg insert end "YAZ version [lindex [ir-version] 1]\n"
+ir-log-init all irtcl.log
+
+# Create Z Assocation
+ir z39
 
 if {[file exists ${libdir}/explain.tcl]} {
     source ${libdir}/explain.tcl
@@ -4159,15 +4178,14 @@ if {[file exists ${libdir}/setup.tcl]} {
     source ${libdir}/setup.tcl
 }
 
-# Init: Uncomment this line if you wan't to enable logging.
-ir-log-init all irtcl irtcl.log
+after 900 activateMainWindow
 
-# Init: If hostid is a valid target, a new connection will be established
-# immediately.
-if {[string compare $hostid Default]} {
-    catch {open-target $hostid $hostbase}
+proc activateMainWindow {} {
+    global hostid hostbase
+    destroy .init
+    wm deiconify .
+    if {[string compare $hostid Default]} {
+	catch {open-target $hostid $hostbase}
+    }
+    show-logo 1
 }
-
-# Init: Enable the logo.
-show-logo 1
-
