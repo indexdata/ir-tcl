@@ -5,7 +5,12 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.41  1995-06-16 12:28:16  adam
+ * Revision 1.42  1995-06-19 08:08:52  adam
+ * client.tcl: hotTargets now contain both database and target name.
+ * ir-tcl.c: setting protocol edited. Errors in callbacks are logged
+ * by logf(LOG_WARN, ...) calls.
+ *
+ * Revision 1.41  1995/06/16  12:28:16  adam
  * Implemented preferredRecordSyntax.
  * Minor changes in diagnostic handling.
  * Record list deleted when connection closes.
@@ -158,6 +163,8 @@ typedef struct {
     IrTcl_Method *tab;
 } IrTcl_Methods;
 
+static Tcl_Interp *irTcl_interp;
+
 static void ir_deleteDiags (IrTcl_Diagnostic **dst_list, int *dst_num);
 static int do_disconnect (void *obj, Tcl_Interp *interp, 
                           int argc, char **argv);
@@ -235,6 +242,8 @@ int IrTcl_eval (Tcl_Interp *interp, const char *command)
     }
     strcpy (tmp, command);
     r = Tcl_Eval (interp, tmp);
+    if (r == TCL_ERROR)
+        logf (LOG_WARN, "Tcl error in line %d: %s", interp->errorLine, interp->result);
     free (tmp);
     return r;
 }
@@ -600,7 +609,7 @@ static int do_options (void *obj, Tcl_Interp *interp,
     { "accessCtrl", 6},
     { "scan", 7},
     { "sort", 8},
-    { "extentedServices", 10},
+    { "extendedServices", 10},
     { "level-1Segmentation", 11},
     { "level-2Segmentation", 12},
     { "concurrentOperations", 13},
@@ -631,7 +640,7 @@ static int do_preferredMessageSize (void *obj, Tcl_Interp *interp,
 
     if (argc <= 0)
     {
-        p->preferredMessageSize = 4096;
+        p->preferredMessageSize = 30000;
 	return TCL_OK;
     }
     return get_set_int (&p->preferredMessageSize, interp, argc, argv);
@@ -647,7 +656,7 @@ static int do_maximumRecordSize (void *obj, Tcl_Interp *interp,
 
     if (argc <= 0)
     {
-        p->maximumRecordSize = 32768;
+        p->maximumRecordSize = 30000;
 	return TCL_OK;
     }
     return get_set_int (&p->maximumRecordSize, interp, argc, argv);
@@ -677,7 +686,7 @@ static int do_implementationName (void *obj, Tcl_Interp *interp,
 
     if (argc == 0)
         return ir_strdup (interp, &p->implementationName,
-                          "Index Data/TCL/TK on YAZ");
+                          "Index Data/IrTcl on YAZ");
     else if (argc == -1)
         return ir_strdel (interp, &p->implementationName);
     if (argc == 3)
@@ -892,7 +901,7 @@ static int do_connect (void *obj, Tcl_Interp *interp,
             return TCL_ERROR;
         if ((r=cs_connect (p->cs_link, addr)) < 0)
         {
-            interp->result = "cs_connect fail";
+            interp->result = "connect fail";
             do_disconnect (p, NULL, 2, NULL);
             return TCL_ERROR;
         }
@@ -998,7 +1007,7 @@ static int do_callback (void *obj, Tcl_Interp *interp,
 	}
 	else
 	    p->callback = NULL;
-        p->interp = interp;
+        p->interp = irTcl_interp;
     }
     return TCL_OK;
 }
@@ -1028,7 +1037,7 @@ static int do_failback (void *obj, Tcl_Interp *interp,
 	}
 	else
 	    p->failback = NULL;
-        p->interp = interp;
+        p->interp = irTcl_interp;
     }
     return TCL_OK;
 }
@@ -1047,7 +1056,7 @@ static int do_protocol (void *o, Tcl_Interp *interp, int argc, char **argv)
     }
     else if (argc == 3)
     {
-        if (!strcmp (argv[2], "Z3950"))
+        if (!strcmp (argv[2], "Z39"))
             p->protocol_type = PROTO_Z3950;
         else if (!strcmp (argv[2], "SR"))
             p->protocol_type = PROTO_SR;
@@ -1061,7 +1070,7 @@ static int do_protocol (void *o, Tcl_Interp *interp, int argc, char **argv)
     switch (p->protocol_type)
     {
     case PROTO_Z3950:
-        Tcl_AppendElement (interp, "Z3950");
+        Tcl_AppendElement (interp, "Z39");
         break;
     case PROTO_SR:
         Tcl_AppendElement (interp, "SR");
@@ -2912,6 +2921,7 @@ int ir_tcl_init (Tcl_Interp *interp)
     		       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
     Tcl_CreateCommand (interp, "ir-scan", ir_scan_obj_mk,
     		       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
+    irTcl_interp = interp;
     return TCL_OK;
 }
 

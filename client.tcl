@@ -4,7 +4,12 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.44  1995-06-16 14:55:18  adam
+# Revision 1.45  1995-06-19 08:08:44  adam
+# client.tcl: hotTargets now contain both database and target name.
+# ir-tcl.c: setting protocol edited. Errors in callbacks are logged
+# by logf(LOG_WARN, ...) calls.
+#
+# Revision 1.44  1995/06/16  14:55:18  adam
 # Book logo mirrored.
 #
 # Revision 1.43  1995/06/16  14:41:05  adam
@@ -159,7 +164,7 @@ set busy 0
 
 set libDir ""
 
-set profile(Default) {{} {} {210} {} 16384 8192 tcpip {} 1 {} {} z39v2}
+set profile(Default) {{} {} {210} {} 16384 8192 tcpip {} 1 {} {} Z39}
 set hostid Default
 set settingsChanged 0
 set setNo 0
@@ -336,8 +341,18 @@ proc cancel-operation {} {
     }
 }
 
-proc show-target {target} {
-    .bot.a.target configure -text "$target"
+proc show-target {target base} {
+    global profile
+
+    if {$target == ""} {
+        .bot.a.target configure -text ""
+        return
+    }
+    if {$base == ""} {
+         .bot.a.target configure -text "$target"
+    } else {
+         .bot.a.target configure -text "$target - $base"
+    }
 }
 
 proc show-logo {v1} {
@@ -619,18 +634,22 @@ proc popup-marc {sno no b df} {
     }
 }
 
-proc update-target-hotlist {target} {
+proc update-target-hotlist {target base} {
     global hotTargets
 
     set len [llength $hotTargets]
     if {$len > 0} {
         .top.target.m delete 6 [expr 6+[llength $hotTargets]]
     }
-    set indx [lsearch $hotTargets $target]
-    if {$indx >= 0} {
-        set hotTargets [lreplace $hotTargets $indx $indx]
+    set i 0
+    foreach e $hotTargets {
+        if {$target == [lindex $e 0] && $base == [lindex $e 1]} {
+            set hotTargets [lreplace $hotTargets $i $i]
+            break
+        }
+        incr i    
     }
-    set hotTargets [linsert $hotTargets 0 $target]
+    set hotTargets [linsert $hotTargets 0 [list $target $base]]
     set-target-hotlist    
 } 
 
@@ -638,9 +657,16 @@ proc set-target-hotlist {} {
     global hotTargets
     
     set i 1
-    foreach target $hotTargets {
-        .top.target.m add command -label "$i $target" -command \
+    foreach e $hotTargets {
+        set target [lindex $e 0]
+        set base [lindex $e 1]
+        if {$base == ""} {
+            .top.target.m add command -label "$i $target" -command \
                 [list reopen-target $target {}]
+        } else {
+            .top.target.m add command -label "$i $target - $base" -command \
+                [list reopen-target $target $base]
+        }
         incr i
         if {$i > 8} {
              break
@@ -651,7 +677,7 @@ proc set-target-hotlist {} {
 proc reopen-target {target base} {
     close-target
     open-target $target $base
-    update-target-hotlist $target
+    update-target-hotlist $target $base
 }
 
 proc define-target-action {} {
@@ -661,7 +687,6 @@ proc define-target-action {} {
     if {$target == ""} {
         return
     }
-    update-target-hotlist $target
     foreach n [array names profile] {
         if {$n == $target} {
             protocol-setup $n
@@ -682,9 +707,9 @@ proc fail-response {target} {
     tkerror "Target connection closed or protocol error"
 }
 
-proc connect-response {target} {
+proc connect-response {target base} {
     puts "connect-response"
-    show-target $target
+    show-target $target $base
     init-request
 }
 
@@ -694,6 +719,7 @@ proc open-target {target base} {
 
     z39 disconnect
     z39 comstack [lindex $profile($target) 6]
+    z39 protocol [lindex $profile($target) 11]
     z39 idAuthentication [lindex $profile($target) 3]
     z39 maximumRecordSize [lindex $profile($target) 4]
     z39 preferredMessageSize [lindex $profile($target) 5]
@@ -701,17 +727,23 @@ proc open-target {target base} {
     puts [z39 maximumRecordSize]
     puts -nonewline "preferredMessageSize="
     puts [z39 preferredMessageSize]
-    show-status {Connecting} 0 0
+    show-status {Connecting} 1 0
     if {$base == ""} {
         z39 databaseNames [lindex [lindex $profile($target) 7] 0]
     } else {
         z39 databaseNames $base
     }
     z39 failback [list fail-response $target]
-    z39 callback [list connect-response $target]
-    z39 connect [lindex $profile($target) 1]:[lindex $profile($target) 2]
+    z39 callback [list connect-response $target $base]
+    set err [catch {
+        z39 connect [lindex $profile($target) 1]:[lindex $profile($target) 2]
+        } errorMessage]
+    if {$err} {
+        tkerror $errorMessage
+        show-status Ready 0 {}
+        return
+    }
 #    z39 options search present scan namedResultSets triggerResourceCtrl
-    show-status {Connecting} 1 {}
     set hostid $target
     .top.target.m disable 0
     .top.target.m enable 1
@@ -728,7 +760,7 @@ proc close-target {} {
     .bot.a.set configure -text ""
     set hostid Default
     z39 disconnect
-    show-target {}
+    show-target {} {}
     show-status {Not connected} 0 0
     init-title-lines
     show-message {}
@@ -1303,6 +1335,7 @@ proc define-target-dialog {} {
 
 proc protocol-setup-delete {target} {
     global profile
+    global settingsChanged
 
     set a [alert "Are you sure you want to delete the target \
 definition $target ?"]
@@ -1311,6 +1344,7 @@ definition $target ?"]
         set w .setup-${wno}
         destroy $w
         unset profile($target)
+        set settingsChanged 1
         cascade-target-list
     }
 }
@@ -1481,7 +1515,7 @@ proc protocol-setup {target} {
     set ResultSetCheck [lindex $profile($target) 10]
     set protocolRadioType [lindex $profile($target) 11]
     if {$protocolRadioType == ""} {
-        set protocolRadioType z39v2
+        set protocolRadioType Z39
     }
 
     # Databases ....
@@ -1526,9 +1560,9 @@ proc protocol-setup {target} {
     
     label $w.top.protocol.label -text "Protocol" 
     radiobutton $w.top.protocol.z39v2 -text "Z39.50" -anchor w \
-            -command {puts z39v2} -variable protocolRadioType -value z39v2
+            -command {puts Z39} -variable protocolRadioType -value Z39
     radiobutton $w.top.protocol.sr -text "SR" -anchor w \
-            -command {puts sr} -variable protocolRadioType -value sr
+            -command {puts sr} -variable protocolRadioType -value SR
     
     pack $w.top.protocol.label $w.top.protocol.z39v2 $w.top.protocol.sr \
             -padx 4 -side top -fill x
@@ -1812,7 +1846,7 @@ proc exit-action {} {
     global settingsChanged
 
     if {$settingsChanged} {
-        set a [alert "you havent saved your settings. Do you wish to save?"]
+        set a [alert "you haven't saved your settings. Do you wish to save?"]
         if {$a} {
             save-settings
         }
