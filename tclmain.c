@@ -5,7 +5,12 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: tclmain.c,v $
- * Revision 1.6  1995-05-29 08:44:28  adam
+ * Revision 1.7  1995-06-21 11:04:54  adam
+ * Uses GNU autoconf 2.3.
+ * Install procedure implemented.
+ * boook bitmaps moved to sub directory bitmaps.
+ *
+ * Revision 1.6  1995/05/29  08:44:28  adam
  * Work on delete of objects.
  *
  * Revision 1.5  1995/03/20  08:53:30  adam
@@ -16,10 +21,13 @@
  *
  */
 
+#include <unistd.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#if HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
 #include <assert.h>
-#include <unistd.h>
 
 #include <tcl.h>
 

@@ -4,7 +4,12 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.49  1995-06-20 14:16:42  adam
+# Revision 1.50  1995-06-21 11:04:48  adam
+# Uses GNU autoconf 2.3.
+# Install procedure implemented.
+# boook bitmaps moved to sub directory bitmaps.
+#
+# Revision 1.49  1995/06/20  14:16:42  adam
 # More work on cancel mechanism.
 #
 # Revision 1.48  1995/06/20  08:07:23  adam
@@ -171,11 +176,14 @@
 # First presentRequest attempts. Hot-target list.
 #
 #
+
+set libdir LIBDIR
+if {[file readable clientrc.tcl]} {
+	set libdir .
+}
 set hotTargets {}
 set hotInfo {}
 set busy 0
-
-set libDir ""
 
 set profile(Default) {{} {} {210} {} 16384 8192 tcpip {} 1 {} {} Z39}
 set hostid Default
@@ -201,11 +209,14 @@ set setMax 0
 
 proc read-formats {} {
     global displayFormats
-    set formats [glob -nocomplain formats/*.tcl]
+    global libdir
+    set formats [glob -nocomplain ${libdir}/formats/*.tcl]
     foreach f $formats {
-        source $f
-        set l [expr [string length $f] - 5]
- 	lappend displayFormats [string range $f 8 $l]
+	if {[file readable $f]} {
+             source $f
+             set l [expr [string length $f] - 5]
+ 	     lappend displayFormats [string range $f 8 $l]
+        }
     }
 }
 
@@ -289,12 +300,12 @@ proc toplevelG {w} {
     bind $w <Destroy> [list destroyGW $w]
 }
 
-if {[file readable "clientrc.tcl"]} {
-    source "clientrc.tcl"
+if {[file readable "${libdir}/clientrc.tcl"]} {
+    source "${libdir}/clientrc.tcl"
 }
 
-if {[file readable "clientg.tcl"]} {
-    source "clientg.tcl"
+if {[file readable "~/.clientrc.tcl"]} {
+    source "~/.clientrc.tcl"
 }
 
 set queryButtonsFind [lindex $queryButtons 0]
@@ -376,17 +387,19 @@ proc show-target {target base} {
 
 proc show-logo {v1} {
     global busy
+    global libdir
+
     if {$busy != 0} {
         incr v1
         if {$v1==10} {
             set v1 1
         }
-        .bot.logo configure -bitmap @book${v1}
+        .bot.logo configure -bitmap @${libdir}/bitmaps/book${v1}
         after 140 [list show-logo $v1]
         return
     }
     while {1} {
-        .bot.logo configure -bitmap @book1
+        .bot.logo configure -bitmap @${libdir}/bitmaps/book1
         tkwait variable busy
         if {$busy} {
             show-logo 1
@@ -458,6 +471,7 @@ proc insertWithTags {w text args} {
 }
 
 proc popup-license {} {
+    global libdir
     set w .popup-licence
     toplevel $w
 
@@ -474,12 +488,14 @@ proc popup-license {} {
     pack $w.top.s -side right -fill y
     pack $w.top.t -expand yes -fill both
 
-    set f [open "LICENSE" r]
-    while {[gets $f buf] != -1} {
-        $w.top.t insert end $buf
-        $w.top.t insert end "\n"
-    } 
-    close $f
+    if {[file readable "${libdir}/LICENSE"]} {
+        set f [open "${libdir}/LICENSE" r]
+        while {[gets $f buf] != -1} {
+            $w.top.t insert end $buf
+            $w.top.t insert end "\n"
+        } 
+        close $f
+    }
     bottom-buttons $w [list {Close} [list destroy $w]] 1
 }
 
@@ -517,6 +533,7 @@ proc about-target {} {
 }
 
 proc about-origin-logo {n} {
+    global libdir
     set w .about-origin-w
     if {![winfo exists $w]} {
         return
@@ -525,7 +542,7 @@ proc about-origin-logo {n} {
     if {$n==10} {
         set n 1
     }
-    $w.top.a.logo configure -bitmap @book$n
+    $w.top.a.logo configure -bitmap @${libdir}/bitmaps/book$n
     after 140 [list about-origin-logo $n]
 }
 
@@ -548,7 +565,7 @@ proc about-origin {} {
     
     label $w.top.a.irtcl -text "IrTcl" \
             -font -Adobe-Helvetica-Bold-R-Normal-*-240-*
-    label $w.top.a.logo -bitmap @book1 
+    label $w.top.a.logo -bitmap @${libdir}/bitmaps/book1 
     pack $w.top.a.irtcl $w.top.a.logo -side left -expand yes
 
     set i [z39 implementationName]
@@ -1872,7 +1889,7 @@ proc save-geometry {} {
     
     set windowGeometry(.) [wm geometry .]
 
-    set f [open "clientg.tcl" w]
+    set f [open "~/.clientrc.tcl" w]
 
     puts $f "set hotTargets \{ $hotTargets \}"
     puts $f "set textWrap $textWrap"
@@ -1888,12 +1905,16 @@ proc save-geometry {} {
 
 proc save-settings {} {
     global profile
+    global libdir
     global settingsChanged
     global queryTypes
     global queryButtons
     global queryInfo
-    
-    set f [open "clientrc.tcl" w]
+   
+    if {![file writeable "${libdir}/clientrc.tcl"]} {
+	return
+    }
+    set f [open "${libdir}/clientrc.tcl" w]
     puts $f "# Setup file"
 
     foreach n [array names profile] {
@@ -2805,7 +2826,7 @@ if {[tk colormodel .] == "color"} {
 }
 .data.record tag configure marc-data -foreground black
 
-button .bot.logo  -bitmap @book1 -command cancel-operation
+button .bot.logo  -bitmap @${libdir}/bitmaps/book1 -command cancel-operation
 frame .bot.a
 pack .bot.a -side left -fill x
 pack .bot.logo -side right -padx 2 -pady 2

@@ -1,0 +1,64 @@
+dnl IR toolkit for tcl/tk
+dnl (c) Index Data 1995
+dnl See the file LICENSE for details.
+dnl $Id: configure.in,v 1.1 1995-06-21 11:04:53 adam Exp $
+AC_INIT(README)
+AC_PROG_CC
+AC_PROG_RANLIB
+AC_PROG_INSTALL
+AC_CHECK_LIB(nsl, ,[LIBS="$LIBS -lnsl"])
+AC_CHECK_LIB(socket, ,[LIBS="$LIBS -lsocket"])
+AC_CHECK_LIB(net, , [LIBS="$LIBS -lnet"])
+AC_STDC_HEADERS
+AC_HAVE_HEADERS(sys/select.h)
+AC_SUBST(YAZDIR)
+AC_SUBST(MOSI)
+AC_SUBST(MOSILIB)
+AC_SUBST(MOSIDIR)
+AC_MSG_CHECKING(for Yaz directory)
+AC_ARG_WITH(yazdir,[  --with-yazdir           Yaz directory], [YAZDIR=$withval])
+if test "$YAZDIR" = "yes"; then
+	YAZDIR="../yaz"
+elif test "$YAZDIR" = ""; then
+	YAZDIR="../yaz"
+	if test -d "../yaz-1.0b"; then
+		YAZDIR="../yaz-1.0b"
+	fi
+fi
+AC_MSG_RESULT($YAZDIR)
+if test ! -d $YAZDIR; then
+	AC_MSG_WARN(Yaz directory doesnt exist)
+fi
+AC_MSG_CHECKING(for MOSI)
+AC_ARG_WITH(mosidir, [  --with-mosidir          MOSI directory], [MOSIDIR=$withval])
+if test "$MOSIDIR" = "yes"; then
+	MOSIDIR="../xtimosi/src"
+elif test "$MOSIDIR" = ""; then
+	MOSIDIR="../xtimosi/src"
+fi
+if test -r ${YAZDIR}/lib/librfc.a; then
+	MOSI=1
+	MOSIDIR=$MOSIDIR
+	MOSILIB='$(MOSIDIR)/libmosi.a $(YAZDIR)/lib/librfc.a'
+        MOSITELL=yes
+else
+	MOSI=0
+	MOSIDIR=$MOSIDIR
+        MOSILIB=''
+        MOSITELL=no
+fi
+AC_MSG_RESULT($MOSITELL)
+AC_SUBST(XINCLUDE)
+AC_SUBST(XLIB)
+AC_FIND_X
+if test "x$x_includes" != x; then
+	XINCLUDE=-I$x_includes
+else
+	XINCLUDE=""
+fi
+if test "x$x_libraries" != x; then
+	XLIB=-L$x_libraries
+else
+	XLIB=""
+fi
+AC_OUTPUT(Makefile)

@@ -1,0 +1,72 @@
+# IR toolkit for tcl/tk
+# (c) Index Data 1995
+# See the file LICENSE for details.
+# Sebastian Hammer, Adam Dickmeiss
+# $Id: Makefile.in,v 1.1 1995-06-21 11:04:44 adam Exp $
+SHELL=/bin/sh
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+BINDIR=$(exec_prefix)/bin
+LIBDIR=$(exec_prefix)/lib
+MANDIR=$(prefix)/man
+IRTCLDIR=$(LIBDIR)/irtcl
+
+YAZDIR=@YAZDIR@
+MOSIDIR=@MOSIDIR@
+LIBS=@LIBS@ -lm
+XLIB=@XLIB@ -lX11
+XINCLUDE=@XINCLUDE@
+
+# Enable MOSI by setting MOSI=1 and set MOSILIB to 
+#  $(YAZDIR)/lib/librfc.a $(MOSIDIR)/libmosi.a
+MOSILIB=@MOSILIB@
+YAZLIB=$(YAZDIR)/lib/libyaz.a $(MOSILIB) $(YAZDIR)/lib/libutil.a
+
+INCLUDE=-I$(YAZDIR)/include $(XINCLUDE) -I$(MOSIDIR) -I/usr/local/include
+DEFS=-DCCL2RPN=0 @DEFS@ -DMOSI=@MOSI@ -DIRTCLDIR=\"$(IRTCLDIR)\" $(INCLUDE)
+
+TCLLIB=-ltcl 
+TKLIB=-ltk
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+RANLIB = @RANLIB@
+
+O=ir-tcl.o marc.o
+P1=ir-tk
+P2=ir-tcl
+
+all: $(P1) $(P2)
+
+$(P1): $(O) tkmain.o
+	$(CC) $(CFLAGS) $(DEFS) $(O) tkmain.o -o $(P1) $(YAZLIB) $(TKLIB) $(TCLLIB) $(XLIB) $(LIBS)
+
+$(P2): $(O) tclmain.o
+	$(CC) $(CFLAGS) $(DEFS) $(O) tclmain.o -o $(P2) $(YAZLIB) $(TCLLIB) $(LIBS)
+
+install-tcl:
+	-mkdir $(IRTCLDIR)
+	$(INSTALL_PROGRAM) ir-tcl $(BINDIR)
+
+install-tk:
+	-mkdir $(IRTCLDIR)
+	-mkdir $(IRTCLDIR)/formats
+	-mkdir $(IRTCLDIR)/bitmaps
+	sed "s,^set libdir LIBDIR,set libdir $(IRTCLDIR)," <client.tcl >client.bak
+	$(INSTALL_PROGRAM) ir-tk $(BINDIR)
+	$(INSTALL_DATA) client.bak $(IRTCLDIR)/client.tcl
+	$(INSTALL_DATA) LICENSE clientrc.tcl $(IRTCLDIR)
+	$(INSTALL_DATA) formats/*.tcl $(IRTCLDIR)/formats
+	$(INSTALL_DATA) bitmaps/book? $(IRTCLDIR)/bitmaps
+
+clean:
+	rm -f *.[oa] $(P1) $(P2) core gmon.out mon.out *.bak
+
+.c.o:
+	$(CC) -c $(CFLAGS) $(DEFS) $<
+
+$(O) tkmain.o tclmain.o: ir-tcl.h ir-tclp.h
+
