@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.53  1995-06-26 12:40:09  adam
+# Revision 1.54  1995-06-27 14:41:03  adam
+# Bug fix in search-response. Didn't always observe non-surrogate diagnostics.
+#
+# Revision 1.53  1995/06/26  12:40:09  adam
 # Client defines its own tkerror.
 # User may specify 'no preferredRecordSyntax'.
 #
@@ -541,6 +544,7 @@ proc about-target {} {
     toplevel $w
 
     wm title $w "About target"
+    place-force $w .
     top-down-window $w
 
     frame $w.top.a -relief ridge -border 2
@@ -1276,26 +1280,25 @@ proc search-response {} {
     set delayRequest {}
     init-title-lines
     set setMax [z39.$setNo resultCount]
-    show-message "${setMax} hits"
-    set l [format "%-4d %7d" $setNo $setMax]
-    .top.rset.m add command -label $l \
-            -command [list add-title-lines $setNo 10000 1]
-    if {$setMax <= 0} {
-        show-status {Ready} 0 1
-        set status [z39.$setNo responseStatus]
-        if {[lindex $status 0] == "NSD"} {
-            set code [lindex $status 1]
-            set msg [lindex $status 2]
-            set addinfo [lindex $status 3]
-            tkerror "NSD$code: $msg: $addinfo"
-        }
+    show-status {Ready} 0 1
+    set status [z39.$setNo responseStatus]
+    if {[lindex $status 0] == "NSD"} {
+        set setOffset 0
+        set code [lindex $status 1]
+        set msg [lindex $status 2]
+        set addinfo [lindex $status 3]
+        tkerror "NSD$code: $msg: $addinfo"
         return
     }
     if {$setMax > 20} {
         set setMax 20
     }
+    show-message "${setMax} hits"
     set setOffset 1
     show-status {Ready} 0 1
+    set l [format "%-4d %7d" $setNo $setMax]
+    .top.rset.m add command -label $l \
+            -command [list add-title-lines $setNo 10000 1]
     z39 callback {present-response}
     z39.$setNo present $setOffset 1
     show-status {Retrieving} 1 0
