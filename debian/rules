@@ -38,7 +38,6 @@ stamp-build: stamp-configure
 
 	# Add here commands to compile the package.
 	$(MAKE) $(MCFLAGS)
-	cd doc; $(MAKE) $(MCFLAGS)
 
 	touch stamp-build
 
