@@ -1,13 +1,13 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.4 1995-05-30 10:05:52 adam Exp $
+  $Id: ir-tcl.sgml,v 1.5 1995-05-30 10:59:20 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference
 <author>Index Data, <tt/info@index.ping.dk/
-<date>$Revision: 1.4 $
+<date>$Revision: 1.5 $
 <abstract>
 This document describes IrTcl &mdash an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
@@ -401,7 +401,7 @@ operators. They are:
 <tag><tt>@not </tt><em>op1 op2</em></tag>
  Boolean <em/not/ on op1 and op2
 <tag><tt>@prox </tt><em>list op1 op2</em></tag>
- Proximity operation on op1 and op2 
+ Proximity operation on op1 and op2. Not implemented yet.
 <tag><tt>@set </tt><em>name</em></tag>
  Result set reference
 </descrip>
