@@ -4,7 +4,11 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.82  1995-11-02 08:47:56  adam
+# Revision 1.83  1995-11-28 17:26:36  adam
+# Removed Carriage return from ir-tcl.c!
+# Removed misc. debug logs.
+#
+# Revision 1.82  1995/11/02  08:47:56  adam
 # Text widgets are flat now.
 #
 # Revision 1.81  1995/10/19  10:34:43  adam
@@ -424,7 +428,7 @@ proc set-wrap {m} {
 }
 
 proc dputs {m} {
-    puts $m
+#    puts $m
 }
 
 proc set-display-format {f} {
@@ -3354,7 +3358,7 @@ if {[catch {ir z39}]} {
     ir z39
     puts "ok"
 }
-z39 logLevel all
+#z39 logLevel all
 
 if {$hostid != "Default"} {
     catch {open-target $hostid $hostbase}

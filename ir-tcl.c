@@ -5,7 +5,11 @@
  * Sebastian Hammer, Adam Dickmeiss
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.65  1995-11-28 13:53:00  quinn
+ * Revision 1.66  1995-11-28 17:26:39  adam
+ * Removed Carriage return from ir-tcl.c!
+ * Removed misc. debug logs.
+ *
+ * Revision 1.65  1995/11/28  13:53:00  quinn
  * Windows port.
  *
  * Revision 1.64  1995/11/13  15:39:18  adam
