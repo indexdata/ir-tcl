@@ -4,7 +4,10 @@
  * See the file LICENSE for details.
  *
  * $Log: ir-tcl.c,v $
- * Revision 1.124  2003-03-05 22:02:47  adam
+ * Revision 1.125  2003-04-29 10:51:23  adam
+ * Null terminate octet aligned records
+ *
+ * Revision 1.124  2003/03/05 22:02:47  adam
  * Add Tcl_InitStubs
  *
  * Revision 1.123  2003/03/05 21:21:41  adam
@@ -4075,8 +4078,11 @@ static void ir_handleDBRecord (IrTcl_Obj *p, IrTcl_RecordList *rl,
         if (oe->which == Z_External_octet && rl->u.dbrec.size > 0)
         {
             char *buf = (char*) oe->u.octet_aligned->buf;
-            if ((rl->u.dbrec.buf = ir_tcl_malloc (rl->u.dbrec.size)))
+            if ((rl->u.dbrec.buf = ir_tcl_malloc (rl->u.dbrec.size+1)))
+	    {
                 memcpy (rl->u.dbrec.buf, buf, rl->u.dbrec.size);
+                rl->u.dbrec.buf[rl->u.dbrec.size] = '\0';
+	    }
         }
         else if (rl->u.dbrec.type == VAL_SUTRS && 
                  oe->which == Z_External_sutrs)
