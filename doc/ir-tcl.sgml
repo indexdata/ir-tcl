@@ -1,14 +1,14 @@
 <!doctype linuxdoc system>
 
 <!--
-  $Id: ir-tcl.sgml,v 1.28 1998-01-30 16:45:58 adam Exp $
+  $Id: ir-tcl.sgml,v 1.29 1999-02-11 10:57:21 adam Exp $
 -->
 
 <article>
 <title>IrTcl User's Guide and Reference 
 <author><htmlurl url="http://www.indexdata.dk/" name="Index Data">,
 <tt><htmlurl url="mailto:info@indexdata.dk" name="info@indexdata.dk"></tt>
-<date>$Revision: 1.28 $
+<date>$Revision: 1.29 $
 <abstract>
 This document describes IrTcl -- an information retrieval toolkit for
 Tcl and Tk that provides access to the Z39.50/SR protocol.
@@ -36,10 +36,10 @@ However, the mOSI transport is only an option, and hence it is not
 needed unless you wish to communicate within an OSI environment.
 See &lsqb;ref 2&rsqb; for more information about the XTI/mOSI implementation.
 
-<sf/IrTcl/ is normally implemented as a <it/dynamic/ library (DLL)
-which is dynamically loaded by using the Tcl command <tt/load/.
-However, <sf/IrTcl/ can be compiled as a traditional <it/static/
-library as well.
+<sf/IrTcl/ is usually build as a <it/dynamic/ library (Windows)
+or shared Object (Unix) which is dynamically loaded by using the Tcl's
+<tt/load/ command. However, <sf/IrTcl/ can be compiled as a
+traditional <it/static/ library as well.
 
 <sect>Compilation and installation
 
@@ -47,15 +47,15 @@ library as well.
 In order to compile you need:
 <itemize>
 <item> An ANSI C compiler such as GNU C.
-<item> <htmlurl url="http://sunscript.sun.com/TclTkCore/" name="Tcl">.
+<item> <htmlurl url="http://www.scriptics.com" name="Tcl">.
  Version 7.5, 7.6 and 8.0 has been tested.
 <item> <htmlurl url="http://www.indexdata.dk/yaz/" name="YAZ">
- version 1.4 or higher.
+ version 1.5 or higher.
 </itemize>
 
 As an option you may want:
 <itemize>
-<item> <htmlurl url="http://sunscript.sun.com/TclTkCore/" name="Tk">.
+<item> <htmlurl url="http://www.scriptics.com" name="Tk">.
 Version 4.1, 4.2 and 8.0 has been tested.
 <item> XTI/mOSI
 </itemize>
@@ -1466,13 +1466,16 @@ Email: info@indexdata.dk
 <tag>1 IrTcl Homepage</tag>
 <htmlurl url="http://www.indexdata.dk/irtcl/"
 name="http://www.indexdata.dk/irtcl/">
+
 <tag>2 Ousterhout, John K.:</tag>
 Tcl and the Tk Toolkit. Addison-Wesley Company Inc (ISBN
 0-201-63337-X). The Tcl/Tk toolkit home page is
-<tt><htmlurl url="http://www.sunscript.com"
- name="http://www.sunscript.com"></tt>.
-The primary ftp site is <tt><htmlurl url="ftp://ftp.smli.com/pub/tcl/"
-name="ftp://ftp.smli.com/pub/tcl/"></tt>.
+<htmlurl url="http://www.scriptics.com"
+ name="http://www.scriptics.com">.
+The primary download area is 
+<htmlurl url="http://www.scriptics.com/software/download.html"
+name="http://www.scriptics.com/software/download.html">.
+
 <tag>3 Welch, Brent B.:</tag>
 Practical Programming in Tcl and Tk. Prentice Hall
 (ISBN 0-13-616830-2).
