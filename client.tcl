@@ -4,7 +4,10 @@
 # Sebastian Hammer, Adam Dickmeiss
 #
 # $Log: client.tcl,v $
-# Revision 1.62  1995-08-04 11:32:37  adam
+# Revision 1.63  1995-08-04 13:20:48  adam
+# Buttons at the bottom are slightly smaller.
+#
+# Revision 1.62  1995/08/04  11:32:37  adam
 # More work on output queue. Memory related routines moved
 # to mem.c
 #
@@ -432,8 +435,8 @@ proc top-down-window {w} {
 
 proc top-down-ok-cancel {w ok-action g} {
     frame $w.bot.left -relief sunken -border 1
-    pack $w.bot.left -side left -expand yes -ipadx 2 -ipady 2 -padx 5 -pady 5
-    button $w.bot.left.ok -width 6 -text {Ok} \
+    pack $w.bot.left -side left -expand yes -ipadx 2 -ipady 2 -padx 4 -pady 4
+    button $w.bot.left.ok -width 5 -text {Ok} \
             -command ${ok-action}
     pack $w.bot.left.ok -expand yes -ipadx 2 -ipady 2 -padx 3 -pady 3
     button $w.bot.cancel -width 6 -text {Cancel} \
@@ -451,16 +454,16 @@ proc bottom-buttons {w buttonList g} {
     set l [llength $buttonList]
 
     frame $w.bot.$i -relief sunken -border 1
-    pack $w.bot.$i -side left -expand yes -padx 5 -pady 5
+    pack $w.bot.$i -side left -expand yes -padx 4 -pady 4
     button $w.bot.$i.ok -text [lindex $buttonList $i] \
             -command [lindex $buttonList [expr $i+1]]
-    pack $w.bot.$i.ok -expand yes -ipadx 3 -ipady 2 -padx 3 -pady 3 -side left
+    pack $w.bot.$i.ok -expand yes -ipadx 2 -ipady 2 -padx 2 -pady 2 -side left
 
     incr i 2
     while {$i < $l} {
         button $w.bot.$i -text [lindex $buttonList $i] \
                 -command [lindex $buttonList [expr $i+1]]
-        pack $w.bot.$i -expand yes -ipadx 2 -ipady 2 -padx 3 -pady 3 -side left
+        pack $w.bot.$i -expand yes -ipadx 2 -ipady 2 -padx 2 -pady 2 -side left
         incr i 2
     }
     if {$g} {
@@ -901,7 +904,7 @@ proc open-target {target base} {
     dputs [z39 maximumRecordSize]
     dputs "preferredMessageSize="
     dputs [z39 preferredMessageSize]
-    show-status {Connecting} 1 0
+    show-status Connecting 1 0
     if {$base == ""} {
         z39 databaseNames [lindex [lindex $profile($target) 7] 0]
     } else {
@@ -961,7 +964,7 @@ proc load-set-action {} {
     set fname [.load-set.top.filename.entry get]
     destroy .load-set
     if {$fname != ""} {
-        show-status {Loading} 1 {}
+        show-status Loading 1 {}
         update
         z39.$setNoLast loadFile $fname
 
@@ -971,7 +974,7 @@ proc load-set-action {} {
     set l [format "%-4d %7d" $setNoLast $no]
     .top.rset.m add command -label $l \
             -command [list add-title-lines $setNoLast 10000 1]
-    show-status {Ready} 0 {}
+    show-status Ready 0 {}
 }
 
 proc load-set {} {
@@ -1000,7 +1003,7 @@ proc init-request {} {
         return
     }
     z39 callback {init-response}
-    show-status {Initializing} 1 {}
+    show-status Initializing 1 {}
     set err [catch {z39 init} errorMessage]
     if {$err} {
         tkerror $errorMessage
@@ -1017,7 +1020,7 @@ proc init-response {} {
         return
     }
     if {![z39 initResult]} {
-        show-status {Ready} 0 1
+        show-status Ready 0 1
         set u [z39 userInformationField]
         close-target
         tkerror "Connection rejected by target: $u"
@@ -1027,7 +1030,7 @@ proc init-response {} {
         } else {
             set scanEnable 0
         }
-        show-status {Ready} 0 1
+        show-status Ready 0 1
     }
 }
 
@@ -1051,7 +1054,7 @@ proc search-request {bflag} {
     }
     if {$cancelFlag} {
         dputs "cancelFlag"
-        show-status {Searching} 1 0
+        show-status Searching 1 0
         set delayRequest {search-request 1}
         return
     }
@@ -1087,7 +1090,7 @@ proc search-request {bflag} {
     }
     z39 callback {search-response}
     z39.$setNo search $query
-    show-status {Searching} 1 0
+    show-status Searching 1 0
 }
 
 proc scan-copy {y entry} {
@@ -1114,7 +1117,7 @@ proc scan-request {} {
     dputs "scan-request"
     if {$cancelFlag} {
         dputs "cancelFlag"
-        show-status {Scanning} 1 0
+        show-status Scanning 1 0
         set delayRequest scan-request
         return
     }
@@ -1164,7 +1167,7 @@ proc scan-request {} {
     z39.scan preferredPositionInResponse 1
     z39.scan scan "${attr} 0"
     
-    show-status {Scanning} 1 0
+    show-status Scanning 1 0
 }
 
 proc scan-term-h {attr} {
@@ -1189,7 +1192,7 @@ proc scan-term-h {attr} {
     } else {
         z39.scan scan "${attr} \{${scanTerm}\}"
     }
-    show-status {Scanning} 1 0
+    show-status Scanning 1 0
 }
 
 proc scan-response {attr start toget} {
@@ -1215,7 +1218,7 @@ proc scan-response {attr start toget} {
             }
             return
         }
-        show-status {Ready} 0 1
+        show-status Ready 0 1
         return
     }
     set nScanTerm [$w.top.entry get]
@@ -1230,13 +1233,13 @@ proc scan-response {attr start toget} {
         } else {
             z39.scan scan "${attr} \{${scanTerm}\}"
         }
-        show-status {Scanning} 1 0
+        show-status Scanning 1 0
         return
     }
     set status [z39.scan scanStatus]
     if {$status == 6} {
         tkerror "Scan fail"
-        show-status {Ready} 0 1
+        show-status Ready 0 1
         set cancelFlag 0
         return
     }
@@ -1298,7 +1301,7 @@ proc scan-response {attr start toget} {
         z39.scan scan "${attr} \{$q\}"
         return
     }
-    show-status {Ready} 0 1
+    show-status Ready 0 1
 }
 
 proc scan-down {attr} {
@@ -1324,7 +1327,7 @@ proc scan-down {attr} {
         dputs "down: $q"
         z39.scan numberOfTermsRequested 10
         z39.scan preferredPositionInResponse 1
-        show-status {Scanning} 1 0
+        show-status Scanning 1 0
         dputs "${attr} \{$q\}"
         z39.scan scan "${attr} \{$q\}"
         return
@@ -1340,7 +1343,7 @@ proc scan-up {attr} {
     dputs {scan-up}
     if {$cancelFlag} {
         dputs "cancelFlag"
-        show-status {Scanning up} 1 0
+        show-status Scanning 1 0
         set delayRequest [list scan-up $attr]
         return
     }
@@ -1354,7 +1357,7 @@ proc scan-up {attr} {
         dputs "up: $q"
         z39.scan numberOfTermsRequested 10
         z39.scan preferredPositionInResponse 11
-        show-status {Scanning} 1 0
+        show-status Scanning 1 0
         z39.scan scan "${attr} \{$q\}"
         return
     }
@@ -1382,7 +1385,7 @@ proc search-response {} {
     set delayRequest {}
     init-title-lines
     set setMax [z39.$setNo resultCount]
-    show-status {Ready} 0 1
+    show-status Ready 0 1
     set status [z39.$setNo responseStatus]
     if {[lindex $status 0] == "NSD"} {
         z39.$setNo nextResultSetPosition 0
@@ -1397,7 +1400,7 @@ proc search-response {} {
         return
     }
     set setOffset 1
-    show-status {Ready} 0 1
+    show-status Ready 0 1
     set l [format "%-4d %7d" $setNo $setMax]
     .top.rset.m add command -label $l \
             -command [list add-title-lines $setNo 10000 1]
@@ -1406,7 +1409,7 @@ proc search-response {} {
     }
     z39 callback {present-response}
     z39.$setNo present $setOffset 1
-    show-status {Retrieving} 1 0
+    show-status Retrieving 1 0
 }
 
 proc present-more {number} {
@@ -1419,7 +1422,7 @@ proc present-more {number} {
 
     dputs "present-more"
     if {$cancelFlag} {
-        show-status {Retrieving} 1 0
+        show-status Retrieving 1 0
         set delayRequest "present-more $number"
         return
     }
@@ -1457,7 +1460,7 @@ proc present-more {number} {
         set toGet 3
     } 
     z39.$setNo present $setOffset $toGet
-    show-status {Retrieving} 1 0
+    show-status Retrieving 1 0
 }
 
 proc init-title-lines {} {
@@ -1528,7 +1531,7 @@ proc present-response {} {
     }
     set status [z39.$setNo responseStatus]
     if {[lindex $status 0] == "NSD"} {
-        show-status {Ready} 0 1
+        show-status Ready 0 1
         set code [lindex $status 1]
         set msg [lindex $status 2]
         set addinfo [lindex $status 3]
@@ -1543,7 +1546,7 @@ proc present-response {} {
         }
         z39.$setNo present $setOffset $toGet
     } else {
-        show-status {Ready} 0 1
+        show-status Ready 0 1
     }
 }
 
@@ -1906,7 +1909,7 @@ proc database-select {} {
     pack $w.top.databases -side left -pady 6 -padx 6 -expand yes -fill x
 
     label $w.top.databases.label -text "List"
-    listbox $w.top.databases.list -geometry 20x6 \
+    listbox $w.top.databases.list -width 20 -height 6 \
             -yscrollcommand "$w.top.databases.scroll set"
     scrollbar $w.top.databases.scroll -orient vertical -border 1
     pack $w.top.databases.label -side top -fill x \
