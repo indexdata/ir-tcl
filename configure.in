@@ -1,7 +1,7 @@
 dnl IR toolkit for tcl/tk
-dnl (c) Index Data 1996-2004
+dnl (c) Index Data 1996-2006
 dnl See the file LICENSE for details.
-dnl $Id: configure.in,v 1.37 2004-05-04 19:42:56 adam Exp $
+dnl $Id: configure.in,v 1.38 2006-05-01 12:52:51 adam Exp $
 AC_INIT(ir-tcl.h)
 dnl ------ Substitutions
 AC_SUBST(CC)
