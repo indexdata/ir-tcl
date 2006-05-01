@@ -1,5 +1,5 @@
 # IRTCL makefile for MS NMAKE 
-# $Id: makefile,v 1.6 2006-05-01 12:42:44 adam Exp $
+# $Id: makefile,v 1.7 2006-05-01 12:50:06 adam Exp $
 #
 # Log at the end of the file
 VERSION=1.4.3
@@ -194,15 +194,14 @@ $(RES): $(RC)
 ###########################################################
 
 $(IRTCLDLL) : "$(BINDIR)" $(IRTCL_OBJS) $(RES)
-	@echo Linking irtcl DLL $(IRTCLDLL)
-	$(LINK) $(IRTCL_LINK_OPTIONS) @<<
-		/nologo
-		$(IRTCL_OBJS) 
-		$(RES)
-		/out:"$(IRTCLDLL)"
-		"$(YAZLIB)"
+	$(LINK) \
+		$(IRTCL_LINK_OPTIONS) \
+		/nologo \
+		$(IRTCL_OBJS)  \
+		$(RES) \
+		/out:"$(IRTCLDLL)" \
+		"$(YAZLIB)" \
 		"$(TCLLIB)"
-<<
 
 
 ###########################################################
@@ -214,6 +213,7 @@ $(IRTCLDLL) : "$(BINDIR)" $(IRTCL_OBJS) $(RES)
 clean:
 	-del $(OBJDIR)\*.obj
 	-del $(OBJDIR)\*.sbr
+	-del $(OBJDIR)\*.res
 	-del $(TMPDIR)\*.
 	-del $(IRTCLDLL)
 
@@ -240,7 +240,10 @@ $(ALL_OBJS): makefile
 ###########################################################
 #
 # $Log: makefile,v $
-# Revision 1.6  2006-05-01 12:42:44  adam
+# Revision 1.7  2006-05-01 12:50:06  adam
+# More verbose linking. Remove .res on clean
+#
+# Revision 1.6  2006/05/01 12:42:44  adam
 # Update for VS 2005.
 # Version 1.4.3.
 #
