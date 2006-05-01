@@ -53,8 +53,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,4,2,1
- PRODUCTVERSION 1,4,2,1
+ FILEVERSION 1,4,3,1
+ PRODUCTVERSION 1,4,3,1
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -72,12 +72,12 @@ BEGIN
             VALUE "Comments", "Information Retrieval Toolkit for Tcl"
             VALUE "CompanyName", "Index Data"
             VALUE "FileDescription", "IrTcl"
-            VALUE "FileVersion", "1, 4, 2, 1"
+            VALUE "FileVersion", "1, 4, 3, 1"
             VALUE "InternalName", "IrTcl"
-            VALUE "LegalCopyright", "Copyright © 1995-2004 Index Data"
+            VALUE "LegalCopyright", "Copyright © 1995-2006 Index Data"
             VALUE "OriginalFilename", "irtcl.rc"
             VALUE "ProductName", "IrTcl"
-            VALUE "ProductVersion", "1, 4, 2, 1"
+            VALUE "ProductVersion", "1, 4, 3, 1"
         END
     END
     BLOCK "VarFileInfo"
