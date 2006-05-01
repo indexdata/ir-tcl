@@ -1,8 +1,8 @@
 # IRTCL makefile for MS NMAKE 
-# $Id: makefile,v 1.5 2004-04-26 09:31:00 adam Exp $
+# $Id: makefile,v 1.6 2006-05-01 12:42:44 adam Exp $
 #
 # Log at the end of the file
-VERSION=1.4.2
+VERSION=1.4.3
  
 ###########################################################
 ############### Parameters 
@@ -23,7 +23,7 @@ ROOTDIR=..   # The home of IRTCL
 
 # TCL include files, libraries, etc.
 TCLDIR=c:\tcl
-TCLINCL=$(TCLDIR)\include
+TCLINCL=$(TCLDIR)\include8.4
 TCLLIB=$(TCLDIR)\lib\tclstub84.lib
 
 # YAZ include files, libraries, etc.
@@ -64,8 +64,9 @@ irtcl : $(IRTCLDLL)
 
 COMMON_C_OPTIONS=          \
   /nologo \
-  /W3 /GX /FD /c   \
+  /W3 /EHsc /FD /c   \
   /D "WIN32" \
+  /D "_CRT_SECURE_NO_DEPRECATE" \
   /D "IR_TCL_VERSION=\"$(VERSION)\""  \
   /D USE_TCL_STUBS=1       \
   /FR"$(OBJDIR)\\"         \
@@ -239,7 +240,11 @@ $(ALL_OBJS): makefile
 ###########################################################
 #
 # $Log: makefile,v $
-# Revision 1.5  2004-04-26 09:31:00  adam
+# Revision 1.6  2006-05-01 12:42:44  adam
+# Update for VS 2005.
+# Version 1.4.3.
+#
+# Revision 1.5  2004/04/26 09:31:00  adam
 # Update for 1.4.2
 #
 # Revision 1.4  2003/03/05 22:06:32  adam
