@@ -1,3 +1,9 @@
+ir-tcl (1.4.3-1) unstable; urgency=low
+
+  * For etch. Still using YAZ version 2.
+
+ -- Adam Dickmeiss <adam@indexdata.dk>  Tue, 08 May 2007 08:41:07 +0200
+
 ir-tcl (1.4.2-2) unstable; urgency=low
 
   * Use DESTDIR instead of --built-root.

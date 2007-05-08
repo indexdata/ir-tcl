@@ -1,3 +1,5 @@
+------------------------------------------------------
+08/05/07 Release of ir-tcl-1.4.3
 
 12/03/05 Do not enable CCL to RPN by default. It's not documented
 and is not really useful as at stands now.
@@ -179,4 +181,4 @@ and is not really useful as at stands now.
 ------------------------------------------------------
 06/19/95 Release of ir-tcl-1.0b
 
-$Id: NEWS,v 1.4 2005-03-10 14:09:53 adam Exp $
+$Id: NEWS,v 1.5 2007-05-08 06:46:25 adam Exp $
