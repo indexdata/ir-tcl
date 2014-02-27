@@ -4169,7 +4169,7 @@ if {[catch {ir-version}]} {
     set e [info sharedlibextension]
     catch {load ${libdir}/irtcl$e irtcl}
     if {[catch {ir-version}]} {
-	catch {load irtcl$e irtcl}
+	load irtcl$e irtcl
     }
 }
 
