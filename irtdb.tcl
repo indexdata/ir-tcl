@@ -538,7 +538,7 @@ set profile(indexdata,authentication) {}
 set profile(indexdata,comstack) tcpip
 set profile(indexdata,databases) {dranet.dra.com IR-Explain-1 gils marc zoom}
 set profile(indexdata,description) {}
-set profile(indexdata,host) bagel.indexdata.dk
+set profile(indexdata,host) z3950.indexdata.com
 set profile(indexdata,idAuthentication) {}
 set profile(indexdata,largeSetLowerBound) 2
 set profile(indexdata,maxResultSets) {}
@@ -559,7 +559,7 @@ set profile(indexdata,smallSetUpperBound) 0
 set profile(indexdata,targetInfoName) Zebra
 set profile(indexdata,timeDefine) 944954185
 set profile(indexdata,timeLastExplain) 1007339347
-set profile(indexdata,timeLastInit) 1043924972
+set profile(indexdata,timeLastInit) 1393506345
 set profile(indexdata,welcomeMessage) {}
 set profile(indexdata,windowNumber) 20
 set profile(localhost,authentication) {}
