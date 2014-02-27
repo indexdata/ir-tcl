@@ -123,15 +123,15 @@ AC_DEFUN([YAZ_INIT],
 	if test "X$YAZVERSION" != "XNONE"; then
 		AC_MSG_CHECKING([for YAZ version])
 		AC_MSG_RESULT([$YAZVERSION])
+		have_yaz_version=`echo "$YAZVERSION" | awk 'BEGIN { FS = "."; } { printf "%d", ([$]1 * 1000 + [$]2) * 1000 + [$]3;}'`
 		if test "$2"; then
-			have_yaz_version=`echo "$YAZVERSION" | awk 'BEGIN { FS = "."; } { printf "%d", ([$]1 * 1000 + [$]2) * 1000 + [$]3;}'`
 			req_yaz_version=`echo "$2" | awk 'BEGIN { FS = "."; } { printf "%d", ([$]1 * 1000 + [$]2) * 1000 + [$]3;}'`
 			if test "$have_yaz_version" -lt "$req_yaz_version"; then
 				AC_MSG_ERROR([$YAZVERSION. Requires $2 or later])
 			fi
-			if test "$req_yaz_version" -gt "2000028"; then
-				YAZINC="$YAZINC -DYAZ_USE_NEW_LOG=1"
-			fi
+		fi
+		if test "$have_yaz_version" -ge "3000000"; then
+			AC_MSG_ERROR([$YAZVERSION. Version 2 series only])
 		fi
 	fi
 ]) 
