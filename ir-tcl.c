@@ -597,8 +597,15 @@ int ir_tcl_eval (Tcl_Interp *interp, const char *command)
     if (r == TCL_ERROR)
     {
 	const char *errorInfo = Tcl_GetVar (interp, "errorInfo", 0);
-        logf (LOG_WARN, "Tcl error in line %d: %s\n%s", interp->errorLine, 
-              interp->result, errorInfo ? errorInfo : "<null>");
+        logf (LOG_WARN, "Tcl error in line %d: %s\n%s",
+#if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION <= 5
+	      interp->errorLine,
+              interp->result,
+#else
+	      Tcl_GetErrorLine(interp),
+              Tcl_GetStringResult(interp),
+#endif
+	      errorInfo ? errorInfo : "<null>");
     }
     Tcl_FreeResult (interp);
     xfree (tmp);
@@ -882,7 +889,11 @@ static int do_protocolVersion (void *obj, Tcl_Interp *interp,
         if (ODR_MASK_GET (&p->protocolVersion, i))
             break;
     sprintf (buf, "%d", i+1);
+#if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION <= 5
     interp->result = buf;
+#else
+    Tcl_SetResult(interp, buf, TCL_VOLATILE);
+#endif
     return TCL_OK;
 }
 
@@ -2526,6 +2537,7 @@ static int do_type (void *o, Tcl_Interp *interp, int argc, char **argv)
     IrTcl_SetObj *obj = o;
     int offset;
     IrTcl_RecordList *rl;
+    const char *type = 0;
 
     if (argc == 0)
     {
@@ -2554,11 +2566,18 @@ static int do_type (void *o, Tcl_Interp *interp, int argc, char **argv)
     switch (rl->which)
     {
     case Z_NamePlusRecord_databaseRecord:
-        interp->result = "DB";
+        type = "DB";
         break;
     case Z_NamePlusRecord_surrogateDiagnostic:
-        interp->result = "SD";
+        type = "SD";
         break;
+    }
+    if (type) {
+#if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION <= 5
+        interp->result = type;
+#else
+	Tcl_SetResult(interp, (char *) type, TCL_STATIC);
+#endif
     }
     return TCL_OK;
 }

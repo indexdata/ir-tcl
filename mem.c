@@ -59,10 +59,14 @@ int ir_tcl_strdup (Tcl_Interp *interp, char** p, const char *s)
     {
         if (!interp) 
         {
-            logf (LOG_FATAL, "Out of memory in strdup. %d bytes", len);
+	    logf (LOG_FATAL, "Out of memory in strdup. %ld bytes", (long) len);
             exit (1);
         }
+#if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION <= 5
         interp->result = "strdup fail";
+#else
+        Tcl_SetResult(interp, "strdup fail", TCL_STATIC);
+#endif
         return TCL_ERROR;
     }
     strcpy (*p, s);

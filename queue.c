@@ -106,7 +106,13 @@ int ir_tcl_send_APDU (Tcl_Interp *interp, IrTcl_Obj *p, Z_APDU *apdu,
             }
             else 
             {
-                sprintf (interp->result, "cs_put failed in %s", msg);
+                char buf[100];
+	        snprintf(buf, sizeof buf - 1, "cs_put failed in %s", msg);
+#if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION <= 5
+	        interp->result = buf;
+#else
+                Tcl_SetResult(interp, buf, TCL_VOLATILE);
+#endif
                 return TCL_ERROR;
             }
         } 
